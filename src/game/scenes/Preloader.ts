@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { SCREEN_CENTER } from '../config.ts';
+// import { SCREEN_CENTER } from '../config.ts';
 
 export class Preloader extends Scene
 {
@@ -11,7 +11,7 @@ export class Preloader extends Scene
 
     init ()
     {
-        this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'background');
+        // this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'background');
 
         //  A simple progress bar. This is the outline of the bar.
         this.add.rectangle(512, 384, 468, 32).setStrokeStyle(1, 0xffffff);
@@ -33,7 +33,8 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
 
-        this.load.image('logo', 'logo.png');
+        this.load.image('bang', 'bang.png');
+        this.load.image('blue', 'blue.jpg');
     }
 
     create ()
