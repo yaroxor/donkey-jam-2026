@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-export class Game extends Scene
+export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
     background: Phaser.GameObjects.Image;
@@ -8,7 +8,7 @@ export class Game extends Scene
 
     constructor ()
     {
-        super('Game');
+        super('MainGame');
     }
 
     create ()
