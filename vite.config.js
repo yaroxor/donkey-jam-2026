@@ -1,3 +1,3 @@
 export default {
-  base: '/donkey-jam-2026'
+  base: '/donkey-jam-2026/'
 }
