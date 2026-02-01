@@ -50,7 +50,7 @@ export class MainGame extends Scene
         const block =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y - 100, 'blue');
         const BLOCK_SIZE = {
             width: 200,
-            height: 50
+            height: 30
         }
         block.setDisplaySize(BLOCK_SIZE.width, BLOCK_SIZE.height);
         block.setImmovable(true);

@@ -15,7 +15,7 @@ export class GameOver extends Scene
     create ()
     {
         this.camera = this.cameras.main
-        this.camera.setBackgroundColor(0xff0000);
+        this.camera.setBackgroundColor(0xbb3333);
 
         const text1 = this.add.text(
             SCREEN_CENTER.x,
@@ -43,7 +43,6 @@ export class GameOver extends Scene
         if (this.input.keyboard) {
             this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         }
-
         this.input.once('pointerdown', () => {
             this.scene.start('MainMenu');
         });

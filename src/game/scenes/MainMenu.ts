@@ -7,8 +7,11 @@ const LOWER_THIRD: number = 2*GAME_HEIGHT/3;
 export class MainMenu extends Scene
 {
     background: GameObjects.Image;
+
     startGame: GameObjects.Text;
     bang: GameObjects.Sprite;
+
+    spaceKey: Phaser.Input.Keyboard.Key;
 
     constructor ()
     {
@@ -39,6 +42,9 @@ export class MainMenu extends Scene
         // this.startGame.setInteractive(shape, Phaser.Geom.Ellipse.Contains);
         this.startGame.setInteractive();
 
+        if (this.input.keyboard) {
+            this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        }
         this.startGame.on('pointerover', () => {
             this.bang.setAlpha(1);
         });
@@ -52,8 +58,9 @@ export class MainMenu extends Scene
 
     update()
     {
-        this.time.delayedCall(0, () => {
+        // this.scene.start('MainGame');
+        if (this.spaceKey.isDown) {
             this.scene.start('MainGame');
-        })
+        }
     }
 }
