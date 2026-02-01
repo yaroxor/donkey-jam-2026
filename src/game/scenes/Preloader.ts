@@ -38,6 +38,7 @@ export class Preloader extends Scene
         this.load.image('main-menu', 'main-menu.jpg');
         this.load.image('level-layout', 'level-layout.jpg');
         this.load.image('hand', 'hand.png');
+        this.load.image('coins', 'coins.png');
     }
 
     create ()
