@@ -17,7 +17,7 @@ export class MainMenu extends Scene
 
     create ()
     {
-        // this.background = this.add.image(512, 384, 'background');
+        this.background = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'main-menu');
 
         this.bang = this.add.sprite(SCREEN_CENTER.x, LOWER_THIRD, 'bang');
         this.bang.setAlpha(0);
@@ -30,7 +30,7 @@ export class MainMenu extends Scene
             {
                 fontFamily: 'Eater',
                 fontSize: '96px',
-                color: '#00ee00'
+                color: '#33ff33'
             }
         );
         this.startGame.setOrigin(0.5);
@@ -47,6 +47,13 @@ export class MainMenu extends Scene
         })
         this.startGame.on('pointerout', () => {
             this.bang.setAlpha(0);
+        })
+    }
+
+    update()
+    {
+        this.time.delayedCall(0, () => {
+            this.scene.start('MainGame');
         })
     }
 }
