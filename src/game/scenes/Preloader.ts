@@ -33,6 +33,8 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
 
+        this.load.audio('music', 'Slick Hand Joe.mp3');
+
         this.load.image('main-menu', 'main-menu.png');
         this.load.image('start1', 'start1.png');
         this.load.image('start-hovered', 'start-hovered.png');

@@ -55,6 +55,8 @@ export class MainGame extends Scene
 
     create ()
     {
+        this.sound.play('music', { loop: true });
+
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
 
