@@ -22,6 +22,7 @@ enum Direction {
 }
 
 function getLootRandomPos(arcadeArea: GameObjPos): Pos {
+    // TODO: random from interrupted interval
     const x = Math.random() * arcadeArea.width + arcadeArea.x;
     const y = Math.random() * arcadeArea.height + arcadeArea.y;
     const lootPos = { x: x, y: y};
@@ -100,11 +101,10 @@ export class MainGame extends Scene
         }
         block3.setDisplaySize(BLOCK3_SIZE.width, BLOCK3_SIZE.height);
         this.blocks.add(block3);
+        // TODO: get blocks coordinates
 
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
-        console.log(this.hand);
-        console.log(this.arcadeArea);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
             this.scene.start('GameOver');
@@ -131,6 +131,7 @@ export class MainGame extends Scene
     update()
     {
         if (!this.isLoot) {
+            // TODO?: add loot spawn delay?
             const lootPos: Pos = getLootRandomPos(this.arcadeAreaCoords);
             this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, 'coins');
             this.isLoot = true;
@@ -142,8 +143,24 @@ export class MainGame extends Scene
             this.physics.add.collider(this.loot, this.hand, () => {
                 this.loot.destroy();
                 this.isLoot = false;
-                this.hand.body.velocity.x *= 2;
-                this.hand.body.velocity.y *= 2;
+                if (this.hand.body.velocity.x !== 0) {
+                    if (this.hand.body.velocity.x > 0) {
+                        this.hand.body.setVelocityX(300);
+                    }
+                    else {
+                        this.hand.body.setVelocityX(-300);
+                    }
+
+                }
+                if (this.hand.body.velocity.y !== 0) {
+                    if (this.hand.body.velocity.y > 0) {
+                        this.hand.body.setVelocityY(300);
+                    }
+                    else {
+                        this.hand.body.setVelocityY(-300);
+                    }
+
+                }
                 this.lootCount += 1;
                 this.lootScoreMsg.setText(`${this.lootCount}`);
             });
