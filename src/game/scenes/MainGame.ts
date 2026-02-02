@@ -44,6 +44,8 @@ export class MainGame extends Scene
 
     isLoot: boolean;
     loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    lootCount: number;
+    lootScoreMsg: Phaser.GameObjects.Text;
 
     constructor ()
     {
@@ -55,6 +57,7 @@ export class MainGame extends Scene
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
 
+        // TODO?: move this stuff into config
         const ARCADE_AREA_CENTER: Pos = {
             x: (SCREEN_CENTER.x - 5),
             y: (GAME_HEIGHT/3 + 55)
@@ -69,33 +72,56 @@ export class MainGame extends Scene
         }
 
         this.arcadeAreaCoords = { x: ARCADE_AREA_TOP_LEFT_CORNER.x, y: ARCADE_AREA_TOP_LEFT_CORNER.y, width: ARCADE_AREA_SIZE.width, height: ARCADE_AREA_SIZE.height };
-        this.physics.world.setBounds(this.arcadeAreaCoords.x, this.arcadeAreaCoords.y, this.arcadeAreaCoords.width, this.arcadeAreaCoords.height);
 
         this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'level-layout');
 
         this.arcadeArea = this.add.rectangle(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y, ARCADE_AREA_SIZE.width, ARCADE_AREA_SIZE.height, 0xcccc33, 1);
         this.arcadeArea.setAlpha(0.5);
 
-        // this.blocks = this.physics.add.group({ immovable: true });
-        // const BLOCK_1_POS = {x: 500, y: 500}
-        // this.blocks.create(BLOCK_1_POS.x, BLOCK_1_POS.y, 'blue');
-        const block =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y - 100, 'blue');
-        const BLOCK_SIZE = {
+        this.blocks = this.physics.add.group({ immovable: true });
+        const block1 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y - 100, 'blue');
+        const BLOCK1_SIZE = {
             width: 200,
             height: 30
         }
-        block.setDisplaySize(BLOCK_SIZE.width, BLOCK_SIZE.height);
-        block.setImmovable(true);
+        block1.setDisplaySize(BLOCK1_SIZE.width, BLOCK1_SIZE.height);
+        this.blocks.add(block1);
+        const block2 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, 40, 'blue');
+        const BLOCK2_SIZE = {
+            width: 550,
+            height: 30
+        }
+        block2.setDisplaySize(BLOCK2_SIZE.width, BLOCK2_SIZE.height);
+        this.blocks.add(block2);
+        const block3 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y + 255, 'blue');
+        const BLOCK3_SIZE = {
+            width: 550,
+            height: 30
+        }
+        block3.setDisplaySize(BLOCK3_SIZE.width, BLOCK3_SIZE.height);
+        this.blocks.add(block3);
 
-        this.isLoot = false;
-
-        this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 100, 'hand');
-        this.hand.setCollideWorldBounds(true);
+        this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
+        console.log(this.hand);
+        console.log(this.arcadeArea);
 
-        this.physics.add.collider(block, this.hand, () => {
+        this.physics.add.collider(this.hand, this.blocks, () => {
             this.scene.start('GameOver');
         });
+
+        this.isLoot = false;
+        this.lootCount = 0;
+        this.lootScoreMsg = this.add.text(
+            100,
+            100,
+            `${this.lootCount}`,
+            {
+                fontFamily: 'Eater',
+                fontSize: '96px',
+                color: '#33ff33'
+            }
+        );
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -107,11 +133,27 @@ export class MainGame extends Scene
         if (!this.isLoot) {
             const lootPos: Pos = getLootRandomPos(this.arcadeAreaCoords);
             this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, 'coins');
+            this.isLoot = true;
+            this.physics.add.collider(this.loot, this.blocks, () => {
+                const lootPos: Pos = getLootRandomPos(this.arcadeAreaCoords);
+                this.loot.setX(lootPos.x);
+                this.loot.setY(lootPos.y);
+            });
             this.physics.add.collider(this.loot, this.hand, () => {
                 this.loot.destroy();
                 this.isLoot = false;
+                this.hand.body.velocity.x *= 2;
+                this.hand.body.velocity.y *= 2;
+                this.lootCount += 1;
+                this.lootScoreMsg.setText(`${this.lootCount}`);
             });
-            this.isLoot = true;
+        }
+
+        if (this.hand.x < 400 && this.handMoveDirection == Direction.Left) {
+            this.hand.x = 950;
+        }
+        if (this.hand.x > 880 && this.handMoveDirection == Direction.Right) {
+            this.hand.x = 350;
         }
 
         if (this.cursors.left.isDown) {
@@ -121,7 +163,7 @@ export class MainGame extends Scene
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(-300);
+                this.hand.setVelocityX(-100);
             }
         }
         else if (this.cursors.right.isDown) {
@@ -131,7 +173,7 @@ export class MainGame extends Scene
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(300);
+                this.hand.setVelocityX(100);
             }
         }
         else if (this.cursors.up.isDown) {
