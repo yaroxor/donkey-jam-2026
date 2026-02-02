@@ -163,7 +163,7 @@ export class MainGame extends Scene
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(-100);
+                this.hand.setVelocityX(-300);
             }
         }
         else if (this.cursors.right.isDown) {
@@ -173,7 +173,7 @@ export class MainGame extends Scene
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(100);
+                this.hand.setVelocityX(300);
             }
         }
         else if (this.cursors.up.isDown) {
