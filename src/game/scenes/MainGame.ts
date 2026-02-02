@@ -105,6 +105,7 @@ export class MainGame extends Scene
 
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
+        this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
             this.scene.start('GameOver');
@@ -174,7 +175,7 @@ export class MainGame extends Scene
         }
 
         if (this.cursors.left.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
+            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Left;
                 this.hand.setSize(100, 50);
                 this.hand.angle = 0;
@@ -184,7 +185,7 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.right.isDown) {
-            if (this.handMoveDirection == Direction.Right || this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
+            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
                 this.hand.setSize(100, 50);
                 this.hand.angle = 0;
@@ -194,7 +195,7 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.up.isDown) {
-            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
+            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
                 this.handMoveDirection = Direction.Up;
                 this.hand.setSize(50, 100);
                 this.hand.angle = 90;
@@ -204,7 +205,7 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.down.isDown) {
-            if (this.handMoveDirection == Direction.Down || this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
+            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
                 this.handMoveDirection = Direction.Down;
                 this.hand.setSize(50, 100);
                 this.hand.angle = 270;
