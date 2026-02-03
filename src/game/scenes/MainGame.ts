@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
+import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
 
 interface Pos {
     x: number,
@@ -36,6 +36,10 @@ export class MainGame extends Scene
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
     layout: Phaser.GameObjects.Image;
+
+    bubblePlayer: Phaser.GameObjects.Image;
+    bubbleEnemy: Phaser.GameObjects.Image;
+
     arcadeAreaCoords: GameObjPos;
     arcadeArea: Phaser.GameObjects.Rectangle;
 
@@ -55,8 +59,6 @@ export class MainGame extends Scene
 
     create ()
     {
-        this.sound.play('music', { loop: true });
-
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
 
@@ -77,6 +79,12 @@ export class MainGame extends Scene
         this.arcadeAreaCoords = { x: ARCADE_AREA_TOP_LEFT_CORNER.x, y: ARCADE_AREA_TOP_LEFT_CORNER.y, width: ARCADE_AREA_SIZE.width, height: ARCADE_AREA_SIZE.height };
 
         this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'level-layout');
+
+        this.bubblePlayer = this.add.image(200, 400, 'bubble');
+        this.bubblePlayer.setFlipX(true);
+        this.bubblePlayer.setFlipY(true);
+        this.bubblePlayer = this.add.image(GAME_WIDTH - 200, 400, 'bubble');
+        this.bubblePlayer.setFlipY(true);
 
         this.arcadeArea = this.add.rectangle(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y, ARCADE_AREA_SIZE.width, ARCADE_AREA_SIZE.height, 0xcccc33, 1);
         this.arcadeArea.setAlpha(0.5);
