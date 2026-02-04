@@ -21,24 +21,55 @@ enum Direction {
   Right,
 }
 
-function getLootRandomPos(arcadeArea: GameObjPos): Pos {
-    // TODO: random from interrupted interval
-    const x = Math.random() * arcadeArea.width + arcadeArea.x;
-    const y = Math.random() * arcadeArea.height + arcadeArea.y;
-    const lootPos = { x: x, y: y};
-    return lootPos;
+const letterKeyCodes: Record<string, number> = {
+    'O': 79,
+    'E': 69,
+    'U': 85
 }
 
+// TODO?: mb move to utilities or smth
+
+// Source - https://stackoverflow.com/a/2450976
+// Posted by ChristopheD, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-02-04, License - CC BY-SA 4.0
+function shuffle(array: Array<string>) {
+  let currentIndex = array.length;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    let randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+}
+
+// TODO: follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
 export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+    rightAnswerKey: Phaser.Input.Keyboard.Key | number;
+    wrongAnswer1Key: Phaser.Input.Keyboard.Key | number;
+    wrongAnswer2Key: Phaser.Input.Keyboard.Key | number;
 
     layout: Phaser.GameObjects.Image;
 
     bubblePlayer: Phaser.GameObjects.Image;
     bubbleEnemy: Phaser.GameObjects.Image;
+    emojisImages: Phaser.GameObjects.Group;
+    wrong1: Phaser.GameObjects.Image;
+    wrong2: Phaser.GameObjects.Image;
+    dialogueReady: boolean;
+    noQuestionAsked: boolean;
+    emojis: string[];
+    qAndA: Record<string, string>;
+    answerKeysLetters: Array<string>;
 
     arcadeAreaCoords: GameObjPos;
     arcadeArea: Phaser.GameObjects.Rectangle;
@@ -55,6 +86,91 @@ export class MainGame extends Scene
     constructor ()
     {
         super('MainGame');
+    }
+
+    private getLootRandomPos(arcadeArea: GameObjPos): Pos
+    {
+        // TODO: random from interrupted interval
+        const x = Math.random() * arcadeArea.width + arcadeArea.x;
+        const y = Math.random() * arcadeArea.height + arcadeArea.y;
+        const lootPos = { x: x, y: y};
+        return lootPos;
+    }
+
+    private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
+    {
+        this.add.text(
+            (Pos.x - 150),
+            (Pos.y - 50),
+            `${Letter}`,
+            {
+                fontFamily: 'Eater',
+                fontSize: '96px',
+                color: '#33ff33'
+            }
+        );
+        const answer = this.add.image(Pos.x, Pos.y, Emoji);
+        answer.setDepth(1);
+        this.emojisImages.add(answer);
+    }
+
+    private setupDialogue(QAndA: Record<string, string>, Emojis: string[]): string
+    {
+        console.log('setupDialogue fired')
+        const questions: Array<string> = Object.keys(QAndA);
+        const question: string = questions[Math.floor(Math.random()*questions.length)];
+
+        this.time.delayedCall(0, () => {
+            this.bubbleEnemy.setAlpha(1);
+        })
+        this.time.delayedCall(300, () => {
+            const questionImage = this.add.image((GAME_WIDTH - 200), 400, question);
+            questionImage.setDepth(1);
+            this.emojisImages.add(questionImage);
+        })
+        this.time.delayedCall(600, () => {
+            this.bubblePlayer.setAlpha(1);
+        })
+
+        const answer: string = QAndA[question];
+        let wrongs: Array<string> = Emojis.filter((emoji) => emoji !== question && emoji !== answer);
+        const wrong1: string = wrongs[Math.floor(Math.random()*wrongs.length)];
+        wrongs = wrongs.filter((emoji) => emoji !== wrong1);
+        const wrong2: string = wrongs[Math.floor(Math.random()*wrongs.length)];
+        // 150 is emoji dimention, 20 is отступ
+        const answerPositions: Array<Pos> = [{x: 200, y: 300}, {x: 200, y: (300 + 150 + 20)}, {x: 200, y: (300 + 150*2 + 20*2)}];
+        const answers: Array<string> = [answer, wrong1, wrong2];
+        shuffle(answers);
+        const rightNumber: number = answers.indexOf(answer);
+        let rightLetter: string = '';
+
+        let delay = 700
+        for (let i = 0; i < 3; i++) {
+            console.log(`i ${i}`)
+            this.time.delayedCall(delay, () => {
+                this.answerConstructor(answerPositions[i], this.answerKeysLetters[i], answers[i]);
+            });
+            if (i == rightNumber) {
+                rightLetter = this.answerKeysLetters[i];
+            }
+            delay += 100;
+        };
+
+        if (rightLetter) {
+            return rightLetter;
+        }
+        else {
+            throw new Error("o Kurwa")
+        }
+    }
+
+    private endDialogue() {
+        this.bubblePlayer.setAlpha(0);
+        this.bubbleEnemy.setAlpha(0);
+        this.emojisImages.clear(false, true);
+        this.rightAnswerKey = 0;
+        this.wrongAnswer1Key = 0;
+        this.wrongAnswer2Key = 0;
     }
 
     create ()
@@ -80,11 +196,17 @@ export class MainGame extends Scene
 
         this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'level-layout');
 
+        this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble');
+        this.bubbleEnemy.setFlipY(true);
+        this.bubbleEnemy.setAlpha(0);
         this.bubblePlayer = this.add.image(200, 400, 'bubble');
+        this.bubblePlayer.setFlipY(true);
         this.bubblePlayer.setFlipX(true);
-        this.bubblePlayer.setFlipY(true);
-        this.bubblePlayer = this.add.image(GAME_WIDTH - 200, 400, 'bubble');
-        this.bubblePlayer.setFlipY(true);
+        this.bubblePlayer.setAlpha(0);
+        this.emojis = ['emoji1', 'emoji2', 'emoji3', 'emoji4'];
+        this.qAndA = { 'emoji1': 'emoji2' };
+        this.answerKeysLetters = ['O', 'E', 'U'];
+        this.emojisImages = this.add.group();
 
         this.arcadeArea = this.add.rectangle(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y, ARCADE_AREA_SIZE.width, ARCADE_AREA_SIZE.height, 0xcccc33, 1);
         this.arcadeArea.setAlpha(0.5);
@@ -134,6 +256,29 @@ export class MainGame extends Scene
             }
         );
 
+        this.dialogueReady = false;
+        this.noQuestionAsked = true;
+
+        this.time.delayedCall(2000, () => {
+            const rightLetter: string = this.setupDialogue(this.qAndA, this.emojis);
+
+            for (const letter in letterKeyCodes) {
+                const keyCode: number = letterKeyCodes[letter];
+                if (this.input.keyboard) {
+                    if (letter === rightLetter) {
+                        this.rightAnswerKey = this.input.keyboard.addKey(keyCode);
+                    }
+                    else if (!this.wrongAnswer1Key) {
+                        this.wrongAnswer1Key = this.input.keyboard.addKey(keyCode);
+                    }
+                    else {
+                        this.wrongAnswer2Key = this.input.keyboard.addKey(keyCode);
+                    }
+
+                }
+            }
+        });
+
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
         }
@@ -141,13 +286,22 @@ export class MainGame extends Scene
 
     update()
     {
+
+        if (this.rightAnswerKey && this.rightAnswerKey.isDown) {
+            this.endDialogue();
+        }
+        if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown)) {
+            this.scene.start('GameOver');
+        }
+
+        // Create LOOT
         if (!this.isLoot) {
             // TODO?: add loot spawn delay?
-            const lootPos: Pos = getLootRandomPos(this.arcadeAreaCoords);
+            const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords);
             this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, 'coins');
             this.isLoot = true;
             this.physics.add.collider(this.loot, this.blocks, () => {
-                const lootPos: Pos = getLootRandomPos(this.arcadeAreaCoords);
+                const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords);
                 this.loot.setX(lootPos.x);
                 this.loot.setY(lootPos.y);
             });

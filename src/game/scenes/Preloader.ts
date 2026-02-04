@@ -48,6 +48,10 @@ export class Preloader extends Scene
         this.load.image('hand', 'hand.png');
         this.load.image('coins', 'coins.png');
         this.load.image('bubble', 'bubble.png');
+        this.load.image('emoji1', 'emoji1.png');
+        this.load.image('emoji2', 'emoji2.jpg');
+        this.load.image('emoji3', 'emoji3.png');
+        this.load.image('emoji4', 'emoji4.png');
     }
 
     create ()

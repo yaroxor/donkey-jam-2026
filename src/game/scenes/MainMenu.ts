@@ -82,7 +82,6 @@ export class MainMenu extends Scene
 
     update()
     {
-        // this.scene.start('MainGame');
         if (this.spaceKey.isDown) {
             this.scene.start('MainGame');
         }
