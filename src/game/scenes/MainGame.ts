@@ -64,7 +64,7 @@ export class MainGame extends Scene
     emojisImages: Phaser.GameObjects.Group;
     wrong1: Phaser.GameObjects.Image;
     wrong2: Phaser.GameObjects.Image;
-    dialogueGoing: boolean;
+    isDialogueGoing: boolean;
     timeOfDialogueStart: number;
     timeDialogueEnd: number;
     emojis: string[];
@@ -119,7 +119,8 @@ export class MainGame extends Scene
 
     private setupDialogue(QAndA: Record<string, string>, Emojis: string[])
     {
-        this.dialogueGoing = true;
+        this.isDialogueGoing = true;
+        console.log(`is dialogue going after setup dialogue start -- ${this.isDialogueGoing}`)
         this.timeOfDialogueStart = 1.7976931348623157E+308;
         console.log(`setup dialogue fired at ${this.time.now}`)
         const questions: Array<string> = Object.keys(QAndA);
@@ -187,11 +188,13 @@ export class MainGame extends Scene
         this.rightAnswerKey = 0;
         this.wrongAnswer1Key = 0;
         this.wrongAnswer2Key = 0;
-        this.dialogueGoing = false;
+        this.isDialogueGoing = false;
+        console.log(`is dialogue going after end dialogue function body -- ${this.isDialogueGoing}`)
     }
 
     create ()
     {
+        console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
 
@@ -288,9 +291,10 @@ export class MainGame extends Scene
     update()
     {
         // Dialogue answer timer fail
-        if (this.dialogueGoing) {
+        if (this.isDialogueGoing) {
+            console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
             console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
-            if (this.time.now > (this.timeOfDialogueStart + 2000)) {
+            if (this.time.now > (this.timeOfDialogueStart + 3000)) {
                 console.log(`player did not made it in time at ${this.time.now}`)
                 this.scene.start('GameOver');
             }
@@ -311,12 +315,15 @@ export class MainGame extends Scene
         }
 
         // Spawn dialogue with 5 sec break
-        if (!this.dialogueGoing) {
-            if (this.time.now > (this.timeDialogueEnd + 5000)) {
-                console.log(`is dialogue going -- ${this.dialogueGoing}`);
+        if (!this.isDialogueGoing) {
+            console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
+            const treshholdTime = this.timeDialogueEnd + 5000;
+            console.log(`elapsed time: ${treshholdTime - this.time.now}`)
+            if (this.time.now > treshholdTime) {
+                console.log(`setting new dialogue -- ${this.isDialogueGoing}`);
                 console.log(`starting dialogue from update at ${this.time.now}`)
                 this.setupDialogue(this.qAndA, this.emojis);
-                console.log(`is dialogue going -- ${this.dialogueGoing}`);
+                console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
             }
         }
 
