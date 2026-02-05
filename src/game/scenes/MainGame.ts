@@ -65,6 +65,7 @@ export class MainGame extends Scene
     wrong1: Phaser.GameObjects.Image;
     wrong2: Phaser.GameObjects.Image;
     dialogueGoing: boolean;
+    timeOfDialogueStart: number;
     timeDialogueEnd: number;
     emojis: string[];
     qAndA: Record<string, string>;
@@ -98,6 +99,7 @@ export class MainGame extends Scene
 
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
     {
+        console.log(`answer constructor fired for letter ${Letter} at ${this.time.now}`)
         this.add.text(
             (Pos.x - 150),
             (Pos.y - 50),
@@ -111,11 +113,15 @@ export class MainGame extends Scene
         const answer = this.add.image(Pos.x, Pos.y, Emoji);
         answer.setDepth(1);
         this.emojisImages.add(answer);
+        console.log(`cunstructer answer ${Letter} at ${this.time.now}, udating dialogue start time`)
+        this.timeOfDialogueStart = this.time.now;
     }
 
     private setupDialogue(QAndA: Record<string, string>, Emojis: string[])
     {
         this.dialogueGoing = true;
+        this.timeOfDialogueStart = 1.7976931348623157E+308;
+        console.log(`setup dialogue fired at ${this.time.now}`)
         const questions: Array<string> = Object.keys(QAndA);
         const question: string = questions[Math.floor(Math.random()*questions.length)];
 
@@ -153,12 +159,13 @@ export class MainGame extends Scene
             }
             delay += 100;
         };
+        console.log(`time after answers construction loop is ${this.time.now}`)
 
         for (const letter in letterKeyCodes) {
             const keyCode: number = letterKeyCodes[letter];
             if (this.input.keyboard) {
                 if (letter === rightLetter) {
-                    console.log(letter);
+                    console.log(`right answer is ${letter}`);
                     this.rightAnswerKey = this.input.keyboard.addKey(keyCode);
                 }
                 else if (!this.wrongAnswer1Key) {
@@ -173,6 +180,7 @@ export class MainGame extends Scene
     }
 
     private endDialogue() {
+        console.log(`end dialogue fired at ${this.time.now}`)
         this.bubblePlayer.setAlpha(0);
         this.bubbleEnemy.setAlpha(0);
         this.emojisImages.clear(false, true);
@@ -216,6 +224,12 @@ export class MainGame extends Scene
         this.qAndA = { 'emoji1': 'emoji2' };
         this.answerKeysLetters = ['O', 'E', 'U'];
         this.emojisImages = this.add.group();
+
+        this.time.delayedCall(2000, () => {
+            console.log(`firing first dialogue from create at ${this.time.now}`)
+            this.setupDialogue(this.qAndA, this.emojis);
+            console.log(`time after setup dialogue call is ${this.timeOfDialogueStart}`)
+        });
 
         this.arcadeArea = this.add.rectangle(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y, ARCADE_AREA_SIZE.width, ARCADE_AREA_SIZE.height, 0xcccc33, 1);
         this.arcadeArea.setAlpha(0.5);
@@ -265,9 +279,6 @@ export class MainGame extends Scene
             }
         );
 
-        this.time.delayedCall(2000, () => {
-            this.setupDialogue(this.qAndA, this.emojis);
-        });
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -276,22 +287,36 @@ export class MainGame extends Scene
 
     update()
     {
+        // Dialogue answer timer fail
+        if (this.dialogueGoing) {
+            console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
+            if (this.time.now > (this.timeOfDialogueStart + 2000)) {
+                console.log(`player did not made it in time at ${this.time.now}`)
+                this.scene.start('GameOver');
+            }
+        }
+
         // Dialogue answer input
         if (this.rightAnswerKey && this.rightAnswerKey.isDown) {
+            console.log(`end dialogue w right answer`)
             this.endDialogue();
             this.timeDialogueEnd = this.time.now;
+            console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown)) {
+            console.log(`end dialogue w wrong answer at ${this.time.now}`)
+            this.endDialogue();
             this.scene.start('GameOver');
             this.timeDialogueEnd = this.time.now;
         }
 
-        // Spawn dialogue with 2 sec break
+        // Spawn dialogue with 5 sec break
         if (!this.dialogueGoing) {
-            if (this.time.now > this.timeDialogueEnd) {
-                console.log(this.dialogueGoing);
+            if (this.time.now > (this.timeDialogueEnd + 5000)) {
+                console.log(`is dialogue going -- ${this.dialogueGoing}`);
+                console.log(`starting dialogue from update at ${this.time.now}`)
                 this.setupDialogue(this.qAndA, this.emojis);
-                console.log(this.dialogueGoing);
+                console.log(`is dialogue going -- ${this.dialogueGoing}`);
             }
         }
 
