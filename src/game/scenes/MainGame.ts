@@ -22,9 +22,9 @@ enum Direction {
 }
 
 const letterKeyCodes: Record<string, number> = {
-    'O': 79,
-    'E': 69,
-    'U': 85
+    'S': 83,
+    'D': 68,
+    'F': 70
 }
 
 // TODO?: mb move to utilities or smth
@@ -56,6 +56,10 @@ export class MainGame extends Scene
     rightAnswerKey: Phaser.Input.Keyboard.Key | number;
     wrongAnswer1Key: Phaser.Input.Keyboard.Key | number;
     wrongAnswer2Key: Phaser.Input.Keyboard.Key | number;
+
+    rightAnswerKey2: Phaser.Input.Keyboard.Key | number;
+    wrongAnswer1Key2: Phaser.Input.Keyboard.Key | number;
+    wrongAnswer2Key2: Phaser.Input.Keyboard.Key | number;
 
     layout: Phaser.GameObjects.Image;
 
@@ -162,18 +166,27 @@ export class MainGame extends Scene
         };
         console.log(`time after answers construction loop is ${this.time.now}`)
 
+        const hackLetterCodes: Record<string, number> = {
+            'S': 79, // O
+            'D': 69, // E
+            'F': 85
+        }
         for (const letter in letterKeyCodes) {
             const keyCode: number = letterKeyCodes[letter];
+            const hackKeyCode: number = hackLetterCodes[letter];
             if (this.input.keyboard) {
                 if (letter === rightLetter) {
                     console.log(`right answer is ${letter}`);
                     this.rightAnswerKey = this.input.keyboard.addKey(keyCode);
+                    this.rightAnswerKey2 = this.input.keyboard.addKey(hackKeyCode);
                 }
                 else if (!this.wrongAnswer1Key) {
                     this.wrongAnswer1Key = this.input.keyboard.addKey(keyCode);
+                    this.wrongAnswer1Key2 = this.input.keyboard.addKey(hackKeyCode);
                 }
                 else {
                     this.wrongAnswer2Key = this.input.keyboard.addKey(keyCode);
+                    this.wrongAnswer2Key2 = this.input.keyboard.addKey(hackKeyCode);
                 }
 
             }
@@ -225,7 +238,7 @@ export class MainGame extends Scene
         this.bubblePlayer.setAlpha(0);
         this.emojis = ['emoji1', 'emoji2', 'emoji3', 'emoji4'];
         this.qAndA = { 'emoji1': 'emoji2' };
-        this.answerKeysLetters = ['O', 'E', 'U'];
+        this.answerKeysLetters = Object.keys(letterKeyCodes);
         this.emojisImages = this.add.group();
 
         this.time.delayedCall(2000, () => {
@@ -301,13 +314,13 @@ export class MainGame extends Scene
         }
 
         // Dialogue answer input
-        if (this.rightAnswerKey && this.rightAnswerKey.isDown) {
+        if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
             console.log(`end dialogue w right answer`)
             this.endDialogue();
             this.timeDialogueEnd = this.time.now;
             console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
-        if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown)) {
+        if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
             console.log(`end dialogue w wrong answer at ${this.time.now}`)
             this.endDialogue();
             this.scene.start('GameOver');
