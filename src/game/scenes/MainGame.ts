@@ -97,12 +97,7 @@ export class MainGame extends Scene
     private musicSwitchTrack()
     {
         console.log(`MUSIC PLAYBACK TIME: ${this.music.seek}`)
-        while (this.music.seek % 1.5 !== 0) {
-            console.log('do nothing');
-        }
-        if (this.music.seek % 1.5 < 0.1) {
-            this.music = this.sound.add('music2', { loop: true });
-        }
+        console.log(`tack hit (or not) ${this.music.seek % 1.5}`)
     }
 
     private getLootRandomPos(arcadeArea: GameObjPos): Pos
@@ -295,6 +290,7 @@ export class MainGame extends Scene
         this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
+            this.music.stop();
             this.scene.start('GameOver');
         });
 
