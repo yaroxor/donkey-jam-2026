@@ -28,7 +28,6 @@ const letterKeyCodes: Record<string, number> = {
 }
 
 // TODO?: mb move to utilities or smth
-
 // Source - https://stackoverflow.com/a/2450976
 // Posted by ChristopheD, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-02-04, License - CC BY-SA 4.0
@@ -65,8 +64,8 @@ export class MainGame extends Scene
     emojisImages: Phaser.GameObjects.Group;
     wrong1: Phaser.GameObjects.Image;
     wrong2: Phaser.GameObjects.Image;
-    dialogueReady: boolean;
-    noQuestionAsked: boolean;
+    dialogueGoing: boolean;
+    timeDialogueEnd: number;
     emojis: string[];
     qAndA: Record<string, string>;
     answerKeysLetters: Array<string>;
@@ -114,9 +113,9 @@ export class MainGame extends Scene
         this.emojisImages.add(answer);
     }
 
-    private setupDialogue(QAndA: Record<string, string>, Emojis: string[]): string
+    private setupDialogue(QAndA: Record<string, string>, Emojis: string[])
     {
-        console.log('setupDialogue fired')
+        this.dialogueGoing = true;
         const questions: Array<string> = Object.keys(QAndA);
         const question: string = questions[Math.floor(Math.random()*questions.length)];
 
@@ -146,7 +145,6 @@ export class MainGame extends Scene
 
         let delay = 700
         for (let i = 0; i < 3; i++) {
-            console.log(`i ${i}`)
             this.time.delayedCall(delay, () => {
                 this.answerConstructor(answerPositions[i], this.answerKeysLetters[i], answers[i]);
             });
@@ -156,11 +154,21 @@ export class MainGame extends Scene
             delay += 100;
         };
 
-        if (rightLetter) {
-            return rightLetter;
-        }
-        else {
-            throw new Error("o Kurwa")
+        for (const letter in letterKeyCodes) {
+            const keyCode: number = letterKeyCodes[letter];
+            if (this.input.keyboard) {
+                if (letter === rightLetter) {
+                    console.log(letter);
+                    this.rightAnswerKey = this.input.keyboard.addKey(keyCode);
+                }
+                else if (!this.wrongAnswer1Key) {
+                    this.wrongAnswer1Key = this.input.keyboard.addKey(keyCode);
+                }
+                else {
+                    this.wrongAnswer2Key = this.input.keyboard.addKey(keyCode);
+                }
+
+            }
         }
     }
 
@@ -171,6 +179,7 @@ export class MainGame extends Scene
         this.rightAnswerKey = 0;
         this.wrongAnswer1Key = 0;
         this.wrongAnswer2Key = 0;
+        this.dialogueGoing = false;
     }
 
     create ()
@@ -256,27 +265,8 @@ export class MainGame extends Scene
             }
         );
 
-        this.dialogueReady = false;
-        this.noQuestionAsked = true;
-
         this.time.delayedCall(2000, () => {
-            const rightLetter: string = this.setupDialogue(this.qAndA, this.emojis);
-
-            for (const letter in letterKeyCodes) {
-                const keyCode: number = letterKeyCodes[letter];
-                if (this.input.keyboard) {
-                    if (letter === rightLetter) {
-                        this.rightAnswerKey = this.input.keyboard.addKey(keyCode);
-                    }
-                    else if (!this.wrongAnswer1Key) {
-                        this.wrongAnswer1Key = this.input.keyboard.addKey(keyCode);
-                    }
-                    else {
-                        this.wrongAnswer2Key = this.input.keyboard.addKey(keyCode);
-                    }
-
-                }
-            }
+            this.setupDialogue(this.qAndA, this.emojis);
         });
 
         if (this.input.keyboard) {
@@ -286,12 +276,23 @@ export class MainGame extends Scene
 
     update()
     {
-
+        // Dialogue answer input
         if (this.rightAnswerKey && this.rightAnswerKey.isDown) {
             this.endDialogue();
+            this.timeDialogueEnd = this.time.now;
         }
         if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown)) {
             this.scene.start('GameOver');
+            this.timeDialogueEnd = this.time.now;
+        }
+
+        // Spawn dialogue with 2 sec break
+        if (!this.dialogueGoing) {
+            if (this.time.now > this.timeDialogueEnd) {
+                console.log(this.dialogueGoing);
+                this.setupDialogue(this.qAndA, this.emojis);
+                console.log(this.dialogueGoing);
+            }
         }
 
         // Create LOOT
