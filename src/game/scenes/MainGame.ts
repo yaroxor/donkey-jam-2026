@@ -52,7 +52,8 @@ export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
 
-    music: Phaser.GameObjects.Audio;
+    music1;
+    music2;
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     rightAnswerKey: Phaser.Input.Keyboard.Key | number;
@@ -96,8 +97,11 @@ export class MainGame extends Scene
 
     private musicSwitchTrack()
     {
-        console.log(`MUSIC PLAYBACK TIME: ${this.music.seek}`)
-        console.log(`tack hit (or not) ${this.music.seek % 1.5}`)
+        this.time.delayedCall(Math.min((this.music1.seek % 1.5), (1.5 - this.music1.seek % 1.5)), () => {
+            this.music1.stop();
+            this.music2 = this.sound.add('music2', { loop: true });
+            this.music2.play();
+        });
     }
 
     private getLootRandomPos(arcadeArea: GameObjPos): Pos
@@ -215,8 +219,8 @@ export class MainGame extends Scene
 
     create ()
     {
-        this.music = this.sound.add('music1', { loop: true });
-        this.music.play();
+        this.music1 = this.sound.add('music1', { loop: true });
+        this.music1.play();
 
         console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
         this.camera = this.cameras.main;
@@ -290,7 +294,8 @@ export class MainGame extends Scene
         this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
-            this.music.stop();
+            this.music1.stop();
+            this.music2.stop();
             this.scene.start('GameOver');
         });
 
