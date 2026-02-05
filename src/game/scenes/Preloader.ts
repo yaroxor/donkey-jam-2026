@@ -33,7 +33,9 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
 
-        this.load.audio('music', 'Slick Hand Joe.mp3');
+        this.load.audio('music1', 'Slick Hand Joe 1.mp3');
+        this.load.audio('music2', 'Slick Hand Joe 2.mp3');
+        // this.load.audio('crack-head', 'crack-head.waw');
 
         this.load.image('main-menu', 'main-menu.png');
         this.load.image('start1', 'start1.png');
@@ -58,7 +60,6 @@ export class Preloader extends Scene
     {
         //  When all the assets have loaded, it's often worth creating global objects here that the rest of the game can use.
         //  For example, you can define global animations here, so we can use them in other scenes.
-        this.sound.play('music', { loop: true });
 
         //  Move to the MainMenu. You could also swap this for a Scene Transition, such as a camera fade.
         this.scene.start('MainMenu');

@@ -52,6 +52,8 @@ export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
 
+    music: Phaser.GameObjects.Audio;
+
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     rightAnswerKey: Phaser.Input.Keyboard.Key | number;
     wrongAnswer1Key: Phaser.Input.Keyboard.Key | number;
@@ -90,6 +92,17 @@ export class MainGame extends Scene
     constructor ()
     {
         super('MainGame');
+    }
+
+    private musicSwitchTrack()
+    {
+        console.log(`MUSIC PLAYBACK TIME: ${this.music.seek}`)
+        while (this.music.seek % 1.5 !== 0) {
+            console.log('do nothing');
+        }
+        if (this.music.seek % 1.5 < 0.1) {
+            this.music = this.sound.add('music2', { loop: true });
+        }
     }
 
     private getLootRandomPos(arcadeArea: GameObjPos): Pos
@@ -207,6 +220,9 @@ export class MainGame extends Scene
 
     create ()
     {
+        this.music = this.sound.add('music1', { loop: true });
+        this.music.play();
+
         console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
@@ -295,7 +311,6 @@ export class MainGame extends Scene
             }
         );
 
-
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
         }
@@ -305,38 +320,40 @@ export class MainGame extends Scene
     {
         // Dialogue answer timer fail
         if (this.isDialogueGoing) {
-            console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
-            console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
+            // console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
+            // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
             if (this.time.now > (this.timeOfDialogueStart + 3000)) {
-                console.log(`player did not made it in time at ${this.time.now}`)
+                // console.log(`player did not made it in time at ${this.time.now}`)
                 this.scene.start('GameOver');
             }
         }
 
         // Dialogue answer input
         if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
-            console.log(`end dialogue w right answer`)
+            // console.log(`end dialogue w right answer`)
             this.endDialogue();
             this.timeDialogueEnd = this.time.now;
-            console.log(`time of dialogue end after right answer is ${this.time.now}`)
+            // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
-            console.log(`end dialogue w wrong answer at ${this.time.now}`)
+            // console.log(`end dialogue w wrong answer at ${this.time.now}`)
             this.endDialogue();
-            this.scene.start('GameOver');
+            // this.scene.start('GameOver');
+            // TODO: hit player
+            this.musicSwitchTrack();
             this.timeDialogueEnd = this.time.now;
         }
 
         // Spawn dialogue with 5 sec break
         if (!this.isDialogueGoing) {
-            console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
+            // console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
             const treshholdTime = this.timeDialogueEnd + 5000;
-            console.log(`elapsed time: ${treshholdTime - this.time.now}`)
+            // console.log(`elapsed time: ${treshholdTime - this.time.now}`)
             if (this.time.now > treshholdTime) {
-                console.log(`setting new dialogue -- ${this.isDialogueGoing}`);
-                console.log(`starting dialogue from update at ${this.time.now}`)
+                // console.log(`setting new dialogue -- ${this.isDialogueGoing}`);
+                // console.log(`starting dialogue from update at ${this.time.now}`)
                 this.setupDialogue(this.qAndA, this.emojis);
-                console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
+                // console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
             }
         }
 
