@@ -56,6 +56,9 @@ export class MainGame extends Scene
     music1;
     music2;
 
+    timerAmount: number;
+    timerText: Phaser.GameObjects.Text;
+
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     rightAnswerKey: Phaser.Input.Keyboard.Key | number;
     wrongAnswer1Key: Phaser.Input.Keyboard.Key | number;
@@ -107,6 +110,12 @@ export class MainGame extends Scene
 
     // TODO: maybe add init to solve game restart after game over issues.
     // read https://docs.phaser.io/phaser/concepts/scenes for more info
+
+    private updateTimerText(that) {
+        console.log('Update TIMER text Fired');
+        that.timerAmount -= 1;
+        that.timerText.setText(`${this.timerAmount}`)
+    }
 
     private getLootRandomPos(): Pos
     {
@@ -495,6 +504,33 @@ export class MainGame extends Scene
         this.spawnLoot(ARCADE_AREA_CENTER);
         console.log(`we have ${this.lootAmount} of loot in (after) CREATE`)
 
+        this.timerAmount = 120;
+
+        this.timerText = this.add.text(
+            SCREEN_CENTER.x + 15,
+            GAME_HEIGHT - 95,
+            `${this.timerAmount}`,
+            {
+                fontFamily: 'Eater',
+                fontSize: '96px',
+                color: '#33ff33'
+            }
+        );
+        this.timerText.setOrigin(0.5);
+
+        const timer = this.time.addEvent({
+            delay: 1000,
+            callback: this.updateTimerText,
+            args: [this],
+            callbackScope: this,
+            loop: true
+        });
+
+        // LOOSE by timer
+        this.time.delayedCall(120000, () => {
+            this.scene.start('GameOver');
+        })
+
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
         }
@@ -541,7 +577,7 @@ export class MainGame extends Scene
         }
 
         // SPAWN dialogue with 5 sec break
-        if (!this.isDialogueGoing) {
+        if (!this.isDialogueGoing) { // TODO?: do you want to check if not only no dialog going but there was dialogue already here?
             console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
             const treshholdTime = this.timeDialogueEnd + 5000;
             console.log(`elapsed time: ${treshholdTime - this.time.now}`)
