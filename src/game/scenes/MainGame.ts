@@ -376,6 +376,7 @@ export class MainGame extends Scene
             height: 30
         }
         block2.setDisplaySize(BLOCK2_SIZE.width, BLOCK2_SIZE.height);
+        this.blocks.add(block2)
         const block3 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, (ARCADE_AREA_CENTER.y + 255), 'blue');
         const BLOCK3_SIZE = {
             width: 550,
