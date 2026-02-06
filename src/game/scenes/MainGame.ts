@@ -88,6 +88,7 @@ export class MainGame extends Scene
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handMoveDirection: Direction;
 
+    lootSprites: Array<string>;
     lootAmount: number;
     collectedLootCount: number;
     loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -129,7 +130,8 @@ export class MainGame extends Scene
         const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords, arcadeAreaCenter);
         console.log(`SPAWNING loot at `)
         console.log(lootPos)
-        this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, 'coins');
+        const lootPic = this.lootSprites[Math.floor(Math.random()*4)];
+        this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
         this.physics.add.collider(this.loot, this.hand, () => {
             this.loot.destroy();
             this.lootAmount -= 1;
@@ -329,7 +331,7 @@ export class MainGame extends Scene
 
         this.arcadeAreaCoords = { x: ARCADE_AREA_TOP_LEFT_CORNER.x, y: ARCADE_AREA_TOP_LEFT_CORNER.y, width: ARCADE_AREA_SIZE.width, height: ARCADE_AREA_SIZE.height };
 
-        this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'level-layout');
+        this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
         // DIALOGUE
 
@@ -363,32 +365,52 @@ export class MainGame extends Scene
         this.arcadeArea.setAlpha(0.5);
 
         this.blocks = this.physics.add.group({ immovable: true });
-        const block1 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, (ARCADE_AREA_CENTER.y - 100), 'blue');
-        const BLOCK1_SIZE = {
-            width: 200,
-            height: 30
-        }
-        block1.setDisplaySize(BLOCK1_SIZE.width, BLOCK1_SIZE.height);
-        this.blocks.add(block1);
-        const block2 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, 40, 'blue');
-        const BLOCK2_SIZE = {
-            width: 550,
-            height: 30
-        }
-        block2.setDisplaySize(BLOCK2_SIZE.width, BLOCK2_SIZE.height);
-        this.blocks.add(block2)
-        const block3 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, (ARCADE_AREA_CENTER.y + 255), 'blue');
-        const BLOCK3_SIZE = {
-            width: 550,
-            height: 30
-        }
-        block3.setDisplaySize(BLOCK3_SIZE.width, BLOCK3_SIZE.height);
-        this.blocks.add(block3);
-        // TODO: get blocks coordinates
-        // const allBlocks = this.blocks.getChildren();
-        // for (const block of allBlocks) {
-        //     console.log(block.body);
-        // }
+        // 60x66
+        const blockCards = this.physics.add.sprite(510, 498, 'block7');
+        this.blocks.add(blockCards);
+        // 160x168
+        const blockPickaxe = this.physics.add.sprite(430, 550, 'block1');
+        this.blocks.add(blockPickaxe);
+        // 122x131
+        const blockBook = this.physics.add.sprite(420, 20, 'block2');
+        blockBook.setFlipY(true);
+        this.blocks.add(blockBook);
+        // 122x131
+        const blockBook2 = this.physics.add.sprite(840, 530, 'block2');
+        this.blocks.add(blockBook2);
+        // 116x115
+        const blockBoot = this.physics.add.sprite(530, 27, 'block3');
+        this.blocks.add(blockBoot);
+        // 67x67
+        const blockBomb = this.physics.add.sprite(880, 50, 'block4');
+        this.blocks.add(blockBomb);
+        // 64x118
+        const blockArrows = this.physics.add.sprite(800, 52, 'block5');
+        blockArrows.angle = 90;
+        blockArrows.setSize(118, 64);
+        this.blocks.add(blockArrows);
+        // 125x118
+        const blockHand = this.physics.add.sprite(700, 26, 'block6');
+        this.blocks.add(blockHand);
+        // 60x161
+        const blockSword = this.physics.add.sprite(ARCADE_AREA_CENTER.x, 200, 'block8');
+        blockSword.angle = 90;
+        blockSword.setSize(161, 60);
+        this.blocks.add(blockSword);
+        // 171x64
+        const blockScroll = this.physics.add.sprite(650, 497, 'block9');
+        this.blocks.add(blockScroll);
+        // 67x67
+        const blockBomb2 = this.physics.add.sprite(750, 498, 'block4');
+        this.blocks.add(blockBomb2);
+        // 67x67
+        const blockBomb3 = this.physics.add.sprite(560, 498, 'block4');
+        this.blocks.add(blockBomb3);
+        // 53x110
+        const blockBottle = this.physics.add.sprite(630, 57, 'block10');
+        blockBottle.angle = 90;
+        blockBottle.setSize(110, 53);
+        this.blocks.add(blockBottle);
 
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
@@ -400,6 +422,7 @@ export class MainGame extends Scene
             this.scene.start('GameOver');
         });
 
+        this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
         this.lootAmount = 0;
         this.collectedLootCount = 0;
         this.lootScoreMsg = this.add.text(
@@ -427,10 +450,10 @@ export class MainGame extends Scene
         if (this.isDialogueGoing) {
             // console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
             // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
-            if (this.time.now > (this.timeOfDialogueStart + 3000)) {
-                console.log(`player did not made it in time at ${this.time.now}`)
-                this.scene.start('GameOver');
-            }
+            // if (this.time.now > (this.timeOfDialogueStart + 3000)) {
+            //     console.log(`player did not made it in time at ${this.time.now}`)
+            //     this.scene.start('GameOver');
+            // }
         }
 
         // Dialogue answer INPUT

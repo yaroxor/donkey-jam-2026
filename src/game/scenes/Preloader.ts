@@ -33,27 +33,42 @@ export class Preloader extends Scene
         //  Load the assets for the game - Replace with your own assets
         this.load.setPath('assets');
 
-        this.load.audio('music1', 'Slick Hand Joe 1.mp3');
-        this.load.audio('music2', 'Slick Hand Joe 2.mp3');
+        this.load.audio('music1', 'music/Slick Hand Joe 1.mp3');
+        this.load.audio('music2', 'music/Slick Hand Joe 2.mp3');
         // this.load.audio('crack-head', 'crack-head.waw');
 
         this.load.image('main-menu', 'main-menu.png');
-        this.load.image('start1', 'start1.png');
-        this.load.image('start-hovered', 'start-hovered.png');
-        this.load.image('options1', 'options1.png');
-        this.load.image('options-hovered', 'options-hovered.png');
-        this.load.image('info1', 'info1.png');
-        this.load.image('info-hovered', 'info-hovered.png');
+        this.load.image('start1', 'menuUI/start1.png');
+        this.load.image('start-hovered', 'menuUI/start-hovered.png');
+        this.load.image('options1', 'menuUI/options1.png');
+        this.load.image('options-hovered', 'menuUI/options-hovered.png');
+        this.load.image('info1', 'menuUI/info1.png');
+        this.load.image('info-hovered', 'menuUI/info-hovered.png');
 
-        this.load.image('blue', 'blue.jpg');
-        this.load.image('level-layout', 'level-layout.jpg');
+        this.load.image('table', 'table.png');
         this.load.image('hand', 'hand.png');
-        this.load.image('coins', 'coins.png');
+
+        this.load.image('block1', 'blocks/1.png');
+        this.load.image('block2', 'blocks/2.png');
+        this.load.image('block3', 'blocks/3.png');
+        this.load.image('block4', 'blocks/4.png');
+        this.load.image('block5', 'blocks/5.png');
+        this.load.image('block6', 'blocks/6.png');
+        this.load.image('block7', 'blocks/7.png');
+        this.load.image('block8', 'blocks/8.png');
+        this.load.image('block9', 'blocks/9.png');
+        this.load.image('block10', 'blocks/10.png');
+
+        this.load.image('loot1', 'loot/1.png');
+        this.load.image('loot2', 'loot/2.png');
+        this.load.image('loot3', 'loot/3.png');
+        this.load.image('loot4', 'loot/4.png');
+
         this.load.image('bubble', 'bubble.png');
-        this.load.image('emoji1', 'emoji1.png');
-        this.load.image('emoji2', 'emoji2.jpg');
-        this.load.image('emoji3', 'emoji3.png');
-        this.load.image('emoji4', 'emoji4.png');
+        this.load.image('emoji1', 'emojis/emoji1.png');
+        this.load.image('emoji2', 'emojis/emoji2.jpg');
+        this.load.image('emoji3', 'emojis/emoji3.png');
+        this.load.image('emoji4', 'emojis/emoji4.png');
     }
 
     create ()
