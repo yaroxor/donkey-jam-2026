@@ -110,7 +110,7 @@ export class MainGame extends Scene
         this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
             console.log('switch to track 2 CALLBACK')
             const playbackTime: number = this.music1.seek;
-            console.log(`PLAYBACK TIME: ${playbackTime}`)
+            console.log(`at ${this.time.now} we start playing TRACK 2 from ${playbackTime}`)
             this.music1.stop();
             this.music2.setSeek(playbackTime);
             this.music2.play();
