@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 
 import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
 
+// TODO?: also move to config?
 interface Pos {
     x: number,
     y: number
@@ -87,9 +88,9 @@ export class MainGame extends Scene
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handMoveDirection: Direction;
 
-    isLoot: boolean;
+    lootAmount: number;
+    collectedLootCount: number;
     loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-    lootCount: number;
     lootScoreMsg: Phaser.GameObjects.Text;
 
     constructor ()
@@ -97,49 +98,62 @@ export class MainGame extends Scene
         super('MainGame');
     }
 
-    private musicSwitchTrack1to2()
-    {
-        if (this.music12Switched) {
-            console.log(`ABORT music track switch -- it already switched`)
-            return;
-        }
-        this.music12Switched = true;
-        console.log(`CURRENT playback time: ${this.music1.seek}`)
-        const beat: number = this.music1.seek % 1.5;
-        console.log(`(potential) BEAT: ${beat}`)
-        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
-            console.log('switch to track 2 CALLBACK')
-            const playbackTime: number = this.music1.seek;
-            console.log(`at ${this.time.now} we start playing TRACK 2 from ${playbackTime}`)
-            this.music1.stop();
-            this.music2.setSeek(playbackTime);
-            this.music2.play();
-        });
-    }
-    private musicSwitchTrack2to1()
-    {
-        if (this.music21Switched) {
-            console.log(`ABORT music track switch -- it already switched`)
-            return;
-        }
-        this.music21Switched = true;
-        const beat = this.music2.seek % 1.5;
-        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
-            console.log('switch to track 1 CALLBACK')
-            const playbackTime: number = this.music2.seek;
-            this.music2.stop();
-            this.music1.setSeek(playbackTime);
-            this.music1.play();
-        });
-    }
+    // TODO: maybe add init to solve game restart after game over issues.
+    // read https://docs.phaser.io/phaser/concepts/scenes for more info
 
-    private getLootRandomPos(arcadeArea: GameObjPos): Pos
+    private getLootRandomPos(arcadeArea: GameObjPos, arcadeAreaCenter: Pos): Pos
     {
-        // TODO: random from interrupted interval
-        const x = Math.random() * arcadeArea.width + arcadeArea.x;
-        const y = Math.random() * arcadeArea.height + arcadeArea.y;
+        console.log(arcadeArea)
+        const x = (Math.random() * (arcadeArea.width - arcadeArea.x + 1 - 50)) + arcadeArea.x + 25;
+        console.log(`randomized X coord: ${x}`)
+
+        let y = (Math.random() * (arcadeArea.width - arcadeArea.y + 1 - 60 - 50)) + arcadeArea.y + 30 + 25;
+        console.log(`randomized Y coord: ${y}`)
+
+        console.log(`BLOCK1 (center) at ${arcadeAreaCenter.x}, ${(arcadeAreaCenter.y - 100)}`)
+        const block1LeftX = arcadeAreaCenter.x - 200/2;
+        const block1RightX = arcadeAreaCenter.x + 200/2;
+        const block1TopY = arcadeAreaCenter.y - 100 + 30/2;
+        const block1BotY = arcadeAreaCenter.y - 100 - 30/2;
+        console.log(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
+        if ((block1LeftX > x > block1RightX) && (block1TopY > y > block1BotY)) {
+            const verticalOffset = ((y - arcadeAreaCenter.y - 100 - 30/2) + 20)
+            console.log(`loot (seem to be) on block, adding offset ${verticalOffset}`)
+            y += verticalOffset;
+        }
         const lootPos = { x: x, y: y};
         return lootPos;
+    }
+
+    private spawnLoot(arcadeAreaCenter: Pos) {
+        const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords, arcadeAreaCenter);
+        console.log(`SPAWNING loot at `)
+        console.log(lootPos)
+        this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, 'coins');
+        this.physics.add.collider(this.loot, this.hand, () => {
+            this.loot.destroy();
+            this.lootAmount -= 1;
+            this.collectedLootCount += 1;
+            if (this.hand.body.velocity.x !== 0) {
+                if (this.hand.body.velocity.x > 0) {
+                    this.hand.body.setVelocityX(300);
+                }
+                else {
+                    this.hand.body.setVelocityX(-300);
+                }
+
+            }
+            if (this.hand.body.velocity.y !== 0) {
+                if (this.hand.body.velocity.y > 0) {
+                    this.hand.body.setVelocityY(300);
+                }
+                else {
+                    this.hand.body.setVelocityY(-300);
+                }
+
+            }
+            this.lootScoreMsg.setText(`${this.collectedLootCount}`);
+        });
     }
 
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
@@ -234,6 +248,44 @@ export class MainGame extends Scene
         }
     }
 
+    private musicSwitchTrack1to2()
+    {
+        if (this.music12Switched) {
+            console.log(`ABORT music track switch -- it already switched`)
+            return;
+        }
+        this.music12Switched = true;
+        this.music21Switched = false;
+        console.log(`CURRENT playback time: ${this.music1.seek}`)
+        const beat: number = this.music1.seek % 1.5;
+        console.log(`(potential) BEAT: ${beat}`)
+        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+            console.log('switch to track 2 CALLBACK')
+            const playbackTime: number = this.music1.seek;
+            console.log(`at ${this.time.now} we start playing TRACK 2 from ${playbackTime}`)
+            this.music1.stop();
+            this.music2.setSeek(playbackTime);
+            this.music2.play();
+        });
+    }
+    private musicSwitchTrack2to1()
+    {
+        if (this.music21Switched) {
+            console.log(`ABORT music track switch -- it already switched`)
+            return;
+        }
+        this.music21Switched = true;
+        this.music12Switched = false;
+        const beat = this.music2.seek % 1.5;
+        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+            console.log('switch to track 1 CALLBACK')
+            const playbackTime: number = this.music2.seek;
+            this.music2.stop();
+            this.music1.setSeek(playbackTime);
+            this.music1.play();
+        });
+    }
+
     private endDialogue() {
         console.log(`end dialogue fired at ${this.time.now}`)
         this.bubblePlayer.setAlpha(0);
@@ -281,6 +333,7 @@ export class MainGame extends Scene
 
         // DIALOGUE
 
+        // TODO: mb move some of this stuff (state) to init
         this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble');
         this.bubbleEnemy.setFlipY(true);
         this.bubbleEnemy.setAlpha(0);
@@ -296,7 +349,7 @@ export class MainGame extends Scene
         this.isDialogueGoing = false;
         console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
         this.music12Switched = false;
-        this.music21Switched = false;
+        this.music21Switched = true; // imean track 1 is already playing
 
         this.time.delayedCall(2000, () => {
             console.log(`firing first dialogue from create at ${this.time.now}`)
@@ -310,7 +363,7 @@ export class MainGame extends Scene
         this.arcadeArea.setAlpha(0.5);
 
         this.blocks = this.physics.add.group({ immovable: true });
-        const block1 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y - 100, 'blue');
+        const block1 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, (ARCADE_AREA_CENTER.y - 100), 'blue');
         const BLOCK1_SIZE = {
             width: 200,
             height: 30
@@ -323,8 +376,7 @@ export class MainGame extends Scene
             height: 30
         }
         block2.setDisplaySize(BLOCK2_SIZE.width, BLOCK2_SIZE.height);
-        this.blocks.add(block2);
-        const block3 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y + 255, 'blue');
+        const block3 =  this.physics.add.sprite(ARCADE_AREA_CENTER.x, (ARCADE_AREA_CENTER.y + 255), 'blue');
         const BLOCK3_SIZE = {
             width: 550,
             height: 30
@@ -332,6 +384,10 @@ export class MainGame extends Scene
         block3.setDisplaySize(BLOCK3_SIZE.width, BLOCK3_SIZE.height);
         this.blocks.add(block3);
         // TODO: get blocks coordinates
+        // const allBlocks = this.blocks.getChildren();
+        // for (const block of allBlocks) {
+        //     console.log(block.body);
+        // }
 
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
@@ -343,18 +399,21 @@ export class MainGame extends Scene
             this.scene.start('GameOver');
         });
 
-        this.isLoot = false;
-        this.lootCount = 0;
+        this.lootAmount = 0;
+        this.collectedLootCount = 0;
         this.lootScoreMsg = this.add.text(
             100,
             100,
-            `${this.lootCount}`,
+            `${this.lootAmount}`,
             {
                 fontFamily: 'Eater',
                 fontSize: '96px',
                 color: '#33ff33'
             }
         );
+        this.lootAmount +=1;
+        this.spawnLoot(ARCADE_AREA_CENTER);
+        console.log(`we have ${this.lootAmount} of loot in (after) CREATE`)
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -363,7 +422,7 @@ export class MainGame extends Scene
 
     update()
     {
-        // Dialogue answer timer fail
+        // Dialogue answer TIMER FAIL
         if (this.isDialogueGoing) {
             // console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
             // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
@@ -373,7 +432,7 @@ export class MainGame extends Scene
             }
         }
 
-        // Dialogue answer input
+        // Dialogue answer INPUT
         if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
@@ -392,7 +451,7 @@ export class MainGame extends Scene
             this.timeDialogueEnd = this.time.now;
         }
 
-        // Spawn dialogue with 5 sec break
+        // SPAWN dialogue with 5 sec break
         if (!this.isDialogueGoing) {
             // console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
             const treshholdTime = this.timeDialogueEnd + 5000;
@@ -406,42 +465,19 @@ export class MainGame extends Scene
         }
 
         // Create LOOT
-        if (!this.isLoot) {
-            // TODO?: add loot spawn delay?
-            const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords);
-            this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, 'coins');
-            this.isLoot = true;
-            this.physics.add.collider(this.loot, this.blocks, () => {
-                const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords);
-                this.loot.setX(lootPos.x);
-                this.loot.setY(lootPos.y);
-            });
-            this.physics.add.collider(this.loot, this.hand, () => {
-                this.loot.destroy();
-                this.isLoot = false;
-                if (this.hand.body.velocity.x !== 0) {
-                    if (this.hand.body.velocity.x > 0) {
-                        this.hand.body.setVelocityX(300);
-                    }
-                    else {
-                        this.hand.body.setVelocityX(-300);
-                    }
-
-                }
-                if (this.hand.body.velocity.y !== 0) {
-                    if (this.hand.body.velocity.y > 0) {
-                        this.hand.body.setVelocityY(300);
-                    }
-                    else {
-                        this.hand.body.setVelocityY(-300);
-                    }
-
-                }
-                this.lootCount += 1;
-                this.lootScoreMsg.setText(`${this.lootCount}`);
-            });
+        if (this.lootAmount === 0) {
+            console.log(`we DONT HAVE any loot in UPDATE`)
+            this.lootAmount += 1;
+            this.time.delayedCall(1000, () => {
+                const ARCADE_AREA_CENTER: Pos = {
+                    x: (SCREEN_CENTER.x - 5),
+                    y: (GAME_HEIGHT/3 + 55)
+                };
+                this.spawnLoot(ARCADE_AREA_CENTER);
+            })
         }
 
+        // Horizontal WRAP
         if (this.hand.x < 400 && this.handMoveDirection == Direction.Left) {
             this.hand.x = 950;
         }
