@@ -65,7 +65,7 @@ export class MainGame extends Scene
     wrongAnswer1Key2: Phaser.Input.Keyboard.Key | number;
     wrongAnswer2Key2: Phaser.Input.Keyboard.Key | number;
 
-    layout: Phaser.GameObjects.Image;
+    table: Phaser.GameObjects.Image;
 
     bubblePlayer: Phaser.GameObjects.Image;
     bubbleEnemy: Phaser.GameObjects.Image;
@@ -102,23 +102,22 @@ export class MainGame extends Scene
     // TODO: maybe add init to solve game restart after game over issues.
     // read https://docs.phaser.io/phaser/concepts/scenes for more info
 
-    private getLootRandomPos(arcadeArea: GameObjPos, arcadeAreaCenter: Pos): Pos
+    private getLootRandomPos(): Pos
     {
-        console.log(arcadeArea)
-        const x = (Math.random() * (arcadeArea.width - arcadeArea.x + 1 - 50)) + arcadeArea.x + 25;
+        const x = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
         console.log(`randomized X coord: ${x}`)
 
-        let y = (Math.random() * (arcadeArea.width - arcadeArea.y + 1 - 60 - 50)) + arcadeArea.y + 30 + 25;
+        let y = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
         console.log(`randomized Y coord: ${y}`)
 
-        console.log(`BLOCK1 (center) at ${arcadeAreaCenter.x}, ${(arcadeAreaCenter.y - 100)}`)
-        const block1LeftX = arcadeAreaCenter.x - 200/2;
-        const block1RightX = arcadeAreaCenter.x + 200/2;
-        const block1TopY = arcadeAreaCenter.y - 100 + 30/2;
-        const block1BotY = arcadeAreaCenter.y - 100 - 30/2;
+        // blockSword 60x161
+        const block1LeftX = SCREEN_CENTER.x - 5 - 161/2;
+        const block1RightX = SCREEN_CENTER.x - 5 + 161/2;
+        const block1TopY = 200 + 60/2;
+        const block1BotY = 200 - 60/2;
         console.log(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
         if ((block1LeftX > x > block1RightX) && (block1TopY > y > block1BotY)) {
-            const verticalOffset = ((y - arcadeAreaCenter.y - 100 - 30/2) + 20)
+            const verticalOffset = ((y - this.arcadeAreaCoordsCenter.y - 100 - 30/2) + 20)
             console.log(`loot (seem to be) on block, adding offset ${verticalOffset}`)
             y += verticalOffset;
         }
@@ -126,8 +125,8 @@ export class MainGame extends Scene
         return lootPos;
     }
 
-    private spawnLoot(arcadeAreaCenter: Pos) {
-        const lootPos: Pos = this.getLootRandomPos(this.arcadeAreaCoords, arcadeAreaCenter);
+    private spawnLoot() {
+        const lootPos: Pos = this.getLootRandomPos();
         console.log(`SPAWNING loot at `)
         console.log(lootPos)
         const lootPic = this.lootSprites[Math.floor(Math.random()*4)];
@@ -318,11 +317,11 @@ export class MainGame extends Scene
         // TODO?: move this stuff into config
         const ARCADE_AREA_CENTER: Pos = {
             x: (SCREEN_CENTER.x - 5),
-            y: (GAME_HEIGHT/3 + 55)
+            y: (GAME_HEIGHT/3 + 35)
         }
         const ARCADE_AREA_SIZE = {
-            width: 550,
-            height: 550
+            width: 500,
+            height: 380
         }
         const ARCADE_AREA_TOP_LEFT_CORNER: Pos = {
             x: ARCADE_AREA_CENTER.x - ARCADE_AREA_SIZE.width/2,
@@ -331,7 +330,7 @@ export class MainGame extends Scene
 
         this.arcadeAreaCoords = { x: ARCADE_AREA_TOP_LEFT_CORNER.x, y: ARCADE_AREA_TOP_LEFT_CORNER.y, width: ARCADE_AREA_SIZE.width, height: ARCADE_AREA_SIZE.height };
 
-        this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
+        this.table = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
         // DIALOGUE
 
