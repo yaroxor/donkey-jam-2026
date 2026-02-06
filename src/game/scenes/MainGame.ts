@@ -81,6 +81,12 @@ export class MainGame extends Scene
     music12Switched: boolean;
     music21Switched: boolean;
 
+    scales: Phaser.GameObjects.Group;
+    currentScale: number;
+    demons: Phaser.GameObjects.Group;
+    currentDemon: number;
+    susProgressED: boolean;
+
     arcadeAreaCoords: GameObjPos;
     arcadeArea: Phaser.GameObjects.Rectangle;
 
@@ -179,10 +185,10 @@ export class MainGame extends Scene
 
     private setupDialogue(QAndA: Record<string, string>, Emojis: string[])
     {
+        console.log(`SETUP DIALOGUE FIRED at ${this.time.now}`)
         this.isDialogueGoing = true;
         console.log(`is dialogue going after setup dialogue start -- ${this.isDialogueGoing}`)
         this.timeOfDialogueStart = 1.7976931348623157E+308;
-        console.log(`setup dialogue fired at ${this.time.now}`)
         const questions: Array<string> = Object.keys(QAndA);
         const question: string = questions[Math.floor(Math.random()*questions.length)];
 
@@ -225,7 +231,7 @@ export class MainGame extends Scene
         const hackLetterCodes: Record<string, number> = {
             'S': 79, // O
             'D': 69, // E
-            'F': 85
+            'F': 85 // U
         }
         for (const letter in letterKeyCodes) {
             const keyCode: number = letterKeyCodes[letter];
@@ -287,6 +293,29 @@ export class MainGame extends Scene
         });
     }
 
+    private progressSus()
+    {
+        if (this.susProgressED) {
+            console.log('SUS already progressed Abort')
+            return;
+        }
+
+        this.susProgressED = true;
+
+        this.scales.children.entries[this.currentScale].setAlpha(0);
+        this.currentScale += 1;
+
+        // FAIL by SUS
+        if (this.currentScale >= 4) {
+            return;
+        }
+
+        this.scales.children.entries[this.currentScale].setAlpha(1);
+
+        this.currentDemon += 1;
+        console.log('SUS Progressed')
+    }
+
     private endDialogue() {
         console.log(`end dialogue fired at ${this.time.now}`)
         this.bubblePlayer.setAlpha(0);
@@ -296,6 +325,7 @@ export class MainGame extends Scene
         this.wrongAnswer1Key = 0;
         this.wrongAnswer2Key = 0;
         this.isDialogueGoing = false;
+        this.susProgressED = false;
         console.log(`is dialogue going after end dialogue function body -- ${this.isDialogueGoing}`)
     }
 
@@ -352,8 +382,35 @@ export class MainGame extends Scene
         this.music12Switched = false;
         this.music21Switched = true; // imean track 1 is already playing
 
+        this.scales = this.add.group();
+        const scale1 = this.add.image(1100, 50, 'scale1');
+        this.scales.add(scale1);
+        const scale2 = this.add.image(1100, 50, 'scale2');
+        scale2.setAlpha(0);
+        this.scales.add(scale2);
+        const scale3 = this.add.image(1100, 50, 'scale3');
+        scale3.setAlpha(0);
+        this.scales.add(scale3);
+        const scale4 = this.add.image(1100, 50, 'scale4');
+        scale4.setAlpha(0);
+        this.scales.add(scale4);
+        this.currentScale = 0;
+
+        this.demons = this.add.group();
+        const demon1 = this.add.image(1100, 400, 'demon1');
+        this.demons.add(demon1);
+        const demon2 = this.add.image(1100, 400, 'demon2');
+        demon2.setAlpha(0);
+        this.demons.add(demon2);
+        const demon3 = this.add.image(1100, 400, 'demon3');
+        demon3.setAlpha(0);
+        this.demons.add(demon3);
+        this.currentDemon = 0;
+
+        this.susPregressED = false;
+
         this.time.delayedCall(2000, () => {
-            console.log(`firing first dialogue from create at ${this.time.now}`)
+            console.log(`firing first dialogue from CREATE at ${this.time.now}`)
             this.setupDialogue(this.qAndA, this.emojis);
             console.log(`time after setup dialogue call is ${this.timeOfDialogueStart}`)
         });
@@ -445,14 +502,23 @@ export class MainGame extends Scene
 
     update()
     {
-        // Dialogue answer TIMER FAIL
+        // FAIL by SUS
+        if (this.currentScale >= 4) {
+            this.scene.start('GameOver');
+        }
+
+        // Dialogue answer -- TIMER FAIL
         if (this.isDialogueGoing) {
             // console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
             // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
-            // if (this.time.now > (this.timeOfDialogueStart + 3000)) {
-            //     console.log(`player did not made it in time at ${this.time.now}`)
-            //     this.scene.start('GameOver');
-            // }
+            if (this.time.now > (this.timeOfDialogueStart + 3000)) {
+                // console.log(`player did not made it in time at ${this.time.now}`)
+                // TODO: put all dialogue fail related into separate method
+                this.progressSus();
+                this.musicSwitchTrack1to2();
+                this.endDialogue();
+                this.timeDialogueEnd = this.time.now;
+            }
         }
 
         // Dialogue answer INPUT
@@ -476,14 +542,13 @@ export class MainGame extends Scene
 
         // SPAWN dialogue with 5 sec break
         if (!this.isDialogueGoing) {
-            // console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
+            console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
             const treshholdTime = this.timeDialogueEnd + 5000;
-            // console.log(`elapsed time: ${treshholdTime - this.time.now}`)
+            console.log(`elapsed time: ${treshholdTime - this.time.now}`)
             if (this.time.now > treshholdTime) {
-                // console.log(`setting new dialogue -- ${this.isDialogueGoing}`);
-                // console.log(`starting dialogue from update at ${this.time.now}`)
+                console.log(`starting dialogue from update at ${this.time.now}`)
                 this.setupDialogue(this.qAndA, this.emojis);
-                // console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
+                console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
             }
         }
 
@@ -501,11 +566,11 @@ export class MainGame extends Scene
         }
 
         // Horizontal WRAP
-        if (this.hand.x < 400 && this.handMoveDirection == Direction.Left) {
-            this.hand.x = 950;
+        if (this.hand.x < 430 && this.handMoveDirection == Direction.Left) {
+            this.hand.x = 870;
         }
-        if (this.hand.x > 880 && this.handMoveDirection == Direction.Right) {
-            this.hand.x = 350;
+        if (this.hand.x > 850 && this.handMoveDirection == Direction.Right) {
+            this.hand.x = 410;
         }
 
         if (this.cursors.left.isDown) {
@@ -521,11 +586,11 @@ export class MainGame extends Scene
         else if (this.cursors.right.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
-                this.hand.setSize(100, 50);
+                this.hand.setSize(100, 300);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(300);
+                this.hand.setVelocityX(50);
             }
         }
         else if (this.cursors.up.isDown) {
