@@ -68,15 +68,17 @@ export class MainGame extends Scene
 
     bubblePlayer: Phaser.GameObjects.Image;
     bubbleEnemy: Phaser.GameObjects.Image;
+    emojis: string[];
     emojisImages: Phaser.GameObjects.Group;
-    wrong1: Phaser.GameObjects.Image;
-    wrong2: Phaser.GameObjects.Image;
+    qAndA: Record<string, string>;
+    answerKeysLetters: Array<string>;
     isDialogueGoing: boolean;
     timeOfDialogueStart: number;
     timeDialogueEnd: number;
-    emojis: string[];
-    qAndA: Record<string, string>;
-    answerKeysLetters: Array<string>;
+    wrong1: Phaser.GameObjects.Image;
+    wrong2: Phaser.GameObjects.Image;
+    music12Switched: boolean;
+    music21Switched: boolean;
 
     arcadeAreaCoords: GameObjPos;
     arcadeArea: Phaser.GameObjects.Rectangle;
@@ -95,12 +97,39 @@ export class MainGame extends Scene
         super('MainGame');
     }
 
-    private musicSwitchTrack()
+    private musicSwitchTrack1to2()
     {
-        this.time.delayedCall(Math.min((this.music1.seek % 1.5), (1.5 - this.music1.seek % 1.5)), () => {
+        if (this.music12Switched) {
+            console.log(`ABORT music track switch -- it already switched`)
+            return;
+        }
+        this.music12Switched = true;
+        console.log(`CURRENT playback time: ${this.music1.seek}`)
+        const beat: number = this.music1.seek % 1.5;
+        console.log(`(potential) BEAT: ${beat}`)
+        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+            console.log('switch to track 2 CALLBACK')
+            const playbackTime: number = this.music1.seek;
+            console.log(`PLAYBACK TIME: ${playbackTime}`)
             this.music1.stop();
-            this.music2 = this.sound.add('music2', { loop: true });
+            this.music2.setSeek(playbackTime);
             this.music2.play();
+        });
+    }
+    private musicSwitchTrack2to1()
+    {
+        if (this.music21Switched) {
+            console.log(`ABORT music track switch -- it already switched`)
+            return;
+        }
+        this.music21Switched = true;
+        const beat = this.music2.seek % 1.5;
+        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+            console.log('switch to track 1 CALLBACK')
+            const playbackTime: number = this.music2.seek;
+            this.music2.stop();
+            this.music1.setSeek(playbackTime);
+            this.music1.play();
         });
     }
 
@@ -219,10 +248,16 @@ export class MainGame extends Scene
 
     create ()
     {
-        this.music1 = this.sound.add('music1', { loop: true });
+        if (!this.music1) {
+            console.log(`creating music track 1`)
+            this.music1 = this.sound.add('music1', { loop: true });
+        }
+        if (!this.music2) {
+            console.log(`creating music track 2`)
+            this.music2 = this.sound.add('music2', { loop: true });
+        }
         this.music1.play();
 
-        console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
 
@@ -244,6 +279,8 @@ export class MainGame extends Scene
 
         this.layout = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'level-layout');
 
+        // DIALOGUE
+
         this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble');
         this.bubbleEnemy.setFlipY(true);
         this.bubbleEnemy.setAlpha(0);
@@ -251,16 +288,23 @@ export class MainGame extends Scene
         this.bubblePlayer.setFlipY(true);
         this.bubblePlayer.setFlipX(true);
         this.bubblePlayer.setAlpha(0);
+
         this.emojis = ['emoji1', 'emoji2', 'emoji3', 'emoji4'];
         this.qAndA = { 'emoji1': 'emoji2' };
         this.answerKeysLetters = Object.keys(letterKeyCodes);
         this.emojisImages = this.add.group();
+        this.isDialogueGoing = false;
+        console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
+        this.music12Switched = false;
+        this.music21Switched = false;
 
         this.time.delayedCall(2000, () => {
             console.log(`firing first dialogue from create at ${this.time.now}`)
             this.setupDialogue(this.qAndA, this.emojis);
             console.log(`time after setup dialogue call is ${this.timeOfDialogueStart}`)
         });
+
+        // ARCADE
 
         this.arcadeArea = this.add.rectangle(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y, ARCADE_AREA_SIZE.width, ARCADE_AREA_SIZE.height, 0xcccc33, 1);
         this.arcadeArea.setAlpha(0.5);
@@ -324,24 +368,27 @@ export class MainGame extends Scene
             // console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
             // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
             if (this.time.now > (this.timeOfDialogueStart + 3000)) {
-                // console.log(`player did not made it in time at ${this.time.now}`)
+                console.log(`player did not made it in time at ${this.time.now}`)
                 this.scene.start('GameOver');
             }
         }
 
         // Dialogue answer input
         if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
-            // console.log(`end dialogue w right answer`)
+            console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
             this.timeDialogueEnd = this.time.now;
+            console.log(`after right answer, switching music from track 2 to 1`)
+            this.musicSwitchTrack2to1();
             // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
-            // console.log(`end dialogue w wrong answer at ${this.time.now}`)
+            console.log(`end dialogue w WRONG answer at ${this.time.now}`)
             this.endDialogue();
             // this.scene.start('GameOver');
-            // TODO: hit player
-            this.musicSwitchTrack();
+            // TODO: hit sus scale
+            console.log(`after wrong answer, switching music to track 2 (more intense)`)
+            this.musicSwitchTrack1to2();
             this.timeDialogueEnd = this.time.now;
         }
 
@@ -447,5 +494,7 @@ export class MainGame extends Scene
     shutdown()
     {
         // TODO: cleanup
+        // music, timers
+        // smth else?
     }
 }
