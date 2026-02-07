@@ -165,16 +165,6 @@ export class MainGame extends Scene
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
     {
         console.log(`answer constructor fired for letter ${Letter} at ${this.time.now}`)
-        this.add.text(
-            (Pos.x - 150),
-            (Pos.y - 50),
-            `${Letter}`,
-            {
-                fontFamily: 'Eater',
-                fontSize: '96px',
-                color: '#33ff33'
-            }
-        );
         const answer = this.add.image(Pos.x, Pos.y, Emoji);
         answer.setDepth(1);
         this.emojisImages.add(answer);
@@ -197,7 +187,7 @@ export class MainGame extends Scene
             this.bubbleEnemy.setAlpha(1);
         })
         this.time.delayedCall(300, () => {
-            const questionImage = this.add.image((GAME_WIDTH - 200), 400, question);
+            const questionImage = this.add.image((GAME_WIDTH - 200), 430, question);
             questionImage.setDepth(1);
             this.emojisImages.add(questionImage);
         })
@@ -205,13 +195,13 @@ export class MainGame extends Scene
             this.bubblePlayer.setAlpha(1);
         })
 
+        const question2 = question.replace(/Demon$/, '');
         const answer: string = QAndA[question];
-        let wrongs: Array<string> = Emojis.filter((emoji) => emoji !== question && emoji !== answer);
+        let wrongs: Array<string> = Emojis.filter((emoji) => emoji !== question2 && emoji !== answer);
         const wrong1: string = wrongs[Math.floor(Math.random()*wrongs.length)];
         wrongs = wrongs.filter((emoji) => emoji !== wrong1);
         const wrong2: string = wrongs[Math.floor(Math.random()*wrongs.length)];
-        // 150 is emoji dimention, 20 is отступ
-        const answerPositions: Array<Pos> = [{x: 200, y: 300}, {x: 200, y: (300 + 150 + 20)}, {x: 200, y: (300 + 150*2 + 20*2)}];
+        const answerPositions: Array<Pos> = [{x: 150, y: 395}, {x: 280, y: 380}, {x: 220, y: 460}];
         const answers: Array<string> = [answer, wrong1, wrong2];
         shuffle(answers);
         const rightNumber: number = answers.indexOf(answer);
@@ -411,8 +401,17 @@ export class MainGame extends Scene
         this.bubblePlayer.setAlpha(0);
         this.bubblePlayer.setDepth(1);
 
-        this.emojis = ['emoji1', 'emoji2', 'emoji3', 'emoji4'];
-        this.qAndA = { 'emoji1': 'emoji2' };
+        this.emojis = ['drum', 'casino', 'movie-tape', 'cat', 'dice', 'money-bag', 'mice', 'meet', 'tennis', 'note', 'jew', 'palete', 'cook', 'ghost', 'ball', 'skull'];
+        this.qAndA = {
+            'casinoDemon': 'dice',
+            'catDemon': 'mice',
+            'money-bagDemon': 'jew',
+            'noteDemon': 'drum',
+            'paleteDemon': 'movie-tape',
+            'cookDemon': 'meet',
+            'ghostDemon': 'skull',
+            'ballDemon': 'tennis',
+        };
         this.answerKeysLetters = Object.keys(letterKeyCodes);
         this.emojisImages = this.add.group();
         this.isDialogueGoing = false;

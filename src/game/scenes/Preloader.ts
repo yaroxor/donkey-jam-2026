@@ -82,10 +82,40 @@ export class Preloader extends Scene
 
         this.load.image('bubble-skel', 'bubble-skel.png');
         this.load.image('bubble-demon', 'bubble-demon.png');
-        this.load.image('emoji1', 'emojis/emoji1.png');
-        this.load.image('emoji2', 'emojis/emoji2.jpg');
-        this.load.image('emoji3', 'emojis/emoji3.png');
-        this.load.image('emoji4', 'emojis/emoji4.png');
+
+        this.load.image('drum', 'emojis/skel/барабан С.png')
+        this.load.image('casino', 'emojis/skel/казино С.png')
+        this.load.image('movie-tape', 'emojis/skel/киноплёнка С.png')
+        this.load.image('cat', 'emojis/skel/кот С.png')
+        this.load.image('dice', 'emojis/skel/кубик игральный С.png')
+        this.load.image('money-bag', 'emojis/skel/мешок с деньгами С.png')
+        this.load.image('mice', 'emojis/skel/мышь С.png')
+        this.load.image('meet', 'emojis/skel/мясо С.png')
+        this.load.image('tennis', 'emojis/skel/настольный теннис С.png')
+        this.load.image('note', 'emojis/skel/нота С.png')
+        this.load.image('jew', 'emojis/skel/ожерелье С.png')
+        this.load.image('palete', 'emojis/skel/палитра С.png')
+        this.load.image('cook', 'emojis/skel/повар орк С.png')
+        this.load.image('ghost', 'emojis/skel/призрак С.png')
+        this.load.image('ball', 'emojis/skel/футбольный мяч С.png')
+        this.load.image('skull', 'emojis/skel/череп С.png')
+
+        this.load.image('drumDemon', 'emojis/demon/барабан Д.png')
+        this.load.image('casinoDemon', 'emojis/demon/казино Д.png')
+        this.load.image('movie-tapeDemon', 'emojis/demon/киноплёнка Д.png')
+        this.load.image('catDemon', 'emojis/demon/кот Д.png')
+        this.load.image('diceDemon', 'emojis/demon/кубик игральный Д.png')
+        this.load.image('money-bagDemon', 'emojis/demon/мешок с деньгами Д.png')
+        this.load.image('miceDemon', 'emojis/demon/мышь Д.png')
+        this.load.image('meetDemon', 'emojis/demon/мясо Д.png')
+        this.load.image('tennisDemon', 'emojis/demon/настольный теннис Д.png')
+        this.load.image('noteDemon', 'emojis/demon/нота Д.png')
+        this.load.image('jewDemon', 'emojis/demon/ожерелье Д.png')
+        this.load.image('paleteDemon', 'emojis/demon/палитра Д.png')
+        this.load.image('cookDemon', 'emojis/demon/повар орк Д.png')
+        this.load.image('ghostDemon', 'emojis/demon/призрак Д.png')
+        this.load.image('ballDemon', 'emojis/demon/футбольный мяч Д.png')
+        this.load.image('skullDemon', 'emojis/demon/череп Д.png')
     }
 
     create ()
