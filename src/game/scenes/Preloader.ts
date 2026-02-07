@@ -39,6 +39,7 @@ export class Preloader extends Scene
         this.load.image('options-hovered', 'menuUI/options-hovered.png');
         this.load.image('info1', 'menuUI/info1.png');
         this.load.image('info-hovered', 'menuUI/info-hovered.png');
+        this.load.image('info-screen', 'info.png');
 
         this.load.image('gameover', 'gameover.png');
 

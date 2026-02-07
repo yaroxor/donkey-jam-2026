@@ -12,6 +12,7 @@ export class MainMenu extends Scene
     infoButtonHovered: GameObjects.Image;
     optionsButton: GameObjects.Image;
     optionsButtonHovered: GameObjects.Image;
+    infoScreen: GameObjects.Image;
 
     spaceKey: Phaser.Input.Keyboard.Key;
 
@@ -23,6 +24,9 @@ export class MainMenu extends Scene
     create ()
     {
         this.poster = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'main-menu');
+
+        this.infoScreen = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'info-screen');
+        this.infoScreen.setAlpha(0);
 
         // 300x91
         this.startButton = this.add.image((GAME_WIDTH - 300 - 72), (GAME_HEIGHT - 91 - 70), 'start1');
@@ -52,7 +56,7 @@ export class MainMenu extends Scene
             this.infoButtonHovered.setAlpha(1);
         });
         this.infoButton.on('pointerdown', () => {
-            this.scene.start('MainGame');
+            this.infoScreen.setAlpha(1);
         })
         this.infoButton.on('pointerout', () => {
             this.infoButtonHovered.setAlpha(0);
