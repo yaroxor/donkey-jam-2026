@@ -109,17 +109,17 @@ export class MainGame extends Scene
 
     private getLootRandomPos(): Pos
     {
-        const x = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
+        const x: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
         console.log(`randomized X coord: ${x}`)
 
-        let y = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
+        let y: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
         console.log(`randomized Y coord: ${y}`)
 
         // blockSword 60x161
-        const block1LeftX = SCREEN_CENTER.x - 5 - 161/2;
-        const block1RightX = SCREEN_CENTER.x - 5 + 161/2;
-        const block1TopY = 200 + 60/2;
-        const block1BotY = 200 - 60/2;
+        const block1LeftX: number = SCREEN_CENTER.x - 5 - 161/2;
+        const block1RightX: number = SCREEN_CENTER.x - 5 + 161/2;
+        const block1TopY: number = 200 + 60/2;
+        const block1BotY: number = 200 - 60/2;
         console.log(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
         if ((block1LeftX > x > block1RightX) && (block1TopY > y > block1BotY)) {
             const verticalOffset = ((y - this.arcadeAreaCoordsCenter.y - 100 - 30/2) + 20)
@@ -527,6 +527,7 @@ export class MainGame extends Scene
         this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
+            this.endDialogue();
             this.scene.start('GameOver');
         });
 
@@ -631,11 +632,11 @@ export class MainGame extends Scene
         else if (this.cursors.right.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
-                this.hand.setSize(100, 300);
+                this.hand.setSize(100, 50);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(50);
+                this.hand.setVelocityX(300);
             }
         }
         else if (this.cursors.up.isDown) {
