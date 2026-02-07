@@ -85,9 +85,9 @@ export class MainGame extends Scene
     music21Switched: boolean;
 
     scales: Phaser.GameObjects.Group;
-    currentScale: number;
     demons: Phaser.GameObjects.Group;
-    currentDemon: number;
+    skels: Phaser.GameObjects.Group;
+    currentSus: number;
     susProgressED: boolean;
 
     arcadeAreaCoords: GameObjPos;
@@ -316,16 +316,21 @@ export class MainGame extends Scene
         this.susProgressED = true;
         console.log(`~~~ in progressSus body sus progressed was set to ${this.susProgressED}`)
 
-        this.scales.children.entries[this.currentScale].setAlpha(0);
-        this.currentScale += 1;
-        console.log(`In progress sus body, after increment CURRENT SUS SCALE: ${this.currentScale}`)
+        this.scales.children.entries[this.currentSus].setAlpha(0);
+        this.demons.children.entries[this.currentSus].setAlpha(0);
+        this.skels.children.entries[this.currentSus].setAlpha(0);
+
+        this.currentSus += 1;
+        console.log(`In progress sus body, after increment CURRENT SUS SCALE: ${this.currentSus}`)
 
         // FAIL by SUS
-        if (this.currentScale >= 4) {
+        if (this.currentSus >= 4) {
             return;
         }
 
-        this.scales.children.entries[this.currentScale].setAlpha(1);
+        this.scales.children.entries[this.currentSus].setAlpha(1);
+        this.demons.children.entries[this.currentSus].setAlpha(1);
+        this.skels.children.entries[this.currentSus].setAlpha(1);
 
         this.currentDemon += 1;
         console.log('SUS Progressed')
@@ -418,8 +423,7 @@ export class MainGame extends Scene
         const scale4 = this.add.image(1100, 50, 'scale4');
         scale4.setAlpha(0);
         this.scales.add(scale4);
-        this.currentScale = 0;
-        console.log(`after creation SUS SCALE: ${this.currentScale}`)
+        console.log(`after creation SUS SCALE: ${this.currentSus}`)
 
         this.demons = this.add.group();
         const demon1 = this.add.image(1100, 400, 'demon1');
@@ -430,9 +434,25 @@ export class MainGame extends Scene
         const demon3 = this.add.image(1100, 400, 'demon3');
         demon3.setAlpha(0);
         this.demons.add(demon3);
-        this.currentDemon = 0;
+        const demon4 = this.add.image(1100, 400, 'demon4');
+        demon4.setAlpha(0);
+        this.demons.add(demon4);
 
-        this.add.image(200, 400, 'skel1');
+
+        this.skels = this.add.group();
+        const skel1 = this.add.image(200, 400, 'skel1');
+        this.skels.add(skel1);
+        const skel2 = this.add.image(200, 400, 'skel2');
+        skel2.setAlpha(0);
+        this.skels.add(skel2);
+        const skel3 = this.add.image(200, 400, 'skel3');
+        skel3.setAlpha(0);
+        this.skels.add(skel3);
+        const skel4 = this.add.image(200, 400, 'skel4');
+        skel4.setAlpha(0);
+        this.skels.add(skel4);
+
+        this.currentSus = 0;
 
         // TODO: state management
         this.susProgressED = false;
@@ -556,7 +576,7 @@ export class MainGame extends Scene
     update()
     {
         // FAIL by SUS
-        if (this.currentScale >= 4) {
+        if (this.currentSus >= 4) {
             this.scene.start('GameOver');
         }
 
