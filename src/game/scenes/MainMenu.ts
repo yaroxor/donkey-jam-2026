@@ -75,7 +75,7 @@ export class MainMenu extends Scene
             this.optionsButtonHovered.setAlpha(1);
         });
         this.optionsButton.on('pointerdown', () => {
-            this.scene.start('MainGame');
+            // this.scene.start('MainGame');
         })
         this.optionsButton.on('pointerout', () => {
             this.optionsButtonHovered.setAlpha(0);
