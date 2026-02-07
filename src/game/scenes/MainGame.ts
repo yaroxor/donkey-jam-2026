@@ -348,6 +348,24 @@ export class MainGame extends Scene
         // TODO: state management
     }
 
+    init() {
+        this.isDialogueGoing = false;
+
+        this.music21Switched = false;
+        this.music12Switched = false;
+
+        this.timeDialogueStrat = 1.7976931348623157E+308;
+        this.timeDialogueEnd = 1.7976931348623157E+308;
+
+        this.currentSus = 0;
+        this.susProgressED = false;
+
+        this.handMoveDirection = Direction.Left;
+
+        this.lootAmount = 0;
+        this.collectedLootCount = 0;
+    }
+
     create ()
     {
         if (!this.music1) {
@@ -359,6 +377,7 @@ export class MainGame extends Scene
             this.music2 = this.sound.add('music2', { loop: true });
         }
         this.music1.play();
+        this.music21Switched = true; // imean track 1 is already playing
 
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
@@ -399,8 +418,6 @@ export class MainGame extends Scene
         this.emojisImages = this.add.group();
         this.isDialogueGoing = false;
         console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
-        this.music12Switched = false;
-        this.music21Switched = true; // imean track 1 is already playing
 
         this.scales = this.add.group();
         const scale1 = this.add.image(1100, 50, 'scale1');
@@ -510,8 +527,6 @@ export class MainGame extends Scene
         this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
-            this.music1.stop();
-            this.music2.stop();
             this.scene.start('GameOver');
         });
 
@@ -521,7 +536,7 @@ export class MainGame extends Scene
         this.lootScoreMsg = this.add.text(
             100,
             100,
-            `${this.lootAmount}`,
+            `${this.collectedLootCount}`,
             {
                 fontFamily: 'Eater',
                 fontSize: '96px',
@@ -650,5 +665,7 @@ export class MainGame extends Scene
         // TODO: cleanup
         // music, timers
         // smth else?
+        this.music1 = 0;
+        this.music2 = 0;
     }
 }
