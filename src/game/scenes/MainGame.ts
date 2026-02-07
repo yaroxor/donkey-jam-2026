@@ -268,6 +268,7 @@ export class MainGame extends Scene
     private musicSwitchTrack1to2()
     {
         if (this.music12Switched) {
+            this.sound.play('crack-head');
             console.log(`ABORT music track switch -- it already switched`)
             return;
         }
@@ -282,6 +283,7 @@ export class MainGame extends Scene
             console.log(`at ${this.time.now} we start playing TRACK 2 from ${playbackTime}`)
             this.music1.stop();
             this.music2.setSeek(playbackTime);
+            this.sound.play('crack-head');
             this.music2.play();
         });
     }
@@ -574,8 +576,8 @@ export class MainGame extends Scene
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
             this.timeDialogueEnd = this.time.now;
-            console.log(`after right answer, switching music from track 2 to 1`)
-            this.musicSwitchTrack2to1();
+            // console.log(`after right answer, switching music from track 2 to 1`)
+            // this.musicSwitchTrack2to1();
             // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         // WRONG

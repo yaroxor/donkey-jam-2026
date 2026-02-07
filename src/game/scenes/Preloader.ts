@@ -35,7 +35,7 @@ export class Preloader extends Scene
 
         this.load.audio('music1', 'music/Slick Hand Joe 1.mp3');
         this.load.audio('music2', 'music/Slick Hand Joe 2.mp3');
-        // this.load.audio('crack-head', 'crack-head.waw');
+        this.load.audio('crack-head', 'music/crack-head.mp3');
 
         this.load.image('main-menu', 'main-menu.png');
         this.load.image('start1', 'menuUI/start1.png');
