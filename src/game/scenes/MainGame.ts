@@ -520,6 +520,7 @@ export class MainGame extends Scene
         blockBottle.setSize(110, 53);
         this.blocks.add(blockBottle);
 
+        // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
         this.hand.setVelocityX(-300);
@@ -535,13 +536,13 @@ export class MainGame extends Scene
         this.lootAmount = 0;
         this.collectedLootCount = 0;
         this.lootScoreMsg = this.add.text(
-            100,
-            100,
+            50,
+            5,
             `${this.collectedLootCount}`,
             {
-                fontFamily: 'Eater',
+                fontFamily: 'Architects Daughter',
                 fontSize: '96px',
-                color: '#33ff33'
+                color: '#44323f'
             }
         );
         this.lootAmount +=1;
@@ -625,7 +626,7 @@ export class MainGame extends Scene
         if (this.cursors.left.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Left;
-                this.hand.setSize(100, 50);
+                this.hand.setSize(106, 67);
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
@@ -635,7 +636,7 @@ export class MainGame extends Scene
         else if (this.cursors.right.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
-                this.hand.setSize(100, 50);
+                this.hand.setSize(106, 67);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
@@ -645,7 +646,7 @@ export class MainGame extends Scene
         else if (this.cursors.up.isDown) {
             if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
                 this.handMoveDirection = Direction.Up;
-                this.hand.setSize(50, 100);
+                this.hand.setSize(67, 106);
                 this.hand.angle = 90;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
@@ -655,7 +656,7 @@ export class MainGame extends Scene
         else if (this.cursors.down.isDown) {
             if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
                 this.handMoveDirection = Direction.Down;
-                this.hand.setSize(50, 100);
+                this.hand.setSize(67, 106);
                 this.hand.angle = 270;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
