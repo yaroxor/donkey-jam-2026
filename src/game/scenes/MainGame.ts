@@ -404,13 +404,12 @@ export class MainGame extends Scene
 
         // TODO: mb move some of this stuff (state) to init
 
-        this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble');
-        this.bubbleEnemy.setFlipY(true);
+        this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble-demon');
         this.bubbleEnemy.setAlpha(0);
-        this.bubblePlayer = this.add.image(200, 400, 'bubble');
-        this.bubblePlayer.setFlipY(true);
-        this.bubblePlayer.setFlipX(true);
+        this.bubbleEnemy.setDepth(1);
+        this.bubblePlayer = this.add.image(200, 400, 'bubble-skel');
         this.bubblePlayer.setAlpha(0);
+        this.bubblePlayer.setDepth(1);
 
         this.emojis = ['emoji1', 'emoji2', 'emoji3', 'emoji4'];
         this.qAndA = { 'emoji1': 'emoji2' };

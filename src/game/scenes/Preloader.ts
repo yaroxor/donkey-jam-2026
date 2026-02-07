@@ -80,7 +80,8 @@ export class Preloader extends Scene
         this.load.image('loot3', 'loot/3.png');
         this.load.image('loot4', 'loot/4.png');
 
-        this.load.image('bubble', 'bubble.png');
+        this.load.image('bubble-skel', 'bubble-skel.png');
+        this.load.image('bubble-demon', 'bubble-demon.png');
         this.load.image('emoji1', 'emojis/emoji1.png');
         this.load.image('emoji2', 'emojis/emoji2.jpg');
         this.load.image('emoji3', 'emojis/emoji3.png');
