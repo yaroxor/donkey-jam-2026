@@ -432,15 +432,15 @@ export class MainGame extends Scene
         console.log(`after creation SUS SCALE: ${this.currentSus}`)
 
         this.demons = this.add.group();
-        const demon1 = this.add.image(1100, 400, 'demon1');
+        const demon1 = this.add.image(1100, 410, 'demon1');
         this.demons.add(demon1);
-        const demon2 = this.add.image(1100, 400, 'demon2');
+        const demon2 = this.add.image(1100, 410, 'demon2');
         demon2.setAlpha(0);
         this.demons.add(demon2);
-        const demon3 = this.add.image(1100, 400, 'demon3');
+        const demon3 = this.add.image(1100, 410, 'demon3');
         demon3.setAlpha(0);
         this.demons.add(demon3);
-        const demon4 = this.add.image(1100, 400, 'demon4');
+        const demon4 = this.add.image(1100, 410, 'demon4');
         demon4.setAlpha(0);
         this.demons.add(demon4);
 
