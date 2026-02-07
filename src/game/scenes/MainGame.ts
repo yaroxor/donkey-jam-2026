@@ -528,6 +528,8 @@ export class MainGame extends Scene
 
         this.physics.add.collider(this.hand, this.blocks, () => {
             this.endDialogue();
+            this.music1.stop();
+            this.music2.stop();
             this.scene.start('GameOver');
         });
 
@@ -557,6 +559,9 @@ export class MainGame extends Scene
     {
         // FAIL by SUS
         if (this.currentSus >= 4) {
+            this.endDialogue();
+            this.music1.stop();
+            this.music2.stop();
             this.scene.start('GameOver');
         }
 
@@ -666,7 +671,5 @@ export class MainGame extends Scene
         // TODO: cleanup
         // music, timers
         // smth else?
-        this.music1 = 0;
-        this.music2 = 0;
     }
 }
