@@ -52,6 +52,11 @@ export class Preloader extends Scene
         this.load.image('scale3', 'scale/3.png');
         this.load.image('scale4', 'scale/4.png');
 
+        this.load.image('skel1', 'skel/1.png');
+        this.load.image('skel2', 'skel/2.png');
+        this.load.image('skel3', 'skel/3.png');
+        this.load.image('skel4', 'skel/4.png');
+
         this.load.image('demon1', 'demon/1.png');
         this.load.image('demon2', 'demon/2.png');
         this.load.image('demon3', 'demon/3.png');

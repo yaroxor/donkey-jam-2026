@@ -91,7 +91,6 @@ export class MainGame extends Scene
     susProgressED: boolean;
 
     arcadeAreaCoords: GameObjPos;
-    arcadeArea: Phaser.GameObjects.Rectangle;
 
     blocks: Phaser.Physics.Arcade.Group;
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -196,6 +195,8 @@ export class MainGame extends Scene
     {
         console.log(`SETUP DIALOGUE FIRED at ${this.time.now}`)
         this.isDialogueGoing = true;
+        this.susProgressED = false;
+        console.log(`~~~ In setupDialogue, setting susProgressED to ${this.susProgressED}`)
         console.log(`is dialogue going after setup dialogue start -- ${this.isDialogueGoing}`)
         this.timeOfDialogueStart = 1.7976931348623157E+308;
         const questions: Array<string> = Object.keys(QAndA);
@@ -305,14 +306,17 @@ export class MainGame extends Scene
     private progressSus()
     {
         if (this.susProgressED) {
-            console.log('SUS already progressed Abort')
+            console.log('~~~ in progressSus body, SUS already progressed -- Abort')
             return;
         }
 
+        // TODO: state management
         this.susProgressED = true;
+        console.log(`~~~ in progressSus body sus progressed was set to ${this.susProgressED}`)
 
         this.scales.children.entries[this.currentScale].setAlpha(0);
         this.currentScale += 1;
+        console.log(`In progress sus body, after increment CURRENT SUS SCALE: ${this.currentScale}`)
 
         // FAIL by SUS
         if (this.currentScale >= 4) {
@@ -333,9 +337,17 @@ export class MainGame extends Scene
         this.rightAnswerKey = 0;
         this.wrongAnswer1Key = 0;
         this.wrongAnswer2Key = 0;
+        // TODO: state management
         this.isDialogueGoing = false;
-        this.susProgressED = false;
         console.log(`is dialogue going after end dialogue function body -- ${this.isDialogueGoing}`)
+    }
+
+    private answerFail() {
+        this.progressSus();
+        this.musicSwitchTrack1to2();
+        this.endDialogue();
+        this.timeDialogueEnd = this.time.now;
+        // TODO: state management
     }
 
     create ()
@@ -374,6 +386,7 @@ export class MainGame extends Scene
         // DIALOGUE
 
         // TODO: mb move some of this stuff (state) to init
+
         this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble');
         this.bubbleEnemy.setFlipY(true);
         this.bubbleEnemy.setAlpha(0);
@@ -404,6 +417,7 @@ export class MainGame extends Scene
         scale4.setAlpha(0);
         this.scales.add(scale4);
         this.currentScale = 0;
+        console.log(`after creation SUS SCALE: ${this.currentScale}`)
 
         this.demons = this.add.group();
         const demon1 = this.add.image(1100, 400, 'demon1');
@@ -416,7 +430,11 @@ export class MainGame extends Scene
         this.demons.add(demon3);
         this.currentDemon = 0;
 
-        this.susPregressED = false;
+        this.add.image(200, 400, 'skel1');
+
+        // TODO: state management
+        this.susProgressED = false;
+        console.log(`~~~ in CreatE, setting susProgressED to ${this.susProgressED}`)
 
         this.time.delayedCall(2000, () => {
             console.log(`firing first dialogue from CREATE at ${this.time.now}`)
@@ -425,9 +443,6 @@ export class MainGame extends Scene
         });
 
         // ARCADE
-
-        this.arcadeArea = this.add.rectangle(ARCADE_AREA_CENTER.x, ARCADE_AREA_CENTER.y, ARCADE_AREA_SIZE.width, ARCADE_AREA_SIZE.height, 0xcccc33, 1);
-        this.arcadeArea.setAlpha(0.5);
 
         this.blocks = this.physics.add.group({ immovable: true });
         // 60x66
@@ -549,15 +564,12 @@ export class MainGame extends Scene
             // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
             if (this.time.now > (this.timeOfDialogueStart + 3000)) {
                 // console.log(`player did not made it in time at ${this.time.now}`)
-                // TODO: put all dialogue fail related into separate method
-                this.progressSus();
-                this.musicSwitchTrack1to2();
-                this.endDialogue();
-                this.timeDialogueEnd = this.time.now;
+                this.answerFail();
             }
         }
 
         // Dialogue answer INPUT
+        // RIGHT
         if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
@@ -566,21 +578,17 @@ export class MainGame extends Scene
             this.musicSwitchTrack2to1();
             // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
+        // WRONG
         if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
             console.log(`end dialogue w WRONG answer at ${this.time.now}`)
-            this.endDialogue();
-            // this.scene.start('GameOver');
-            // TODO: hit sus scale
-            console.log(`after wrong answer, switching music to track 2 (more intense)`)
-            this.musicSwitchTrack1to2();
-            this.timeDialogueEnd = this.time.now;
+            this.answerFail();
         }
 
         // SPAWN dialogue with 5 sec break
         if (!this.isDialogueGoing) { // TODO?: do you want to check if not only no dialog going but there was dialogue already here?
-            console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
+            // console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
             const treshholdTime = this.timeDialogueEnd + 5000;
-            console.log(`elapsed time: ${treshholdTime - this.time.now}`)
+            // console.log(`elapsed time: ${treshholdTime - this.time.now}`)
             if (this.time.now > treshholdTime) {
                 console.log(`starting dialogue from update at ${this.time.now}`)
                 this.setupDialogue(this.qAndA, this.emojis);
