@@ -15,6 +15,7 @@ export class MainMenu extends Scene
     infoScreen: GameObjects.Image;
 
     spaceKey: Phaser.Input.Keyboard.Key;
+    escKey: Phaser.Input.Keyboard.Key;
 
     constructor ()
     {
@@ -26,6 +27,7 @@ export class MainMenu extends Scene
         this.poster = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'main-menu');
 
         this.infoScreen = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'info-screen');
+        this.infoScreen.setDepth(2);
         this.infoScreen.setAlpha(0);
 
         // 300x91
@@ -81,6 +83,7 @@ export class MainMenu extends Scene
 
         if (this.input.keyboard) {
             this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         }
     }
 
@@ -88,6 +91,10 @@ export class MainMenu extends Scene
     {
         if (this.spaceKey.isDown) {
             this.scene.start('MainGame');
+        }
+
+        if (this.escKey.isDown) {
+            this.infoScreen.setAlpha(0);
         }
     }
 }
