@@ -473,52 +473,16 @@ export class MainGame extends Scene
         // ARCADE
 
         this.blocks = this.physics.add.group({ immovable: true });
-        // 60x66
-        const blockCards = this.physics.add.sprite(510, 498, 'block7');
-        this.blocks.add(blockCards);
-        // 160x168
-        const blockPickaxe = this.physics.add.sprite(430, 550, 'block1');
-        this.blocks.add(blockPickaxe);
-        // 122x131
-        const blockBook = this.physics.add.sprite(420, 20, 'block2');
-        blockBook.setFlipY(true);
-        this.blocks.add(blockBook);
-        // 122x131
-        const blockBook2 = this.physics.add.sprite(840, 530, 'block2');
-        this.blocks.add(blockBook2);
-        // 116x115
-        const blockBoot = this.physics.add.sprite(530, 27, 'block3');
-        this.blocks.add(blockBoot);
-        // 67x67
-        const blockBomb = this.physics.add.sprite(880, 50, 'block4');
-        this.blocks.add(blockBomb);
-        // 64x118
-        const blockArrows = this.physics.add.sprite(800, 52, 'block5');
-        blockArrows.angle = 90;
-        blockArrows.setSize(118, 64);
-        this.blocks.add(blockArrows);
-        // 125x118
-        const blockHand = this.physics.add.sprite(700, 26, 'block6');
-        this.blocks.add(blockHand);
+        const block1 = this.add.rectangle(SCREEN_CENTER.x, 1, 600, 100, 0xff0000, 0);
+        this.blocks.add(block1);
+        const block2 = this.add.rectangle(SCREEN_CENTER.x, (GAME_HEIGHT - 120), 600, 100, 0xff0000, 0);
+        this.blocks.add(block2);
+
         // 60x161
         const blockSword = this.physics.add.sprite(ARCADE_AREA_CENTER.x, 200, 'block8');
         blockSword.angle = 90;
         blockSword.setSize(161, 60);
         this.blocks.add(blockSword);
-        // 171x64
-        const blockScroll = this.physics.add.sprite(650, 497, 'block9');
-        this.blocks.add(blockScroll);
-        // 67x67
-        const blockBomb2 = this.physics.add.sprite(750, 498, 'block4');
-        this.blocks.add(blockBomb2);
-        // 67x67
-        const blockBomb3 = this.physics.add.sprite(560, 498, 'block4');
-        this.blocks.add(blockBomb3);
-        // 53x110
-        const blockBottle = this.physics.add.sprite(630, 57, 'block10');
-        blockBottle.angle = 90;
-        blockBottle.setSize(110, 53);
-        this.blocks.add(blockBottle);
 
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
