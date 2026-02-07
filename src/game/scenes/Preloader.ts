@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-// import { SCREEN_CENTER } from '../config.ts';
+import { SCREEN_CENTER } from '../config.ts';
 
 export class Preloader extends Scene
 {
@@ -11,11 +11,6 @@ export class Preloader extends Scene
 
     init ()
     {
-        // this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'background');
-
-        //  A simple progress bar. This is the outline of the bar.
-        this.add.rectangle(512, 384, 468, 32).setStrokeStyle(1, 0xffffff);
-
         //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
         const bar = this.add.rectangle(512-230, 384, 4, 28, 0xffffff);
 
