@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { Pos, Direction } from '../config.ts';
+import { Pos, GameObjLayout, Direction } from '../config.ts';
 import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT } from '../config.ts';
 import { shuffle } from '../utils.ts';
 
@@ -16,8 +16,8 @@ export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
 
-    music1;
-    music2;
+    music1: Phaser.Sound.BaseSound;
+    music2: Phaser.Sound.BaseSound;
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     rightAnswerKey: Phaser.Input.Keyboard.Key | number;
@@ -50,7 +50,7 @@ export class MainGame extends Scene
     currentSus: number;
     susProgressED: boolean;
 
-    arcadeAreaCoords: GameObjPos;
+    arcadeAreaLayout: GameObjLayout;
 
     blocks: Phaser.Physics.Arcade.Group;
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -69,23 +69,25 @@ export class MainGame extends Scene
 
     private getLootRandomPos(): Pos
     {
-        const x: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
+        const x: number = (Math.random() * this.arcadeAreaLayout.width) + this.arcadeAreaLayout.x;
         console.log(`randomized X coord: ${x}`)
 
-        let y: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
+        let y: number = (Math.random() * this.arcadeAreaLayout.height) + this.arcadeAreaLayout.y;
         console.log(`randomized Y coord: ${y}`)
 
         // blockSword 60x161
-        const block1LeftX: number = SCREEN_CENTER.x - 5 - 161/2;
-        const block1RightX: number = SCREEN_CENTER.x - 5 + 161/2;
-        const block1TopY: number = 200 + 60/2;
-        const block1BotY: number = 200 - 60/2;
-        console.log(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
-        if ((block1LeftX > x > block1RightX) && (block1TopY > y > block1BotY)) {
-            const verticalOffset = ((y - this.arcadeAreaCoordsCenter.y - 100 - 30/2) + 20)
+        const blockLeftX: number = SCREEN_CENTER.x - 5 - 161/2;
+        const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2;
+        const blockTopY: number = 200 + 60/2;
+        const blockBotY: number = 200 - 60/2;
+        // TODO: still does not work
+        console.log(`BLOCK from ${blockLeftX} ${blockTopY} to ${blockRightX} ${blockBotY}`)
+        if (((blockLeftX < x) && (x < blockRightX)) && ((blockTopY > y) && (y > blockBotY))) {
+            const verticalOffset = ((y - blockTopY) + 20)
             console.log(`loot (seem to be) on block, adding offset ${verticalOffset}`)
             y += verticalOffset;
         }
+
         const lootPos = { x: x, y: y};
         return lootPos;
     }
@@ -334,7 +336,7 @@ export class MainGame extends Scene
         this.camera.setBackgroundColor(0xff00ff);
 
 
-        this.arcadeAreaCoords = { x: ARCADE_AREA_LAYOUT.x, y: ARCADE_AREA_LAYOUT.y, width: ARCADE_AREA_LAYOUT.width, height: ARCADE_AREA_LAYOUT.height };
+        this.arcadeAreaLayout = { x: ARCADE_AREA_LAYOUT.x, y: ARCADE_AREA_LAYOUT.y, width: ARCADE_AREA_LAYOUT.width, height: ARCADE_AREA_LAYOUT.height };
 
         this.table = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
@@ -414,7 +416,8 @@ export class MainGame extends Scene
 
         this.time.delayedCall(2000, () => {
             console.log(`firing first dialogue from CREATE at ${this.time.now}`)
-            this.setupDialogue(this.qAndA, this.emojis);
+            // TODO: put back after loot spawn fix
+            // this.setupDialogue(this.qAndA, this.emojis);
             console.log(`time after setup dialogue call is ${this.timeOfDialogueStart}`)
         });
 
@@ -435,7 +438,8 @@ export class MainGame extends Scene
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
-        this.hand.setVelocityX(-300);
+        // TODO: put back after loot spawn fix
+        // this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
             this.endDialogue();
@@ -509,13 +513,15 @@ export class MainGame extends Scene
             // console.log(`elapsed time: ${treshholdTime - this.time.now}`)
             if (this.time.now > treshholdTime) {
                 console.log(`starting dialogue from update at ${this.time.now}`)
+                // TODO: put back after loot spawn fix
                 this.setupDialogue(this.qAndA, this.emojis);
                 console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
             }
         }
 
         // Create LOOT
-        if (this.lootAmount === 0) {
+        // TODO: put back comparison to 0 after loot spawn fix
+        if (this.lootAmount) {
             console.log(`we DONT HAVE any loot in UPDATE`)
             this.lootAmount += 1;
             this.time.delayedCall(1000, () => {
