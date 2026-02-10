@@ -1,54 +1,17 @@
 import { Scene } from 'phaser';
 
-import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
+import { Pos, Direction } from '../config.ts';
+import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT } from '../config.ts';
+import { shuffle } from '../utils.ts';
 
-// TODO?: also move to config?
-interface Pos {
-    x: number,
-    y: number
-}
-
-interface GameObjPos {
-    x: number,
-    y: number,
-    width: number,
-    height: number
-}
-
-enum Direction {
-  Up,
-  Down,
-  Left,
-  Right,
-}
-
+// TODO: config or utils?
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
     'D': 68,
     'F': 70
 }
 
-// TODO?: mb move to utilities or smth
-// Source - https://stackoverflow.com/a/2450976
-// Posted by ChristopheD, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-02-04, License - CC BY-SA 4.0
-function shuffle(array: Array<string>) {
-  let currentIndex = array.length;
-
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-
-    // Pick a remaining element...
-    let randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
-  }
-}
-
-// TODO: follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
+// TODO: Check to follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
 export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -103,9 +66,6 @@ export class MainGame extends Scene
     {
         super('MainGame');
     }
-
-    // TODO: maybe add init to solve game restart after game over issues.
-    // read https://docs.phaser.io/phaser/concepts/scenes for more info
 
     private getLootRandomPos(): Pos
     {
@@ -339,6 +299,7 @@ export class MainGame extends Scene
     }
 
     init() {
+        // read https://docs.phaser.io/phaser/concepts/scenes for more info
         this.isDialogueGoing = false;
 
         this.music21Switched = false;
@@ -372,21 +333,8 @@ export class MainGame extends Scene
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
 
-        // TODO?: move this stuff into config
-        const ARCADE_AREA_CENTER: Pos = {
-            x: (SCREEN_CENTER.x - 5),
-            y: (GAME_HEIGHT/3 + 35)
-        }
-        const ARCADE_AREA_SIZE = {
-            width: 500,
-            height: 380
-        }
-        const ARCADE_AREA_TOP_LEFT_CORNER: Pos = {
-            x: ARCADE_AREA_CENTER.x - ARCADE_AREA_SIZE.width/2,
-            y: ARCADE_AREA_CENTER.y - ARCADE_AREA_SIZE.height/2
-        }
 
-        this.arcadeAreaCoords = { x: ARCADE_AREA_TOP_LEFT_CORNER.x, y: ARCADE_AREA_TOP_LEFT_CORNER.y, width: ARCADE_AREA_SIZE.width, height: ARCADE_AREA_SIZE.height };
+        this.arcadeAreaCoords = { x: ARCADE_AREA_LAYOUT.x, y: ARCADE_AREA_LAYOUT.y, width: ARCADE_AREA_LAYOUT.width, height: ARCADE_AREA_LAYOUT.height };
 
         this.table = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
