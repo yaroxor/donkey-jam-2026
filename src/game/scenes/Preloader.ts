@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { SCREEN_CENTER } from '../config.ts';
+// import { SCREEN_CENTER } from '../config.ts';
 
 export class Preloader extends Scene
 {

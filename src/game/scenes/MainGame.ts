@@ -16,17 +16,18 @@ export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
 
-    music1: Phaser.Sound.BaseSound;
-    music2: Phaser.Sound.BaseSound;
+    private music1: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
+    private music2: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
+    // TODO?: make all class fields private?
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-    rightAnswerKey: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer1Key: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer2Key: Phaser.Input.Keyboard.Key | number;
+    rightAnswerKey: Phaser.Input.Keyboard.Key;
+    wrongAnswer1Key: Phaser.Input.Keyboard.Key;
+    wrongAnswer2Key: Phaser.Input.Keyboard.Key;
 
-    rightAnswerKey2: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer1Key2: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer2Key2: Phaser.Input.Keyboard.Key | number;
+    rightAnswerKey2: Phaser.Input.Keyboard.Key;
+    wrongAnswer1Key2: Phaser.Input.Keyboard.Key;
+    wrongAnswer2Key2: Phaser.Input.Keyboard.Key;
 
     table: Phaser.GameObjects.Image;
 
@@ -38,7 +39,7 @@ export class MainGame extends Scene
     answerKeysLetters: Array<string>;
     isDialogueGoing: boolean;
     timeOfDialogueStart: number;
-    timeDialogueEnd: number;
+    timeOfDialogueEnd: number;
     wrong1: Phaser.GameObjects.Image;
     wrong2: Phaser.GameObjects.Image;
     music12Switched: boolean;
@@ -230,23 +231,23 @@ export class MainGame extends Scene
             this.music2.play();
         });
     }
-    private musicSwitchTrack2to1()
-    {
-        if (this.music21Switched) {
-            console.log(`ABORT music track switch -- it already switched`)
-            return;
-        }
-        this.music21Switched = true;
-        this.music12Switched = false;
-        const beat = this.music2.seek % 1.5;
-        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
-            console.log('switch to track 1 CALLBACK')
-            const playbackTime: number = this.music2.seek;
-            this.music2.stop();
-            this.music1.setSeek(playbackTime);
-            this.music1.play();
-        });
-    }
+    // private musicSwitchTrack2to1()
+    // {
+    //     if (this.music21Switched) {
+    //         console.log(`ABORT music track switch -- it already switched`)
+    //         return;
+    //     }
+    //     this.music21Switched = true;
+    //     this.music12Switched = false;
+    //     const beat = this.music2.seek % 1.5;
+    //     this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+    //         console.log('switch to track 1 CALLBACK')
+    //         const playbackTime: number = this.music2.seek;
+    //         this.music2.stop();
+    //         this.music1.setSeek(playbackTime);
+    //         this.music1.play();
+    //     });
+    // }
 
     private progressSus()
     {
@@ -259,9 +260,13 @@ export class MainGame extends Scene
         this.susProgressED = true;
         console.log(`~~~ in progressSus body sus progressed was set to ${this.susProgressED}`)
 
-        this.scales.children.entries[this.currentSus].setAlpha(0);
-        this.demons.children.entries[this.currentSus].setAlpha(0);
-        this.skels.children.entries[this.currentSus].setAlpha(0);
+        const scale = this.scales.children.entries[this.currentSus] as Phaser.GameObjects.Sprite;
+        const demon = this.demons.children.entries[this.currentSus] as Phaser.GameObjects.Sprite;
+        const skel = this.skels.children.entries[this.currentSus] as Phaser.GameObjects.Sprite;
+
+        scale.setAlpha(0);
+        demon.setAlpha(0);
+        skel.setAlpha(0);
 
         this.currentSus += 1;
         console.log(`In progress sus body, after increment CURRENT SUS SCALE: ${this.currentSus}`)
@@ -271,11 +276,10 @@ export class MainGame extends Scene
             return;
         }
 
-        this.scales.children.entries[this.currentSus].setAlpha(1);
-        this.demons.children.entries[this.currentSus].setAlpha(1);
-        this.skels.children.entries[this.currentSus].setAlpha(1);
+        scale.setAlpha(0);
+        demon.setAlpha(0);
+        skel.setAlpha(0);
 
-        this.currentDemon += 1;
         console.log('SUS Progressed')
     }
 
@@ -284,9 +288,6 @@ export class MainGame extends Scene
         this.bubblePlayer.setAlpha(0);
         this.bubbleEnemy.setAlpha(0);
         this.emojisImages.clear(false, true);
-        this.rightAnswerKey = 0;
-        this.wrongAnswer1Key = 0;
-        this.wrongAnswer2Key = 0;
         // TODO: state management
         this.isDialogueGoing = false;
         console.log(`is dialogue going after end dialogue function body -- ${this.isDialogueGoing}`)
@@ -296,7 +297,7 @@ export class MainGame extends Scene
         this.progressSus();
         this.musicSwitchTrack1to2();
         this.endDialogue();
-        this.timeDialogueEnd = this.time.now;
+        this.timeOfDialogueEnd = this.time.now;
         // TODO: state management
     }
 
@@ -307,8 +308,8 @@ export class MainGame extends Scene
         this.music21Switched = false;
         this.music12Switched = false;
 
-        this.timeDialogueStrat = 1.7976931348623157E+308;
-        this.timeDialogueEnd = 1.7976931348623157E+308;
+        this.timeOfDialogueStart = 1.+308;
+        this.timeOfDialogueEnd = 1.7976931348623157E+308;
 
         this.currentSus = 0;
         this.susProgressED = false;
@@ -323,11 +324,11 @@ export class MainGame extends Scene
     {
         if (!this.music1) {
             console.log(`creating music track 1`)
-            this.music1 = this.sound.add('music1', { loop: true });
+            this.music1 = this.sound.add('music1', { loop: true }) as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
         }
         if (!this.music2) {
             console.log(`creating music track 2`)
-            this.music2 = this.sound.add('music2', { loop: true });
+            this.music2 = this.sound.add('music2', { loop: true }) as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
         }
         this.music1.play();
         this.music21Switched = true; // imean track 1 is already playing
@@ -462,7 +463,7 @@ export class MainGame extends Scene
             }
         );
         this.lootAmount +=1;
-        this.spawnLoot(ARCADE_AREA_CENTER);
+        this.spawnLoot();
         console.log(`we have ${this.lootAmount} of loot in (after) CREATE`)
 
         if (this.input.keyboard) {
@@ -492,16 +493,18 @@ export class MainGame extends Scene
 
         // Dialogue answer INPUT
         // RIGHT
-        if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
+        // TODO: is dialogue check not working
+        if ((this.isDialogueGoing && this.rightAnswerKey.isDown) || (this.isDialogueGoing && this.rightAnswerKey2.isDown)) {
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
-            this.timeDialogueEnd = this.time.now;
+            this.timeOfDialogueEnd = this.time.now;
             // console.log(`after right answer, switching music from track 2 to 1`)
             // this.musicSwitchTrack2to1();
             // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         // WRONG
-        if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
+        // TODO: is dialogue check not working
+        if ((this.isDialogueGoing && this.wrongAnswer1Key.isDown) || (this.isDialogueGoing && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
             console.log(`end dialogue w WRONG answer at ${this.time.now}`)
             this.answerFail();
         }
@@ -509,7 +512,7 @@ export class MainGame extends Scene
         // SPAWN dialogue with 5 sec break
         if (!this.isDialogueGoing) { // TODO?: do you want to check if not only no dialog going but there was dialogue already here?
             // console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
-            const treshholdTime = this.timeDialogueEnd + 5000;
+            const treshholdTime = this.timeOfDialogueEnd + 5000;
             // console.log(`elapsed time: ${treshholdTime - this.time.now}`)
             if (this.time.now > treshholdTime) {
                 console.log(`starting dialogue from update at ${this.time.now}`)
@@ -525,11 +528,7 @@ export class MainGame extends Scene
             console.log(`we DONT HAVE any loot in UPDATE`)
             this.lootAmount += 1;
             this.time.delayedCall(1000, () => {
-                const ARCADE_AREA_CENTER: Pos = {
-                    x: (SCREEN_CENTER.x - 5),
-                    y: (GAME_HEIGHT/3 + 55)
-                };
-                this.spawnLoot(ARCADE_AREA_CENTER);
+                this.spawnLoot();
             })
         }
 
