@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 
 import { Pos, GameObjLayout, Direction } from '../config.ts';
-import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT } from '../config.ts';
+import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE } from '../config.ts';
 import { shuffle } from '../utils.ts';
 
 // TODO: config or utils?
@@ -14,54 +14,50 @@ const letterKeyCodes: Record<string, number> = {
 // TODO: Check to follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
 export class MainGame extends Scene
 {
-    camera: Phaser.Cameras.Scene2D.Camera;
+    private camera: Phaser.Cameras.Scene2D.Camera;
 
     private music1: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
     private music2: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
     // TODO?: make all class fields private?
 
-    cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-    rightAnswerKey: Phaser.Input.Keyboard.Key;
-    wrongAnswer1Key: Phaser.Input.Keyboard.Key;
-    wrongAnswer2Key: Phaser.Input.Keyboard.Key;
+    private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+    private rightAnswerKey: Phaser.Input.Keyboard.Key;
+    private wrongAnswer1Key: Phaser.Input.Keyboard.Key;
+    private wrongAnswer2Key: Phaser.Input.Keyboard.Key;
 
-    rightAnswerKey2: Phaser.Input.Keyboard.Key;
-    wrongAnswer1Key2: Phaser.Input.Keyboard.Key;
-    wrongAnswer2Key2: Phaser.Input.Keyboard.Key;
+    private rightAnswerKey2: Phaser.Input.Keyboard.Key;
+    private wrongAnswer1Key2: Phaser.Input.Keyboard.Key;
+    private wrongAnswer2Key2: Phaser.Input.Keyboard.Key;
 
-    table: Phaser.GameObjects.Image;
+    private bubblePlayer: Phaser.GameObjects.Image;
+    private bubbleEnemy: Phaser.GameObjects.Image;
+    private emojis: string[];
+    private emojisImages: Phaser.GameObjects.Group;
+    private qAndA: Record<string, string>;
+    private answerKeysLetters: Array<string>;
+    private isDialogueGoing: boolean;
+    private timeOfDialogueStart: number;
+    private timeOfDialogueEnd: number;
+    private music12Switched: boolean;
+    private music21Switched: boolean;
 
-    bubblePlayer: Phaser.GameObjects.Image;
-    bubbleEnemy: Phaser.GameObjects.Image;
-    emojis: string[];
-    emojisImages: Phaser.GameObjects.Group;
-    qAndA: Record<string, string>;
-    answerKeysLetters: Array<string>;
-    isDialogueGoing: boolean;
-    timeOfDialogueStart: number;
-    timeOfDialogueEnd: number;
-    wrong1: Phaser.GameObjects.Image;
-    wrong2: Phaser.GameObjects.Image;
-    music12Switched: boolean;
-    music21Switched: boolean;
+    private scales: Phaser.GameObjects.Group;
+    private demons: Phaser.GameObjects.Group;
+    private skels: Phaser.GameObjects.Group;
+    private currentSus: number;
+    private susProgressED: boolean;
 
-    scales: Phaser.GameObjects.Group;
-    demons: Phaser.GameObjects.Group;
-    skels: Phaser.GameObjects.Group;
-    currentSus: number;
-    susProgressED: boolean;
+    private arcadeAreaLayout: GameObjLayout;
 
-    arcadeAreaLayout: GameObjLayout;
+    private blocks: Phaser.Physics.Arcade.Group;
+    private hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    private handMoveDirection: Direction;
 
-    blocks: Phaser.Physics.Arcade.Group;
-    hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-    handMoveDirection: Direction;
-
-    lootSprites: Array<string>;
-    lootAmount: number;
-    collectedLootCount: number;
-    loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-    lootScoreMsg: Phaser.GameObjects.Text;
+    private lootSprites: Array<string>;
+    private lootAmount: number;
+    private collectedLootCount: number;
+    private loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    private lootScoreMsg: Phaser.GameObjects.Text;
 
     constructor ()
     {
@@ -77,16 +73,19 @@ export class MainGame extends Scene
         console.log(`randomized Y coord: ${y}`)
 
         // blockSword 60x161
-        const blockLeftX: number = SCREEN_CENTER.x - 5 - 161/2;
-        const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2;
-        const blockTopY: number = 200 + 60/2;
-        const blockBotY: number = 200 - 60/2;
+        // TODO: rid of magic numbers
+        const blockLeftX:  number = SCREEN_CENTER.x - 5 - 161/2 - LOOT_SIZE.width/2;
+        const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2 + LOOT_SIZE.width/2;
+        const blockTopY:   number = 200 - 60/2 - LOOT_SIZE.height/2;
+        const blockBotY:   number = 200 + 60/2 + LOOT_SIZE.height/2;
         // TODO: still does not work
-        console.log(`BLOCK from ${blockLeftX} ${blockTopY} to ${blockRightX} ${blockBotY}`)
-        if (((blockLeftX < x) && (x < blockRightX)) && ((blockTopY > y) && (y > blockBotY))) {
-            const verticalOffset = ((y - blockTopY) + 20)
-            console.log(`loot (seem to be) on block, adding offset ${verticalOffset}`)
-            y += verticalOffset;
+        console.log(`-|--|--|-  BLOCK from ${blockLeftX} ${blockTopY} to ${blockRightX} ${blockBotY}`)
+        if (((x > blockLeftX) && (x < blockRightX)) && ((y > blockTopY) && (y < blockBotY))) {
+            console.log(`-|--|--|-  !!!  loot (seem to be) on block`)
+            console.log(`y: ${y}, block top y: ${blockTopY}, block bot y: ${blockBotY}`)
+            const verticalOffset = ((y - blockTopY) + 40)
+            console.log(`substracting offset ${verticalOffset}`)
+            y -= verticalOffset;
         }
 
         const lootPos = { x: x, y: y};
@@ -231,23 +230,23 @@ export class MainGame extends Scene
             this.music2.play();
         });
     }
-    // private musicSwitchTrack2to1()
-    // {
-    //     if (this.music21Switched) {
-    //         console.log(`ABORT music track switch -- it already switched`)
-    //         return;
-    //     }
-    //     this.music21Switched = true;
-    //     this.music12Switched = false;
-    //     const beat = this.music2.seek % 1.5;
-    //     this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
-    //         console.log('switch to track 1 CALLBACK')
-    //         const playbackTime: number = this.music2.seek;
-    //         this.music2.stop();
-    //         this.music1.setSeek(playbackTime);
-    //         this.music1.play();
-    //     });
-    // }
+    private musicSwitchTrack2to1()
+    {
+        if (this.music21Switched) {
+            console.log(`ABORT music track switch -- it already switched`)
+            return;
+        }
+        this.music21Switched = true;
+        this.music12Switched = false;
+        const beat = this.music2.seek % 1.5;
+        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+            console.log('switch to track 1 CALLBACK')
+            const playbackTime: number = this.music2.seek;
+            this.music2.stop();
+            this.music1.setSeek(playbackTime);
+            this.music1.play();
+        });
+    }
 
     private progressSus()
     {
@@ -339,7 +338,7 @@ export class MainGame extends Scene
 
         this.arcadeAreaLayout = { x: ARCADE_AREA_LAYOUT.x, y: ARCADE_AREA_LAYOUT.y, width: ARCADE_AREA_LAYOUT.width, height: ARCADE_AREA_LAYOUT.height };
 
-        this.table = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
+        this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
         // DIALOGUE
 
@@ -498,8 +497,8 @@ export class MainGame extends Scene
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
             this.timeOfDialogueEnd = this.time.now;
-            // console.log(`after right answer, switching music from track 2 to 1`)
-            // this.musicSwitchTrack2to1();
+            console.log(`after right answer, switching music from track 2 to 1`)
+            this.musicSwitchTrack2to1();
             // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         // WRONG
@@ -524,7 +523,7 @@ export class MainGame extends Scene
 
         // Create LOOT
         // TODO: put back comparison to 0 after loot spawn fix
-        if (this.lootAmount) {
+        if (this.lootAmount < 100) {
             console.log(`we DONT HAVE any loot in UPDATE`)
             this.lootAmount += 1;
             this.time.delayedCall(1000, () => {
