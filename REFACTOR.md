@@ -22,13 +22,11 @@ Fixed:
 
 Runtime correctness of the offset formula (`y - center - 100 - 15 + 20`) wasn't verified — needs in-browser testing once dev server runs.
 
-### 4. Empty `shutdown()`
-**Where:** `src/game/scenes/MainGame.ts` (end of class).
-Music keeps playing across scenes; `delayedCall` timers keep firing into a dead scene; colliders pile up. Fixed by refactor 4.
+### 4. ~~Empty `shutdown()`~~ ✅
+Fixed: `shutdown()` now stops both music tracks. The other concerns (timers firing into dead scene, colliders piling up) turn out to be handled automatically by Phaser's per-scene resets — `scene.time` clock, physics world, input plugin, and display list are all torn down on shutdown without our help. Music alone needed explicit handling because the SoundManager is game-scoped, not scene-scoped.
 
-### 5. Restart broken
-**Where:** `src/game/scenes/MainGame.ts` `create()`.
-Only `music1`/`music2` are guarded with `if (!)`. Re-entering MainGame after GameOver stacks groups, sprites, and colliders. Fixed by refactor 4 (move state init to `init()`).
+### 5. ~~Restart broken~~ ✅
+Fixed: state init was already moved to `init()` in refactor 2; this pass removed three remaining duplicate inits in `create()` (`currentSus = 0`, `lootAmount = 0`, `collectedLootCount = 0`) and verified clean restart end-to-end (GameOver → MainMenu → MainGame creates a fresh scene with currentSus=0, fresh FSM, fresh randomized loot).
 
 ### 6. ~~Polled `isDown` instead of `JustDown`~~ ✅
 Fixed: dialogue input now in `AskingState.execute()` using a `justDown()` wrapper around `Phaser.Input.Keyboard.JustDown(key)`. Verified in browser: F press fires exactly once per physical press; `susProgressED` latch eliminated.
@@ -95,9 +93,13 @@ Landed:
 - Dropped the verbose music-switch debug logs (kept the behavior comment on the SFX-on-already-track-2 branch).
 - Beat-align `delayedCall` math (`Math.min(beat, 1.5 - beat)`) preserved as-is; treating it as semantic choice, not a bug to fix in this refactor.
 
-### 4. Scene lifecycle
-- All state init in `init()`, not `create()`.
-- `shutdown()` stops both music tracks, removes colliders, drops references to pending timers.
+### 4. ~~Scene lifecycle~~ ✅
+Landed:
+- `shutdown()` stops both music tracks (the only thing Phaser doesn't auto-clean for us).
+- Removed duplicate music-stop calls from `progressSus`'s game-over branch and the hand-vs-blocks collider — `shutdown()` is now the single source of cleanup truth, fired automatically by Phaser when `scene.start('GameOver')` runs.
+- Pruned the three remaining duplicate state inits from `create()` (already in `init()`).
+- Dropped two stale TODO comments that pointed at "should add init" and "move state to init" — both done.
+- Verified clean restart end-to-end in headless browser.
 
 ### 5. ~~JustDown for dialogue keys~~ ✅
 Subsumed by refactor 2 — input handling moved into `AskingState.execute()` using the `justDown()` helper that wraps `Phaser.Input.Keyboard.JustDown`.

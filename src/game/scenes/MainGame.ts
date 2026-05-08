@@ -163,9 +163,6 @@ export class MainGame extends Scene
         super('MainGame');
     }
 
-    // TODO: maybe add init to solve game restart after game over issues.
-    // read https://docs.phaser.io/phaser/concepts/scenes for more info
-
     private getLootRandomPos(): Pos
     {
         const x: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
@@ -345,8 +342,6 @@ export class MainGame extends Scene
         console.log(`progressSus: currentSus = ${this.currentSus}`)
 
         if (this.currentSus >= 4) {
-            this.music1.stop();
-            this.music2.stop();
             this.scene.start('GameOver');
             return true;
         }
@@ -426,8 +421,6 @@ export class MainGame extends Scene
 
         // DIALOGUE
 
-        // TODO: mb move some of this stuff (state) to init
-
         this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble-demon');
         this.bubbleEnemy.setAlpha(0);
         this.bubbleEnemy.setDepth(1);
@@ -474,8 +467,6 @@ export class MainGame extends Scene
         ];
         this.skels.slice(1).forEach(s => s.setAlpha(0));
 
-        this.currentSus = 0;
-
         // ARCADE
 
         this.blocks = this.physics.add.group({ immovable: true });
@@ -496,14 +487,10 @@ export class MainGame extends Scene
         this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
-            this.music1.stop();
-            this.music2.stop();
             this.scene.start('GameOver');
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
-        this.lootAmount = 0;
-        this.collectedLootCount = 0;
         this.lootScoreMsg = this.add.text(
             50,
             5,
@@ -588,8 +575,10 @@ export class MainGame extends Scene
 
     shutdown()
     {
-        // TODO: cleanup
-        // music, timers
-        // smth else?
+        // SoundManager is game-scoped, so sounds keep playing past scene
+        // shutdown unless explicitly stopped. Everything else (display list,
+        // physics world, time clock, input plugin) Phaser resets for us.
+        this.music1.stop();
+        this.music2.stop();
     }
 }
