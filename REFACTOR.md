@@ -30,24 +30,21 @@ Music keeps playing across scenes; `delayedCall` timers keep firing into a dead 
 **Where:** `src/game/scenes/MainGame.ts` `create()`.
 Only `music1`/`music2` are guarded with `if (!)`. Re-entering MainGame after GameOver stacks groups, sprites, and colliders. Fixed by refactor 4 (move state init to `init()`).
 
-### 6. Polled `isDown` instead of `JustDown`
-**Where:** `src/game/scenes/MainGame.ts` dialogue input checks in `update()`.
-`key.isDown` is true every frame the key is held — one wrong-answer press fires `answerFail` many times. The `susProgressED` latch exists only to suppress this. `Phaser.Input.Keyboard.JustDown(key)` fires once per physical press. Fixed by refactor 5.
+### 6. ~~Polled `isDown` instead of `JustDown`~~ ✅
+Fixed: dialogue input now in `AskingState.execute()` using a `justDown()` wrapper around `Phaser.Input.Keyboard.JustDown(key)`. Verified in browser: F press fires exactly once per physical press; `susProgressED` latch eliminated.
 
 ### 7. Contradictory music flags
 **Where:** `src/game/scenes/MainGame.ts` `music12Switched` / `music21Switched`.
 Independent booleans where both-true is meaningless. Fixed by refactor 3.
 
-### 8. `Number.MAX_VALUE` time sentinels
-**Where:** `src/game/scenes/MainGame.ts` — `1.7976931348623157E+308` for "no dialogue active". Removed by refactor 2 — `state === 'idle'` becomes the real signal.
+### 8. ~~`Number.MAX_VALUE` time sentinels~~ ✅
+Fixed: all four sentinel uses gone — `dialogueState === 'idle' | 'asking' | 'cooldown'` is the real signal now. The fields themselves are gone.
 
-### 9. Dead key-clear in `endDialogue`
-**Where:** `src/game/scenes/MainGame.ts` `endDialogue()`.
-Clears `rightAnswerKey`, `wrongAnswer1Key`, `wrongAnswer2Key` to `undefined` but leaves the `*Key2` (hack-key O/E/U) variants. Pressing E or U after dialogue ends still triggers `answerFail`. Naturally resolves once refactor 2 + 5 land — input becomes state-owned.
+### 9. ~~Dead key-clear in `endDialogue`~~ ✅
+Fixed: `hideAskingUI()` now clears all six keys (both primary and `*Key2` hack variants).
 
-### 10. Dead fields `wrong1` / `wrong2`
-**Where:** `src/game/scenes/MainGame.ts` field declarations.
-Declared as `Phaser.GameObjects.Image` but never assigned or read anywhere. Quick cleanup.
+### 10. ~~Dead fields `wrong1` / `wrong2`~~ ✅
+Fixed: removed from class field declarations.
 
 ---
 
@@ -67,11 +64,14 @@ Discovered that `strict: true` was already on; only `strictPropertyInitializatio
 
 `strictPropertyInitialization` remains off for now. Revisit after refactor 2 lands — most ad-hoc fields will be gone by then and the boilerplate cost (`!:` annotations everywhere) drops.
 
-### 2. Dialogue state machine
-- Add `src/game/StateMachine.ts` — Osmose's pattern ported to TS. String-literal union for state names; generic `stateArgs`; include an `exit()` hook (the tutorial mentions it but doesn't show it — we want it).
-- States: `idle | asking | cooldown`.
-- Replaces: `isDialogueGoing`, `susProgressED`, `timeOfDialogueStart`, `timeDialogueEnd`.
-- Time-driven transitions: use `scene.time.delayedCall` from `enter()` (auto-cleared on scene shutdown), not elapsed-time checks in `execute()`.
+### 2. ~~Dialogue state machine~~ ✅
+Landed:
+- `src/game/StateMachine.ts` — generic `StateMachine<Names, Args>` + `State<Names, Args>` (with `enter`/`execute`/`exit` defaults). Osmose's pattern, TS-typed.
+- Three states in `MainGame.ts`: `IdleState` (initial 2s → asking), `AskingState` (UI + 3.9s timeout + input checks; transitions on right-press, fail-on-wrong-or-timeout), `CooldownState` (5s → asking).
+- States are thin orchestrators; scene owns visual setup/teardown via new public `showAskingUI` / `hideAskingUI` methods.
+- `progressSus` returns boolean; handles game-over (currentSus≥4 stops music + `scene.start('GameOver')`).
+- `eslint.config.js` updated to honor `^_` argsIgnorePattern (needed for the `..._args: Args` shape in the base State class).
+- Verified end-to-end in headless browser: 4 fail cycles → suspicion 1→2→3→4 → game over. Right-press path also exercised; timer cancellation in `exit()` confirmed (no late timeout fires after press). Restart through GameOver→MainMenu→MainGame creates a fresh FSM via `init()`.
 
 ### 3. Music state
 - `currentMusicTrack: 1 | 2` field; `musicSwitchTrack1to2` reads & sets it.
@@ -82,8 +82,8 @@ Discovered that `strict: true` was already on; only `strictPropertyInitializatio
 - All state init in `init()`, not `create()`.
 - `shutdown()` stops both music tracks, removes colliders, drops references to pending timers.
 
-### 5. JustDown for dialogue keys
-Switch dialogue answer reads in `update()` to `Phaser.Input.Keyboard.JustDown`. Will likely be subsumed by refactor 2 — input handling moves into the state machine's `execute()`.
+### 5. ~~JustDown for dialogue keys~~ ✅
+Subsumed by refactor 2 — input handling moved into `AskingState.execute()` using the `justDown()` helper that wraps `Phaser.Input.Keyboard.JustDown`.
 
 ---
 

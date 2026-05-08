@@ -18,7 +18,7 @@ export default defineConfig(
         },
         rules: {
             "no-undef": 'off', // TypeScript handles this
-            "@typescript-eslint/no-unused-vars": "warn", // Warn instead of error
+            "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
             "@typescript-eslint/no-explicit-any": "off" // Allow 'any' for game jam speed
         }
     }
