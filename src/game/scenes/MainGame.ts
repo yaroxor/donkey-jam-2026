@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
+import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, HAND_SPEED, MUSIC_HALF_TACT_SECONDS } from '../config.ts';
 import { StateMachine, State } from '../StateMachine.ts';
 
 // TODO?: also move to config?
@@ -200,19 +200,19 @@ export class MainGame extends Scene
             this.collectedLootCount += 1;
             if (this.hand.body.velocity.x !== 0) {
                 if (this.hand.body.velocity.x > 0) {
-                    this.hand.body.setVelocityX(300);
+                    this.hand.body.setVelocityX(HAND_SPEED);
                 }
                 else {
-                    this.hand.body.setVelocityX(-300);
+                    this.hand.body.setVelocityX(-HAND_SPEED);
                 }
 
             }
             if (this.hand.body.velocity.y !== 0) {
                 if (this.hand.body.velocity.y > 0) {
-                    this.hand.body.setVelocityY(300);
+                    this.hand.body.setVelocityY(HAND_SPEED);
                 }
                 else {
-                    this.hand.body.setVelocityY(-300);
+                    this.hand.body.setVelocityY(-HAND_SPEED);
                 }
 
             }
@@ -307,8 +307,8 @@ export class MainGame extends Scene
             return;
         }
         this.currentMusicTrack = 2;
-        const beat: number = this.music1.seek % 1.5;
-        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+        const beat: number = this.music1.seek % MUSIC_HALF_TACT_SECONDS;
+        this.time.delayedCall(Math.min(beat, (MUSIC_HALF_TACT_SECONDS - beat)), () => {
             const playbackTime: number = this.music1.seek;
             this.music1.stop();
             this.music2.setSeek(playbackTime);
@@ -323,8 +323,8 @@ export class MainGame extends Scene
             return;
         }
         this.currentMusicTrack = 1;
-        const beat: number = this.music2.seek % 1.5;
-        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+        const beat: number = this.music2.seek % MUSIC_HALF_TACT_SECONDS;
+        this.time.delayedCall(Math.min(beat, (MUSIC_HALF_TACT_SECONDS - beat)), () => {
             const playbackTime: number = this.music2.seek;
             this.music2.stop();
             this.music1.setSeek(playbackTime);
@@ -484,7 +484,7 @@ export class MainGame extends Scene
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
-        this.hand.setVelocityX(-300);
+        this.hand.setVelocityX(-HAND_SPEED);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
             this.scene.start('GameOver');
@@ -538,7 +538,7 @@ export class MainGame extends Scene
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(-300);
+                this.hand.setVelocityX(-HAND_SPEED);
             }
         }
         else if (this.cursors.right.isDown) {
@@ -548,7 +548,7 @@ export class MainGame extends Scene
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
-                this.hand.setVelocityX(300);
+                this.hand.setVelocityX(HAND_SPEED);
             }
         }
         else if (this.cursors.up.isDown) {
@@ -558,7 +558,7 @@ export class MainGame extends Scene
                 this.hand.angle = 90;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
-                this.hand.setVelocityY(-300);
+                this.hand.setVelocityY(-HAND_SPEED);
             }
         }
         else if (this.cursors.down.isDown) {
@@ -568,7 +568,7 @@ export class MainGame extends Scene
                 this.hand.angle = 270;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
-                this.hand.setVelocityY(300);
+                this.hand.setVelocityY(HAND_SPEED);
             }
         }
     }

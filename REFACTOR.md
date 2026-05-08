@@ -122,7 +122,7 @@ Added `"type": "module"` to `package.json` (both `eslint.config.js` and `vite.co
 ## Deferred (revisit later)
 
 - **Hand FSM.** Reuse `StateMachine.ts`. States: Up/Down/Left/Right + future Stunned + Hidden. Pair with the v1.0 stun TODO — see CLAUDE.md "introduce FSM with the feature that needs it" rule.
-- **Extract magic numbers to `config.ts`.** Many positions/sizes/timings repeat in `MainGame.ts`. Defer until layout is stable.
+- **Extract layout magic numbers to `config.ts`.** Bubble/scale/demon/skel positions, hand wrap thresholds, wall sizes — all layout-tied. Defer until v1.0 features (timer, loot bar, "загрузить вопросами", stash spots) have laid claim to screen real estate. Game-feel scalars (`HAND_SPEED`, `MUSIC_HALF_TACT_SECONDS`) already extracted; single-use timings (idle 2s, asking 3.9s, cooldown 5s, answer-stagger 700/800/900ms, loot respawn 1s) left inline next to their named call sites — naming wouldn't add clarity.
 - **`strictPropertyInitialization`.** Revisit after refactor 2.
 
 ## Decided against
