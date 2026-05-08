@@ -80,6 +80,7 @@ class AskingState extends State<DialogueStateName, DialogueArgs> {
 
     execute(scene: MainGame): void {
         if (justDown(scene.rightAnswerKey) || justDown(scene.rightAnswerKey2)) {
+            scene.musicSwitchTrack2to1();
             this.stateMachine.transition('cooldown');
         } else if (
             justDown(scene.wrongAnswer1Key) || justDown(scene.wrongAnswer1Key2) ||
@@ -136,8 +137,7 @@ export class MainGame extends Scene
     emojisImages: Phaser.GameObjects.Group;
     qAndA: Record<string, string>;
     answerKeysLetters: Array<string>;
-    music12Switched: boolean;
-    music21Switched: boolean;
+    currentMusicTrack: 1 | 2;
 
     dialogueFSM: StateMachine<DialogueStateName, DialogueArgs>;
 
@@ -304,24 +304,34 @@ export class MainGame extends Scene
 
     musicSwitchTrack1to2()
     {
-        if (this.music12Switched) {
+        if (this.currentMusicTrack === 2) {
+            // Already on track 2; the SFX still plays as a wrong-answer cue.
             this.sound.play('crack-head');
-            console.log(`ABORT music track switch -- it already switched`)
             return;
         }
-        this.music12Switched = true;
-        this.music21Switched = false;
-        console.log(`CURRENT playback time: ${this.music1.seek}`)
+        this.currentMusicTrack = 2;
         const beat: number = this.music1.seek % 1.5;
-        console.log(`(potential) BEAT: ${beat}`)
         this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
-            console.log('switch to track 2 CALLBACK')
             const playbackTime: number = this.music1.seek;
-            console.log(`at ${this.time.now} we start playing TRACK 2 from ${playbackTime}`)
             this.music1.stop();
             this.music2.setSeek(playbackTime);
             this.sound.play('crack-head');
             this.music2.play();
+        });
+    }
+
+    musicSwitchTrack2to1()
+    {
+        if (this.currentMusicTrack === 1) {
+            return;
+        }
+        this.currentMusicTrack = 1;
+        const beat: number = this.music2.seek % 1.5;
+        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
+            const playbackTime: number = this.music2.seek;
+            this.music2.stop();
+            this.music1.setSeek(playbackTime);
+            this.music1.play();
         });
     }
     // Returns true if game-over was triggered (caller should stop further work).
@@ -361,8 +371,7 @@ export class MainGame extends Scene
     }
 
     init() {
-        this.music21Switched = false;
-        this.music12Switched = false;
+        this.currentMusicTrack = 1;
 
         this.currentSus = 0;
 
@@ -393,7 +402,6 @@ export class MainGame extends Scene
             this.music2 = this.sound.add('music2', { loop: true }) as GameSound;
         }
         this.music1.play();
-        this.music21Switched = true; // imean track 1 is already playing
 
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);

@@ -33,9 +33,8 @@ Only `music1`/`music2` are guarded with `if (!)`. Re-entering MainGame after Gam
 ### 6. ~~Polled `isDown` instead of `JustDown`~~ ✅
 Fixed: dialogue input now in `AskingState.execute()` using a `justDown()` wrapper around `Phaser.Input.Keyboard.JustDown(key)`. Verified in browser: F press fires exactly once per physical press; `susProgressED` latch eliminated.
 
-### 7. Contradictory music flags
-**Where:** `src/game/scenes/MainGame.ts` `music12Switched` / `music21Switched`.
-Independent booleans where both-true is meaningless. Fixed by refactor 3.
+### 7. ~~Contradictory music flags~~ ✅
+Fixed: replaced the boolean pair with `currentMusicTrack: 1 | 2`. No more contradictory states.
 
 ### 8. ~~`Number.MAX_VALUE` time sentinels~~ ✅
 Fixed: all four sentinel uses gone — `dialogueState === 'idle' | 'asking' | 'cooldown'` is the real signal now. The fields themselves are gone.
@@ -73,10 +72,13 @@ Landed:
 - `eslint.config.js` updated to honor `^_` argsIgnorePattern (needed for the `..._args: Args` shape in the base State class).
 - Verified end-to-end in headless browser: 4 fail cycles → suspicion 1→2→3→4 → game over. Right-press path also exercised; timer cancellation in `exit()` confirmed (no late timeout fires after press). Restart through GameOver→MainMenu→MainGame creates a fresh FSM via `init()`.
 
-### 3. Music state
-- `currentMusicTrack: 1 | 2` field; `musicSwitchTrack1to2` reads & sets it.
-- Restore `musicSwitchTrack2to1` (deleted in refactor 1) wired to right-answer transition.
-- Could later be its own tiny FSM with beat-aligned transitions in `enter()`.
+### 3. ~~Music state~~ ✅
+Landed:
+- Replaced `music12Switched` / `music21Switched` flag pair with `currentMusicTrack: 1 | 2`.
+- Restored `musicSwitchTrack2to1` (deleted in refactor 1), structurally symmetric to `1to2` minus the asymmetric `crack-head` SFX (1→2 plays it as a "scratch" punishment cue, 2→1 doesn't).
+- Wired `musicSwitchTrack2to1` into `AskingState.execute`'s right-answer branch.
+- Dropped the verbose music-switch debug logs (kept the behavior comment on the SFX-on-already-track-2 branch).
+- Beat-align `delayedCall` math (`Math.min(beat, 1.5 - beat)`) preserved as-is; treating it as semantic choice, not a bug to fix in this refactor.
 
 ### 4. Scene lifecycle
 - All state init in `init()`, not `create()`.
