@@ -45,6 +45,21 @@ Fixed: `hideAskingUI()` now clears all six keys (both primary and `*Key2` hack v
 ### 10. ~~Dead fields `wrong1` / `wrong2`~~ ✅
 Fixed: removed from class field declarations.
 
+### 11. Music switch beat-align is doubly wrong
+**Where:** `src/game/scenes/MainGame.ts` `musicSwitchTrack1to2` and `musicSwitchTrack2to1`. Same expression in both:
+```ts
+const beat = music.seek % 1.5;
+this.time.delayedCall(Math.min(beat, 1.5 - beat), () => { ... });
+```
+- **Unit error:** `music.seek` is in seconds, `delayedCall` takes milliseconds. The delay is sub-millisecond — effectively immediate. (The `1.5` is the intended half-tact in seconds: tact = 3s, half-tact = 1.5s.)
+- **Sign / semantic error:** `Math.min(beat, 1.5 - beat)` picks the *smaller* of "time since previous half-tact" and "time until next half-tact." `delayedCall` only goes forward in time, so picking the past-distance is meaningless. Should be just `1.5 - beat` (with the `* 1000` ms conversion).
+
+**Fix:** `this.time.delayedCall((1.5 - beat) * 1000, () => { ... });` — same in both methods. Up to ~1.5s extra wait before the swap, which is the intended smoothness.
+
+### 12. Hitboxes need tightening
+**Where:** `src/game/scenes/MainGame.ts` — hand, blocks, sword block, loot.
+The current arcade-physics hitboxes are rectangular and don't match the irregular sprite shapes well. Concrete cases need investigation per-sprite (likely `setSize` + `setOffset` tuning, or switching to per-sprite polygon hitboxes if the rectangular approximation is hopeless). DESDOC's "Подложка хитбоксов" item covers the *visualization* of hitboxes; this item is the underlying *correctness*.
+
 ---
 
 ## Refactors
