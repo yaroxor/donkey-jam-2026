@@ -7,6 +7,7 @@ import {
     Pos, Direction,
 } from '../config.ts';
 import { StateMachine, State } from '../StateMachine.ts';
+import { MusicController } from '../MusicController.ts';
 import { log } from '../debug.ts';
 import { shuffle } from '../utils.ts';
 
@@ -16,7 +17,9 @@ const letterKeyCodes: Record<string, number> = {
     'F': 70
 }
 
-type GameSound = Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+// Music track keys (asset names) named for what they mean in the game.
+const MUSIC_CALM = 'music1';   // pre-suspicion / safe vibe
+const MUSIC_ALARM = 'music2';  // suspicion-aware / tense
 
 // Visual warning underlay for a danger hitbox. Walks the rectangle's perimeter
 // in segments and perturbs each point outward by a few px, drawn as one closed
@@ -102,7 +105,7 @@ class AskingState extends State<DialogueStateName, DialogueArgs> {
 
     execute(scene: MainGame): void {
         if (justDown(scene.rightAnswerKey) || justDown(scene.rightAnswerKey2)) {
-            scene.musicSwitchTrack2to1();
+            scene.music.smoothSwitch(MUSIC_CALM, MUSIC_HALF_TACT_SECONDS);
             this.stateMachine.transition('cooldown');
         } else if (
             justDown(scene.wrongAnswer1Key) || justDown(scene.wrongAnswer1Key2) ||
@@ -121,7 +124,10 @@ class AskingState extends State<DialogueStateName, DialogueArgs> {
         if (scene.progressSus()) {
             return;
         }
-        scene.musicSwitchTrack1to2();
+        // Wrong-answer feedback: SFX fires every fail (smoothSwitch is
+        // idempotent when already on the alarm track).
+        scene.sound.play('crack-head');
+        scene.music.smoothSwitch(MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS);
         this.stateMachine.transition('cooldown');
     }
 }
@@ -136,8 +142,7 @@ class CooldownState extends State<DialogueStateName, DialogueArgs> {
 
 export class MainGame extends Scene
 {
-    music1: GameSound;
-    music2: GameSound;
+    music: MusicController;
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     rightAnswerKey?: Phaser.Input.Keyboard.Key;
@@ -154,7 +159,6 @@ export class MainGame extends Scene
     emojisImages: Phaser.GameObjects.Group;
     qAndA: Record<string, string>;
     answerKeysLetters: Array<string>;
-    currentMusicTrack: 1 | 2;
 
     dialogueFSM: StateMachine<DialogueStateName, DialogueArgs>;
 
@@ -312,40 +316,6 @@ export class MainGame extends Scene
         }
     }
 
-    musicSwitchTrack1to2()
-    {
-        // SFX is wrong-answer feedback — fires immediately on every wrong
-        // press, regardless of whether the track switch happens.
-        this.sound.play('crack-head');
-        if (this.currentMusicTrack === 2) {
-            return;
-        }
-        this.currentMusicTrack = 2;
-        const beat: number = this.music1.seek % MUSIC_HALF_TACT_SECONDS;
-        const delayMs: number = (MUSIC_HALF_TACT_SECONDS - beat) * 1000;
-        this.time.delayedCall(delayMs, () => {
-            const playbackTime: number = this.music1.seek;
-            this.music1.stop();
-            this.music2.setSeek(playbackTime);
-            this.music2.play();
-        });
-    }
-
-    musicSwitchTrack2to1()
-    {
-        if (this.currentMusicTrack === 1) {
-            return;
-        }
-        this.currentMusicTrack = 1;
-        const beat: number = this.music2.seek % MUSIC_HALF_TACT_SECONDS;
-        const delayMs: number = (MUSIC_HALF_TACT_SECONDS - beat) * 1000;
-        this.time.delayedCall(delayMs, () => {
-            const playbackTime: number = this.music2.seek;
-            this.music2.stop();
-            this.music1.setSeek(playbackTime);
-            this.music1.play();
-        });
-    }
     // Returns true if game-over was triggered (caller should stop further work).
     progressSus(): boolean
     {
@@ -381,8 +351,6 @@ export class MainGame extends Scene
     }
 
     init() {
-        this.currentMusicTrack = 1;
-
         this.currentSus = 0;
 
         this.handMoveDirection = Direction.Left;
@@ -403,15 +371,11 @@ export class MainGame extends Scene
 
     create ()
     {
-        if (!this.music1) {
-            log.music(`creating music track 1`)
-            this.music1 = this.sound.add('music1', { loop: true }) as GameSound;
-        }
-        if (!this.music2) {
-            log.music(`creating music track 2`)
-            this.music2 = this.sound.add('music2', { loop: true }) as GameSound;
-        }
-        this.music1.play();
+        log.music(`registering music tracks`)
+        this.music = new MusicController(this);
+        this.music.register(MUSIC_CALM, { loop: true });
+        this.music.register(MUSIC_ALARM, { loop: true });
+        this.music.play(MUSIC_CALM);
 
         this.cameras.main.setBackgroundColor(0xff00ff);
 
@@ -581,7 +545,6 @@ export class MainGame extends Scene
         // SoundManager is game-scoped, so sounds keep playing past scene
         // shutdown unless explicitly stopped. Everything else (display list,
         // physics world, time clock, input plugin) Phaser resets for us.
-        this.music1.stop();
-        this.music2.stop();
+        this.music.stopAll();
     }
 }
