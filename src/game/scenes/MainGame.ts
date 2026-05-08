@@ -52,6 +52,61 @@ function shuffle(array: Array<string>) {
   }
 }
 
+// Visual warning underlay for a danger hitbox. Walks the rectangle's perimeter
+// in segments and perturbs each point outward by a few px, drawn as one closed
+// polygon — looks like torn warning tape. Outward-only so the visible shape
+// is always >= the actual hitbox (no graze surprises). Generated once at
+// create-time; rendered as a static draw thereafter.
+function jaggedHitboxUnderlay(
+    scene: Scene,
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+): Phaser.GameObjects.Graphics {
+    const left = centerX - width / 2;
+    const right = centerX + width / 2;
+    const top = centerY - height / 2;
+    const bottom = centerY + height / 2;
+
+    const segmentsPerEdge = 12;
+    const jitter = 6; // max outward perturbation in px
+
+    const points: number[] = [];
+
+    // Top edge: left → right, perturb y upward (smaller y).
+    for (let i = 0; i <= segmentsPerEdge; i++) {
+        const t = i / segmentsPerEdge;
+        points.push(left + (right - left) * t, top - Math.random() * jitter);
+    }
+    // Right edge: top → bottom, perturb x outward (larger x).
+    for (let i = 1; i <= segmentsPerEdge; i++) {
+        const t = i / segmentsPerEdge;
+        points.push(right + Math.random() * jitter, top + (bottom - top) * t);
+    }
+    // Bottom edge: right → left, perturb y outward (larger y).
+    for (let i = 1; i <= segmentsPerEdge; i++) {
+        const t = i / segmentsPerEdge;
+        points.push(right - (right - left) * t, bottom + Math.random() * jitter);
+    }
+    // Left edge: bottom → top, perturb x outward (smaller x).
+    for (let i = 1; i < segmentsPerEdge; i++) {
+        const t = i / segmentsPerEdge;
+        points.push(left - Math.random() * jitter, bottom - (bottom - top) * t);
+    }
+
+    const g = scene.add.graphics();
+    g.fillStyle(0xff0000, 0.5);
+    g.beginPath();
+    g.moveTo(points[0], points[1]);
+    for (let i = 2; i < points.length; i += 2) {
+        g.lineTo(points[i], points[i + 1]);
+    }
+    g.closePath();
+    g.fillPath();
+    return g;
+}
+
 type DialogueStateName = 'idle' | 'asking' | 'cooldown';
 type DialogueArgs = [MainGame];
 
@@ -472,12 +527,17 @@ export class MainGame extends Scene
         // ARCADE
 
         this.blocks = this.physics.add.group({ immovable: true });
+
+        jaggedHitboxUnderlay(this, SCREEN_CENTER.x, 1, 600, 100);
         const block1 = this.add.rectangle(SCREEN_CENTER.x, 1, 600, 100, 0xff0000, 0);
         this.blocks.add(block1);
+
+        jaggedHitboxUnderlay(this, SCREEN_CENTER.x, GAME_HEIGHT - 120, 600, 100);
         const block2 = this.add.rectangle(SCREEN_CENTER.x, (GAME_HEIGHT - 120), 600, 100, 0xff0000, 0);
         this.blocks.add(block2);
 
-        // 60x161
+        // sword sprite is 60x161, rotated 90deg → 161x60 in world
+        jaggedHitboxUnderlay(this, ARCADE_AREA_CENTER.x, 200, 161, 60);
         const blockSword = this.physics.add.sprite(ARCADE_AREA_CENTER.x, 200, 'block8');
         blockSword.angle = 90;
         blockSword.setSize(161, 60);
