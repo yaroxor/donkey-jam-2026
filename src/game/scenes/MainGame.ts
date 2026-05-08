@@ -245,9 +245,9 @@ export class MainGame extends Scene
     // focal point for where they actually are.
     private redrawHandVis(width: number, height: number) {
         this.handVis.clear();
-        this.handVis.lineStyle(2, 0xffffff, 0.8);
+        this.handVis.lineStyle(3, 0x66ff44, 0.9);
         this.handVis.strokeRect(-width / 2, -height / 2, width, height);
-        this.handVis.fillStyle(0xffffff, 0.8);
+        this.handVis.fillStyle(0x66ff44, 0.9);
         this.handVis.fillCircle(0, 0, 3);
     }
 
