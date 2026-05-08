@@ -103,6 +103,9 @@ Switch dialogue answer reads in `update()` to `Phaser.Input.Keyboard.JustDown`. 
 ## Deferred (revisit later)
 
 - **Hand FSM.** Reuse `StateMachine.ts` from refactor 2. States: Up/Down/Left/Right + future Stunned + Hidden. Wait until v1.0 stun TODO is in flight.
-- **Sub-scene split.** Dialogue scene + Arcade scene in parallel via `scene.launch`. Wait until v1.0 features are in and the seams are obvious.
 - **Extract magic numbers to `config.ts`.** Many positions/sizes/timings repeat in `MainGame.ts`. Defer until layout is stable.
 - **`strictPropertyInitialization`.** Revisit after refactor 2.
+
+## Decided against
+
+- **Splitting heist into Dialogue + Arcade scenes.** Inter-loop coupling (suspicion meter read by both, bubbles obscure the arcade area, stash state gates "look at table" events, single game-over) is by design — putting it across a `scene.launch` boundary turns class-field access into pub/sub ceremony without buying independent lifecycles. Internal FSMs (refactor 2) deliver the same cognitive isolation for free. Inter-*mode* scenes (heist vs. adventure map vs. menu) remain the right boundary.

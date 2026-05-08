@@ -39,6 +39,7 @@ bun run lint        # eslint
 - **Conventional Commits.**
 - **Don't translate** existing Russian content (DESDOC, comments). New content: English.
 - **Entity state → Osmose-style FSM**, not ad-hoc booleans. Pattern reference: `phaser-statemichne-tutorial.md`. Shared class will live at `src/game/StateMachine.ts` once item 2 of REFACTOR.md lands.
+- **One scene per game mode, not per subsystem.** Within a heist, dialogue and arcade are tightly coupled by design (shared suspicion meter, bubbles obscuring the arcade area, stash state gating dialogue events). They live in one scene with internal FSMs for substate isolation. Inter-mode boundaries (heist vs. adventure map vs. menu) get their own scenes; intra-mode subsystems do not.
 - **Init goes in Phaser's `init()`, not `create()`.** `init` runs every scene start; state that must reset on restart belongs there. `create` is for object construction.
 - **Input.** `Phaser.Input.Keyboard.JustDown(key)` for one-shot actions (answers, attacks, menu selects). `key.isDown` is for held actions (movement).
 - **No magic-number measurements.** Sprite/asset sizes get measured (`magick identify`) before placing — never guessed. Add the dimension as a comment if it isn't obvious from the constant name.
