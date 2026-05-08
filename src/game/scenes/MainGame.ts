@@ -1,24 +1,25 @@
 import { Scene } from 'phaser';
 
 import { Pos, GameObjLayout, Direction } from '../config.ts';
-import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE } from '../config.ts';
+import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE, GameState } from '../config.ts';
 import { shuffle } from '../utils.ts';
 
-// TODO: config or utils?
+// TODO 2: config or utils?
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
     'D': 68,
     'F': 70
 }
 
-// TODO: Check to follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
+// TODO 2: Check to follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
 export class MainGame extends Scene
 {
     private camera: Phaser.Cameras.Scene2D.Camera;
 
     private music1: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
     private music2: Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
-    // TODO?: make all class fields private?
+
+    private gameState: GameState;
 
     private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     private rightAnswerKey: Phaser.Input.Keyboard.Key;
@@ -35,27 +36,13 @@ export class MainGame extends Scene
     private emojisImages: Phaser.GameObjects.Group;
     private qAndA: Record<string, string>;
     private answerKeysLetters: Array<string>;
-    private isDialogueGoing: boolean;
-    private timeOfDialogueStart: number;
-    private timeOfDialogueEnd: number;
-    private music12Switched: boolean;
-    private music21Switched: boolean;
-
-    private scales: Phaser.GameObjects.Group;
-    private demons: Phaser.GameObjects.Group;
-    private skels: Phaser.GameObjects.Group;
-    private currentSus: number;
-    private susProgressED: boolean;
 
     private arcadeAreaLayout: GameObjLayout;
 
     private blocks: Phaser.Physics.Arcade.Group;
     private hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-    private handMoveDirection: Direction;
 
     private lootSprites: Array<string>;
-    private lootAmount: number;
-    private collectedLootCount: number;
     private loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private lootScoreMsg: Phaser.GameObjects.Text;
 
@@ -73,12 +60,11 @@ export class MainGame extends Scene
         console.log(`randomized Y coord: ${y}`)
 
         // blockSword 60x161
-        // TODO: rid of magic numbers
+        // TODO 2: rid of magic numbers
         const blockLeftX:  number = SCREEN_CENTER.x - 5 - 161/2 - LOOT_SIZE.width/2;
         const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2 + LOOT_SIZE.width/2;
         const blockTopY:   number = 200 - 60/2 - LOOT_SIZE.height/2;
         const blockBotY:   number = 200 + 60/2 + LOOT_SIZE.height/2;
-        // TODO: still does not work
         console.log(`-|--|--|-  BLOCK from ${blockLeftX} ${blockTopY} to ${blockRightX} ${blockBotY}`)
         if (((x > blockLeftX) && (x < blockRightX)) && ((y > blockTopY) && (y < blockBotY))) {
             console.log(`-|--|--|-  !!!  loot (seem to be) on block`)
@@ -100,8 +86,8 @@ export class MainGame extends Scene
         this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
         this.physics.add.collider(this.loot, this.hand, () => {
             this.loot.destroy();
-            this.lootAmount -= 1;
-            this.collectedLootCount += 1;
+            this.gameState.lootAmount -= 1;
+            this.gameState.collectedLootCount += 1;
             if (this.hand.body.velocity.x !== 0) {
                 if (this.hand.body.velocity.x > 0) {
                     this.hand.body.setVelocityX(300);
@@ -120,7 +106,7 @@ export class MainGame extends Scene
                 }
 
             }
-            this.lootScoreMsg.setText(`${this.collectedLootCount}`);
+            this.lootScoreMsg.setText(`${this.gameState.collectedLootCount}`);
         });
     }
 
@@ -131,17 +117,17 @@ export class MainGame extends Scene
         answer.setDepth(1);
         this.emojisImages.add(answer);
         console.log(`cunstructer answer ${Letter} at ${this.time.now}, udating dialogue start time`)
-        this.timeOfDialogueStart = this.time.now;
+        this.gameState.timeOfDialogueStart = this.time.now;
     }
 
     private setupDialogue(QAndA: Record<string, string>, Emojis: string[])
     {
         console.log(`SETUP DIALOGUE FIRED at ${this.time.now}`)
-        this.isDialogueGoing = true;
-        this.susProgressED = false;
-        console.log(`~~~ In setupDialogue, setting susProgressED to ${this.susProgressED}`)
-        console.log(`is dialogue going after setup dialogue start -- ${this.isDialogueGoing}`)
-        this.timeOfDialogueStart = 1.7976931348623157E+308;
+        this.gameState.isDialogueGoing = true;
+        this.gameState.susProgressED = false;
+        console.log(`~~~ In setupDialogue, setting susProgressED to ${this.gameState.susProgressED}`)
+        console.log(`is dialogue going after setup dialogue start -- ${this.gameState.isDialogueGoing}`)
+        this.gameState.timeOfDialogueStart = 1.7976931348623157E+308;
         const questions: Array<string> = Object.keys(QAndA);
         const question: string = questions[Math.floor(Math.random()*questions.length)];
 
@@ -210,13 +196,13 @@ export class MainGame extends Scene
 
     private musicSwitchTrack1to2()
     {
-        if (this.music12Switched) {
+        if (this.gameState.music12Switched) {
             this.sound.play('crack-head');
             console.log(`ABORT music track switch -- it already switched`)
             return;
         }
-        this.music12Switched = true;
-        this.music21Switched = false;
+        this.gameState.music12Switched = true;
+        this.gameState.music21Switched = false;
         console.log(`CURRENT playback time: ${this.music1.seek}`)
         const beat: number = this.music1.seek % 1.5;
         console.log(`(potential) BEAT: ${beat}`)
@@ -232,12 +218,12 @@ export class MainGame extends Scene
     }
     private musicSwitchTrack2to1()
     {
-        if (this.music21Switched) {
+        if (this.gameState.music21Switched) {
             console.log(`ABORT music track switch -- it already switched`)
             return;
         }
-        this.music21Switched = true;
-        this.music12Switched = false;
+        this.gameState.music21Switched = true;
+        this.gameState.music12Switched = false;
         const beat = this.music2.seek % 1.5;
         this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
             console.log('switch to track 1 CALLBACK')
@@ -248,75 +234,68 @@ export class MainGame extends Scene
         });
     }
 
-    private progressSus()
-    {
-        if (this.susProgressED) {
-            console.log('~~~ in progressSus body, SUS already progressed -- Abort')
-            return;
-        }
-
-        // TODO: state management
-        this.susProgressED = true;
-        console.log(`~~~ in progressSus body sus progressed was set to ${this.susProgressED}`)
-
-        const scale = this.scales.children.entries[this.currentSus] as Phaser.GameObjects.Sprite;
-        const demon = this.demons.children.entries[this.currentSus] as Phaser.GameObjects.Sprite;
-        const skel = this.skels.children.entries[this.currentSus] as Phaser.GameObjects.Sprite;
-
-        scale.setAlpha(0);
-        demon.setAlpha(0);
-        skel.setAlpha(0);
-
-        this.currentSus += 1;
-        console.log(`In progress sus body, after increment CURRENT SUS SCALE: ${this.currentSus}`)
-
-        // FAIL by SUS
-        if (this.currentSus >= 4) {
-            return;
-        }
-
-        scale.setAlpha(0);
-        demon.setAlpha(0);
-        skel.setAlpha(0);
-
-        console.log('SUS Progressed')
-    }
-
     private endDialogue() {
         console.log(`end dialogue fired at ${this.time.now}`)
         this.bubblePlayer.setAlpha(0);
         this.bubbleEnemy.setAlpha(0);
         this.emojisImages.clear(false, true);
         // TODO: state management
-        this.isDialogueGoing = false;
-        console.log(`is dialogue going after end dialogue function body -- ${this.isDialogueGoing}`)
+        this.gameState.isDialogueGoing = false;
+        console.log(`is dialogue going after end dialogue function body -- ${this.gameState.isDialogueGoing}`)
     }
 
     private answerFail() {
-        this.progressSus();
+        this.gameState.progressSus();
         this.musicSwitchTrack1to2();
         this.endDialogue();
-        this.timeOfDialogueEnd = this.time.now;
+        this.gameState.timeOfDialogueEnd = this.time.now;
         // TODO: state management
     }
 
     init() {
         // read https://docs.phaser.io/phaser/concepts/scenes for more info
-        this.isDialogueGoing = false;
 
-        this.music21Switched = false;
-        this.music12Switched = false;
+        const scales = this.add.group();
+        const demons = this.add.group();
+        const skels  = this.add.group();
 
-        this.timeOfDialogueStart = 1.+308;
-        this.timeOfDialogueEnd = 1.7976931348623157E+308;
+        const scale1 = this.add.image(1100, 50, 'scale1');
+        scales.add(scale1);
+        const scale2 = this.add.image(1100, 50, 'scale2');
+        scale2.setAlpha(0);
+        scales.add(scale2);
+        const scale3 = this.add.image(1100, 50, 'scale3');
+        scale3.setAlpha(0);
+        scales.add(scale3);
+        const scale4 = this.add.image(1100, 50, 'scale4');
+        scale4.setAlpha(0);
+        scales.add(scale4);
 
-        this.currentSus = 0;
-        this.susProgressED = false;
+        const demon1 = this.add.image(1100, 410, 'demon1');
+        demons.add(demon1);
+        const demon2 = this.add.image(1100, 410, 'demon2');
+        demon2.setAlpha(0);
+        demons.add(demon2);
+        const demon3 = this.add.image(1100, 410, 'demon3');
+        demon3.setAlpha(0);
+        demons.add(demon3);
+        const demon4 = this.add.image(1100, 410, 'demon4');
+        demon4.setAlpha(0);
+        demons.add(demon4);
 
-        this.handMoveDirection = Direction.Left;
+        const skel1 = this.add.image(200, 400, 'skel1');
+        skels.add(skel1);
+        const skel2 = this.add.image(200, 400, 'skel2');
+        skel2.setAlpha(0);
+        skels.add(skel2);
+        const skel3 = this.add.image(200, 400, 'skel3');
+        skel3.setAlpha(0);
+        skels.add(skel3);
+        const skel4 = this.add.image(200, 400, 'skel4');
+        skel4.setAlpha(0);
+        skels.add(skel4);
 
-        this.lootAmount = 0;
-        this.collectedLootCount = 0;
+        this.gameState = new GameState(scales, demons, skels);
     }
 
     create ()
@@ -330,7 +309,7 @@ export class MainGame extends Scene
             this.music2 = this.sound.add('music2', { loop: true }) as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound;
         }
         this.music1.play();
-        this.music21Switched = true; // imean track 1 is already playing
+        this.gameState.music21Switched = true; // imean track 1 is already playing
 
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
@@ -364,61 +343,15 @@ export class MainGame extends Scene
         };
         this.answerKeysLetters = Object.keys(letterKeyCodes);
         this.emojisImages = this.add.group();
-        this.isDialogueGoing = false;
-        console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
-
-        this.scales = this.add.group();
-        const scale1 = this.add.image(1100, 50, 'scale1');
-        this.scales.add(scale1);
-        const scale2 = this.add.image(1100, 50, 'scale2');
-        scale2.setAlpha(0);
-        this.scales.add(scale2);
-        const scale3 = this.add.image(1100, 50, 'scale3');
-        scale3.setAlpha(0);
-        this.scales.add(scale3);
-        const scale4 = this.add.image(1100, 50, 'scale4');
-        scale4.setAlpha(0);
-        this.scales.add(scale4);
-        console.log(`after creation SUS SCALE: ${this.currentSus}`)
-
-        this.demons = this.add.group();
-        const demon1 = this.add.image(1100, 410, 'demon1');
-        this.demons.add(demon1);
-        const demon2 = this.add.image(1100, 410, 'demon2');
-        demon2.setAlpha(0);
-        this.demons.add(demon2);
-        const demon3 = this.add.image(1100, 410, 'demon3');
-        demon3.setAlpha(0);
-        this.demons.add(demon3);
-        const demon4 = this.add.image(1100, 410, 'demon4');
-        demon4.setAlpha(0);
-        this.demons.add(demon4);
+        console.log(`is dialogue going on scene create -- ${this.gameState.isDialogueGoing}`)
 
 
-        this.skels = this.add.group();
-        const skel1 = this.add.image(200, 400, 'skel1');
-        this.skels.add(skel1);
-        const skel2 = this.add.image(200, 400, 'skel2');
-        skel2.setAlpha(0);
-        this.skels.add(skel2);
-        const skel3 = this.add.image(200, 400, 'skel3');
-        skel3.setAlpha(0);
-        this.skels.add(skel3);
-        const skel4 = this.add.image(200, 400, 'skel4');
-        skel4.setAlpha(0);
-        this.skels.add(skel4);
-
-        this.currentSus = 0;
-
-        // TODO: state management
-        this.susProgressED = false;
-        console.log(`~~~ in CreatE, setting susProgressED to ${this.susProgressED}`)
+        console.log(`~~~ in CreatE, setting susProgressED to ${this.gameState.susProgressED}`)
 
         this.time.delayedCall(2000, () => {
             console.log(`firing first dialogue from CREATE at ${this.time.now}`)
-            // TODO: put back after loot spawn fix
-            // this.setupDialogue(this.qAndA, this.emojis);
-            console.log(`time after setup dialogue call is ${this.timeOfDialogueStart}`)
+            this.setupDialogue(this.qAndA, this.emojis);
+            console.log(`time after setup dialogue call is ${this.gameState.timeOfDialogueStart}`)
         });
 
         // ARCADE
@@ -437,8 +370,7 @@ export class MainGame extends Scene
 
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
-        this.handMoveDirection = Direction.Left;
-        // TODO: put back after loot spawn fix
+        // TODO: put back after state fix
         // this.hand.setVelocityX(-300);
 
         this.physics.add.collider(this.hand, this.blocks, () => {
@@ -449,21 +381,19 @@ export class MainGame extends Scene
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
-        this.lootAmount = 0;
-        this.collectedLootCount = 0;
         this.lootScoreMsg = this.add.text(
             50,
             5,
-            `${this.collectedLootCount}`,
+            `${this.gameState.collectedLootCount}`,
             {
                 fontFamily: 'Architects Daughter',
                 fontSize: '96px',
                 color: '#44323f'
             }
         );
-        this.lootAmount +=1;
+        this.gameState.lootAmount +=1;
         this.spawnLoot();
-        console.log(`we have ${this.lootAmount} of loot in (after) CREATE`)
+        console.log(`we have ${this.gameState.lootAmount} of loot in (after) CREATE`)
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -473,7 +403,7 @@ export class MainGame extends Scene
     update()
     {
         // FAIL by SUS
-        if (this.currentSus >= 4) {
+        if (this.gameState.currentSus >= 4) {
             this.endDialogue();
             this.music1.stop();
             this.music2.stop();
@@ -481,10 +411,10 @@ export class MainGame extends Scene
         }
 
         // Dialogue answer -- TIMER FAIL
-        if (this.isDialogueGoing) {
+        if (this.gameState.isDialogueGoing) {
             // console.log(`dialogue is going in update -- ${this.isDialogueGoing}`)
             // console.log(`logged dialogue start time ${this.timeOfDialogueStart}`)
-            if (this.time.now > (this.timeOfDialogueStart + 3000)) {
+            if (this.time.now > (this.gameState.timeOfDialogueStart + 3000)) {
                 // console.log(`player did not made it in time at ${this.time.now}`)
                 this.answerFail();
             }
@@ -492,56 +422,54 @@ export class MainGame extends Scene
 
         // Dialogue answer INPUT
         // RIGHT
-        // TODO: is dialogue check not working
-        if ((this.isDialogueGoing && this.rightAnswerKey.isDown) || (this.isDialogueGoing && this.rightAnswerKey2.isDown)) {
+        // TODO: isDialogueGoing check not working
+        if ((this.gameState.isDialogueGoing && this.rightAnswerKey.isDown) || (this.gameState.isDialogueGoing && this.rightAnswerKey2.isDown)) {
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
-            this.timeOfDialogueEnd = this.time.now;
+            this.gameState.timeOfDialogueEnd = this.time.now;
             console.log(`after right answer, switching music from track 2 to 1`)
             this.musicSwitchTrack2to1();
             // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         // WRONG
-        // TODO: is dialogue check not working
-        if ((this.isDialogueGoing && this.wrongAnswer1Key.isDown) || (this.isDialogueGoing && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
+        // TODO: isDialogueGoing check not working
+        if ((this.gameState.isDialogueGoing && this.wrongAnswer1Key.isDown) || (this.gameState.isDialogueGoing && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
             console.log(`end dialogue w WRONG answer at ${this.time.now}`)
             this.answerFail();
         }
 
         // SPAWN dialogue with 5 sec break
-        if (!this.isDialogueGoing) { // TODO?: do you want to check if not only no dialog going but there was dialogue already here?
-            // console.log(`dialogue is not going in update, checking elapsed time -- ${this.isDialogueGoing}`)
-            const treshholdTime = this.timeOfDialogueEnd + 5000;
+        if (!this.gameState.isDialogueGoing) { // TODO?: do you want to check if not only no dialog going but there was dialogue already here?
+            // console.log(`dialogue is not going in update, checking elapsed time -- ${this.gameState.isDialogueGoing}`)
+            const treshholdTime = this.gameState.timeOfDialogueEnd + 5000;
             // console.log(`elapsed time: ${treshholdTime - this.time.now}`)
             if (this.time.now > treshholdTime) {
                 console.log(`starting dialogue from update at ${this.time.now}`)
-                // TODO: put back after loot spawn fix
                 this.setupDialogue(this.qAndA, this.emojis);
-                console.log(`is dialogue going after setup dialogue in update -- ${this.isDialogueGoing}`)
+                console.log(`is dialogue going after setup dialogue in update -- ${this.gameState.isDialogueGoing}`)
             }
         }
 
         // Create LOOT
-        // TODO: put back comparison to 0 after loot spawn fix
-        if (this.lootAmount < 100) {
+        if (this.gameState.lootAmount < 0) {
             console.log(`we DONT HAVE any loot in UPDATE`)
-            this.lootAmount += 1;
+            this.gameState.lootAmount += 1;
             this.time.delayedCall(1000, () => {
                 this.spawnLoot();
             })
         }
 
         // Horizontal WRAP
-        if (this.hand.x < 430 && this.handMoveDirection == Direction.Left) {
+        if (this.hand.x < 430 && this.gameState.handMoveDirection == Direction.Left) {
             this.hand.x = 870;
         }
-        if (this.hand.x > 850 && this.handMoveDirection == Direction.Right) {
+        if (this.hand.x > 850 && this.gameState.handMoveDirection == Direction.Right) {
             this.hand.x = 410;
         }
 
         if (this.cursors.left.isDown) {
-            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
-                this.handMoveDirection = Direction.Left;
+            if (this.gameState.handMoveDirection == Direction.Up || this.gameState.handMoveDirection == Direction.Down) {
+                this.gameState.handMoveDirection = Direction.Left;
                 this.hand.setSize(106, 67);
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
@@ -550,8 +478,8 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.right.isDown) {
-            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
-                this.handMoveDirection = Direction.Right;
+            if (this.gameState.handMoveDirection == Direction.Up || this.gameState.handMoveDirection == Direction.Down) {
+                this.gameState.handMoveDirection = Direction.Right;
                 this.hand.setSize(106, 67);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
@@ -560,8 +488,8 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.up.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
-                this.handMoveDirection = Direction.Up;
+            if (this.gameState.handMoveDirection == Direction.Left || this.gameState.handMoveDirection == Direction.Right) {
+                this.gameState.handMoveDirection = Direction.Up;
                 this.hand.setSize(67, 106);
                 this.hand.angle = 90;
                 this.hand.setFlipX(false);
@@ -570,8 +498,8 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.down.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
-                this.handMoveDirection = Direction.Down;
+            if (this.gameState.handMoveDirection == Direction.Left || this.gameState.handMoveDirection == Direction.Right) {
+                this.gameState.handMoveDirection = Direction.Down;
                 this.hand.setSize(67, 106);
                 this.hand.angle = 270;
                 this.hand.setFlipX(false);
