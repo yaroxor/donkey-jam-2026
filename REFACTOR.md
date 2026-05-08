@@ -2,7 +2,7 @@
 
 Active refactor + bug backlog for `donkey-jam-2026`. Iterate against this; check items off as they land; delete the file when it's empty.
 
-Pattern of choice for entity state: Osmose-style FSM. Tutorial archived at `phaser-statemichne-tutorial.md` in repo root.
+Pattern of choice for entity state: Osmose-style FSM. Tutorial archived at `phaser-osmose-statemachine-tutorial.md` in repo root.
 
 ---
 

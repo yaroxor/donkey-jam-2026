@@ -1,5 +1,5 @@
 // Osmose-style finite state machine. Pattern reference:
-// phaser-statemichne-tutorial.md at repo root.
+// phaser-osmose-statemachine-tutorial.md at repo root.
 
 export abstract class State<Names extends string, Args extends unknown[]> {
     stateMachine!: StateMachine<Names, Args>;

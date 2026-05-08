@@ -1,43 +1,6 @@
-* About Me  
-[](/)
+# Phaser Tutorial Series: Finite State Machine
 
-Clock
-
-* Blog  
-[](/blog)
-* Music  
-[](/music)
-* Github  
-[](https://github.com/Osmose/)
- 
-* About Me  
-[](/)
-
-Clock
-
-* Blog  
-[](/blog)
-* Music  
-[](/music)
-* Github  
-[](https://github.com/Osmose/)
-
-Workspace 
-
-1. Settings  
-Settings  
-   1. Background pattern  
-   Background  
-         1. Dot.Grid  
-         2. Dot.Grid.Small  
-         3. Scanlines  
-   2. Animate background
-
- Phaser Tutorial Series: Finite State Machine 
-
-## [Phaser Tutorial Series: Finite State Machine](/blog/phaser-finite-state-machine/)
-
- Posted on February 23, 2019 
+*Posted on February 23, 2019 by [Osmose](https://github.com/Osmose/).*
 
 I've been working on a game using [Phaser](https://phaser.io/) in my spare time.
 
@@ -45,7 +8,7 @@ One thing that's made adding new features really easy is using finite-state mach
 
 This post is going to assume some familiarity with the basics of Phaser, such as the `preload`/`create`/`update` steps, Arcade physics, and keyboard input. You may also be able to follow along if you're not familiar with Phaser, but it's okay if not! This use of state machines isn't specific to Phaser.
 
-### [~~What is a finite-state machine?~~ Fuck that let's make games](#what-is-a-finite-state-machine-fuck-that-lets-make-games)
+### ~~What is a finite-state machine?~~ Fuck that let's make games
 
 Let's start with a fairly empty example project. Here it is on [Glitch](https://glitch.com/). You can use the remix button to create your own copy and follow along the tutorial as we go:
 
@@ -92,7 +55,7 @@ window.game = new Phaser.Game(config);
 
 We're loading some images in the `preload` step, and adding the background and hero sprite in the `create` step. The hero is drawn on the background, but nothing else happens.
 
-### [MAKE IT WALK](#make-it-walk)
+### MAKE IT WALK
 
 Let's add a `this.keys` variable for reading input from the keyboard. We can use that in the `update` method to check which keys are being pressed and set the hero's velocity appropriately:
 
@@ -131,7 +94,7 @@ Let's add a `this.keys` variable for reading input from the keyboard. We can use
 
 ```
 
-### [MAKE IT LOOK LIKE IT'S WALKING](#make-it-look-like-its-walking)
+### MAKE IT LOOK LIKE IT'S WALKING
 
 Now the hero is moving about the map, but it doesn't look like he's walking. To do that, we'll need to do two things:
 
@@ -204,7 +167,7 @@ Now the hero is moving about the map, but it doesn't look like he's walking. To 
 
 ```
 
-### [MAKE IT UNNECESSARILY VIOLENT](#make-it-unnecessarily-violent)
+### MAKE IT UNNECESSARILY VIOLENT
 
 Next, let's make the player swing their sword when we press the space key. This actually involves a few steps:
 
@@ -330,7 +293,7 @@ Doing all of this with the movement code is tricky, and difficult to split into 
 
 ```
 
-### [MAKE IT DO MORE?](#make-it-do-more)
+### MAKE IT DO MORE?
 
 Okay so the hero is now swinging their sword, next we want to add the ability for them to jump, or maybe we want to handle collision detection, or maybe add some enemy logic to the update loop, or... well, you get the idea. We've barely added some basic functionality to the game and already the update loop is getting difficult to manage.
 
@@ -357,7 +320,7 @@ I am not the best diagram-maker.
 
 The entire diagram itself is a little messy, but the point is that this model allows us to implement each state in isolation, resulting in cleaner, easier-to-maintain code.
 
-### [Coding a State Machine](#coding-a-state-machine)
+### Coding a State Machine
 
 We're going to create a `StateMachine` class that handles storing the current active state, storing a list of all possible states, and transitioning from the current state to a new state. But transitioning alone doesn't really _do_ anything.
 
@@ -574,7 +537,7 @@ This is a lot to unpack. Some highlights of the changes:
 * Note how the transitions from the state machine we modeled above typically appear as early `if` statements that transition and return if their condition passes.
 * Some code is repeated, such as checking if the spacebar is being pressed and transitioning to the `swing` state. You could factor these out to avoid repeated code, but I find that ends up coupling code in a way that is harder to maintain vs keeping them separate.
 
-### [Okay but why?](#okay-but-why)
+### Okay but why?
 
 At first glance it may seem that the state machine code is longer than the old `update` method and more complex, and to some degree this is true. The reduction in complexity is not due to less code, but is instead due to less cognitive load. When we're working on the move state, we don't have to think about interfering with the idle and swing state logic as much as we previously did.
 
@@ -669,13 +632,13 @@ Let's say we want to add a dash in the current direction when the Shift key is p
 
 ```
 
-### [Is this fast?](#is-this-fast)
+### Is this fast?
 
 No idea. I haven't hit issues with my own game. I'm not terribly concerned about performance as my game is just a demo right now, so take that with a grain of salt.
 
 I don't think there's any glaring issues with it performance-wise, but I suspect having a bunch of state machines running each update loop might start to cause issues with their overhead. Some clever engineering could reuse states or even state machines between sprites, which might help.
 
-### [What else could we do with this?](#what-else-could-we-do-with-this)
+### What else could we do with this?
 
 There's a lot of ideas I haven't touched upon here that are worth exploring:
 
@@ -683,6 +646,6 @@ There's a lot of ideas I haven't touched upon here that are worth exploring:
 * States could also subclass other states to share common logic or code between them.
 * In my personal game, there are `exit` handlers as well as `enter` ones.
 
-### [Final Project](#final-project)
+### Final Project
 
 Here's the final version of the code used for this post, available as another Glitch project for your reading and remixing pleasure:
