@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 
 import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, HAND_SPEED, MUSIC_HALF_TACT_SECONDS } from '../config.ts';
 import { StateMachine, State } from '../StateMachine.ts';
+import { log } from '../debug.ts';
 
 // TODO?: also move to config?
 interface Pos {
@@ -166,10 +167,10 @@ export class MainGame extends Scene
     private getLootRandomPos(): Pos
     {
         const x: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
-        console.log(`randomized X coord: ${x}`)
+        log.loot(`randomized X coord: ${x}`)
 
         let y: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
-        console.log(`randomized Y coord: ${y}`)
+        log.loot(`randomized Y coord: ${y}`)
 
         // blockSword sprite is 60x161, rotated 90deg → occupies 161x60 in world
         const block1LeftX: number = SCREEN_CENTER.x - 5 - 161/2;
@@ -177,11 +178,11 @@ export class MainGame extends Scene
         // Canvas Y grows downward; "Top" name predates that convention but values are correct
         const block1TopY: number = 200 + 60/2;
         const block1BotY: number = 200 - 60/2;
-        console.log(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
+        log.loot(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
         if ((x > block1LeftX && x < block1RightX) && (y > block1BotY && y < block1TopY)) {
             const arcadeAreaCenterY = this.arcadeAreaCoords.y + this.arcadeAreaCoords.height / 2;
             const verticalOffset = ((y - arcadeAreaCenterY - 100 - 30/2) + 20)
-            console.log(`loot (seem to be) on block, adding offset ${verticalOffset}`)
+            log.loot(`loot (seem to be) on block, adding offset ${verticalOffset}`)
             y += verticalOffset;
         }
         const lootPos = { x: x, y: y};
@@ -190,8 +191,7 @@ export class MainGame extends Scene
 
     private spawnLoot() {
         const lootPos: Pos = this.getLootRandomPos();
-        console.log(`SPAWNING loot at `)
-        console.log(lootPos)
+        log.loot(`SPAWNING loot at (${lootPos.x}, ${lootPos.y})`)
         const lootPic = this.lootSprites[Math.floor(Math.random()*4)];
         this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
         this.physics.add.collider(this.loot, this.hand, () => {
@@ -222,7 +222,7 @@ export class MainGame extends Scene
 
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
     {
-        console.log(`answer constructor fired for letter ${Letter} at ${this.time.now}`)
+        log.dialogue(`answer constructor fired for letter ${Letter} at ${this.time.now}`)
         const answer = this.add.image(Pos.x, Pos.y, Emoji);
         answer.setDepth(1);
         this.emojisImages.add(answer);
@@ -230,7 +230,7 @@ export class MainGame extends Scene
 
     showAskingUI()
     {
-        console.log(`showAskingUI fired at ${this.time.now}`)
+        log.dialogue(`showAskingUI fired at ${this.time.now}`)
         const QAndA = this.qAndA;
         const Emojis = this.emojis;
         const questions: Array<string> = Object.keys(QAndA);
@@ -270,7 +270,7 @@ export class MainGame extends Scene
             }
             delay += 100;
         };
-        console.log(`time after answers construction loop is ${this.time.now}`)
+        log.dialogue(`time after answers construction loop is ${this.time.now}`)
 
         const hackLetterCodes: Record<string, number> = {
             'S': 79, // O
@@ -282,7 +282,7 @@ export class MainGame extends Scene
             const hackKeyCode: number = hackLetterCodes[letter];
             if (this.input.keyboard) {
                 if (letter === rightLetter) {
-                    console.log(`right answer is ${letter}`);
+                    log.dialogue(`right answer is ${letter}`);
                     this.rightAnswerKey = this.input.keyboard.addKey(keyCode);
                     this.rightAnswerKey2 = this.input.keyboard.addKey(hackKeyCode);
                 }
@@ -341,7 +341,7 @@ export class MainGame extends Scene
         this.skels[this.currentSus].setAlpha(0);
 
         this.currentSus += 1;
-        console.log(`progressSus: currentSus = ${this.currentSus}`)
+        log.sus(`progressSus: currentSus = ${this.currentSus}`)
 
         if (this.currentSus >= 4) {
             this.scene.start('GameOver');
@@ -355,7 +355,7 @@ export class MainGame extends Scene
     }
 
     hideAskingUI() {
-        console.log(`hideAskingUI fired at ${this.time.now}`)
+        log.dialogue(`hideAskingUI fired at ${this.time.now}`)
         this.bubblePlayer.setAlpha(0);
         this.bubbleEnemy.setAlpha(0);
         this.emojisImages.clear(false, true);
@@ -391,11 +391,11 @@ export class MainGame extends Scene
     create ()
     {
         if (!this.music1) {
-            console.log(`creating music track 1`)
+            log.music(`creating music track 1`)
             this.music1 = this.sound.add('music1', { loop: true }) as GameSound;
         }
         if (!this.music2) {
-            console.log(`creating music track 2`)
+            log.music(`creating music track 2`)
             this.music2 = this.sound.add('music2', { loop: true }) as GameSound;
         }
         this.music1.play();
@@ -451,7 +451,7 @@ export class MainGame extends Scene
             this.add.image(1100, 50, 'scale4'),
         ];
         this.scales.slice(1).forEach(s => s.setAlpha(0));
-        console.log(`after creation SUS SCALE: ${this.currentSus}`)
+        log.sus(`after creation SUS SCALE: ${this.currentSus}`)
 
         this.demons = [
             this.add.image(1100, 410, 'demon1'),
@@ -505,7 +505,7 @@ export class MainGame extends Scene
         );
         this.lootAmount +=1;
         this.spawnLoot();
-        console.log(`we have ${this.lootAmount} of loot in (after) CREATE`)
+        log.loot(`we have ${this.lootAmount} of loot in (after) CREATE`)
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -518,7 +518,7 @@ export class MainGame extends Scene
 
         // Create LOOT
         if (this.lootAmount === 0) {
-            console.log(`we DONT HAVE any loot in UPDATE`)
+            log.loot(`we DONT HAVE any loot in UPDATE`)
             this.lootAmount += 1;
             this.time.delayedCall(1000, () => {
                 this.spawnLoot();

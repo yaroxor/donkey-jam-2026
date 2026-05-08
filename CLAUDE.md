@@ -45,6 +45,7 @@ bun run lint        # eslint
 - **Input.** `Phaser.Input.Keyboard.JustDown(key)` for one-shot actions (answers, attacks, menu selects). `key.isDown` is for held actions (movement).
 - **No magic-number measurements.** Sprite/asset sizes get measured (`magick identify`) before placing — never guessed. Add the dimension as a comment if it isn't obvious from the constant name.
 - **Scene shutdown.** Whenever a scene starts background work (music, `delayedCall`, colliders that aren't auto-cleaned), it owns cleanup in `shutdown()`.
+- **Logging.** Use `log.<namespace>(...)` from `src/game/debug.ts` (currently `joe:dialogue` / `joe:loot` / `joe:music` / `joe:sus`). Don't use `console.log` for runtime traces — `console.warn`/`console.error` are still fine for genuine warnings/errors. Enable in browser DevTools: `localStorage.debug = 'joe:*'` (or any subset, e.g. `'joe:dialogue'`, `'joe:*,-joe:loot'`) then reload.
 
 ## In-repo reference docs
 
