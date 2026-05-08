@@ -121,7 +121,7 @@ Added `"type": "module"` to `package.json` (both `eslint.config.js` and `vite.co
 
 ## Deferred (revisit later)
 
-- **Hand FSM.** Reuse `StateMachine.ts` from refactor 2. States: Up/Down/Left/Right + future Stunned + Hidden. Wait until v1.0 stun TODO is in flight.
+- **Hand FSM.** Reuse `StateMachine.ts`. States: Up/Down/Left/Right + future Stunned + Hidden. Pair with the v1.0 stun TODO — see CLAUDE.md "introduce FSM with the feature that needs it" rule.
 - **Extract magic numbers to `config.ts`.** Many positions/sizes/timings repeat in `MainGame.ts`. Defer until layout is stable.
 - **`strictPropertyInitialization`.** Revisit after refactor 2.
 
