@@ -301,18 +301,19 @@ export class MainGame extends Scene
 
     musicSwitchTrack1to2()
     {
+        // SFX is wrong-answer feedback — fires immediately on every wrong
+        // press, regardless of whether the track switch happens.
+        this.sound.play('crack-head');
         if (this.currentMusicTrack === 2) {
-            // Already on track 2; the SFX still plays as a wrong-answer cue.
-            this.sound.play('crack-head');
             return;
         }
         this.currentMusicTrack = 2;
         const beat: number = this.music1.seek % MUSIC_HALF_TACT_SECONDS;
-        this.time.delayedCall(Math.min(beat, (MUSIC_HALF_TACT_SECONDS - beat)), () => {
+        const delayMs: number = (MUSIC_HALF_TACT_SECONDS - beat) * 1000;
+        this.time.delayedCall(delayMs, () => {
             const playbackTime: number = this.music1.seek;
             this.music1.stop();
             this.music2.setSeek(playbackTime);
-            this.sound.play('crack-head');
             this.music2.play();
         });
     }
@@ -324,7 +325,8 @@ export class MainGame extends Scene
         }
         this.currentMusicTrack = 1;
         const beat: number = this.music2.seek % MUSIC_HALF_TACT_SECONDS;
-        this.time.delayedCall(Math.min(beat, (MUSIC_HALF_TACT_SECONDS - beat)), () => {
+        const delayMs: number = (MUSIC_HALF_TACT_SECONDS - beat) * 1000;
+        this.time.delayedCall(delayMs, () => {
             const playbackTime: number = this.music2.seek;
             this.music2.stop();
             this.music1.setSeek(playbackTime);
