@@ -29,6 +29,7 @@ Done: Начальное меню с кнопками, Эмоции скелет
 
 **Фиксы**:
 - Убрать клетки
+- Wrong-answer pool produces semantic duplicates — distractors sometimes look like they could plausibly answer the question, making it ambiguous. Constrain per-question wrong-answer pools or group items by category.
 
 Goetia -- Lesser Key of Solomon -- Aleister Crowley
 
@@ -86,6 +87,7 @@ Goetia -- Lesser Key of Solomon -- Aleister Crowley
 - нычка руки. при касании прячешься на секунду. можешь задоджить взгляд. а можешь проебать время если случайно наступил.
 - загрузить вопросами
 - стан / минус хп за врез (+ Hand FSM refactor — Up/Down/Left/Right + Stunned + Hidden states, reuse `src/game/StateMachine.ts`)
+- Integrate hand movement animation. The artist's GIF was completed during the jam (see "Done: Анимация руки" above) but never wired into the sprite. Replace the static `'hand'` image with proper Phaser animation frames.
 
 **TODO v2.0**:
 - adventure map
