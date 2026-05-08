@@ -86,7 +86,7 @@ Goetia -- Lesser Key of Solomon -- Aleister Crowley
 - оп смотрит на стол при заполнении подозрения
 - нычка руки. при касании прячешься на секунду. можешь задоджить взгляд. а можешь проебать время если случайно наступил.
 - загрузить вопросами
-- стан / минус хп за врез
+- стан / минус хп за врез (+ Hand FSM refactor — Up/Down/Left/Right + Stunned + Hidden states, reuse `src/game/StateMachine.ts`)
 
 **TODO v2.0**:
 - adventure map
