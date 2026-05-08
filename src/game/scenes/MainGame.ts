@@ -41,7 +41,7 @@ function shuffle(array: Array<string>) {
   while (currentIndex != 0) {
 
     // Pick a remaining element...
-    let randomIndex = Math.floor(Math.random() * currentIndex);
+    const randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex--;
 
     // And swap it with the current element.

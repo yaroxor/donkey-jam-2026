@@ -89,14 +89,14 @@ Switch dialogue answer reads in `update()` to `Phaser.Input.Keyboard.JustDown`. 
 
 ## Infra (pre-existing, blocking)
 
-### A. Pre-commit hook hasn't been honored
-`.pre-commit-config.yaml` declares typecheck and eslint hooks but recent commits show typecheck failures landing on master, and `.git/hooks/pre-commit` is absent. Run `pre-commit install` locally and stop using `--no-verify`.
+### A. ~~Pre-commit hook hasn't been honored~~ ✅
+Switched from canonical Python `pre-commit` to `simple-git-hooks` (JS-native; deps land in `node_modules` so it persists with `/workspace` and bootstraps on machine switch). `.pre-commit-config.yaml` removed. Hook now declared in `package.json` under `simple-git-hooks` key; auto-wired via `prepare` script on `bun install`. Runs `bun run typecheck && bun run lint`.
 
-### B. ESLint config is ESM but package.json isn't
-`eslint.config.js` uses `import` syntax; `package.json` lacks `"type": "module"`. `bun run lint` errors with `Cannot use import statement outside a module`. Either rename to `.mjs` or add `"type": "module"` (and audit the `.js` files for require/import compatibility).
+### B. ~~ESLint config is ESM but package.json isn't~~ ✅
+Added `"type": "module"` to `package.json` (both `eslint.config.js` and `vite.config.js` were already written as ESM). Also replaced `import.meta.dirname` with the portable `path.dirname(fileURLToPath(import.meta.url))` since the container's Node 18 predates `import.meta.dirname` (Node 20.11+). Lint now runs.
 
-### C. Rollup native binary missing
-`bun run build` errors with `Cannot find module '@rollup/rollup-linux-arm64-gnu'`. Likely env-specific (ARM64 container; rollup's optionalDependencies didn't install for this arch). Fix at the install boundary, not in code.
+### C. ~~Rollup native binary missing~~ ✅
+`bun install` picked up `@rollup/rollup-linux-arm64-gnu` once invoked fresh. Build now passes. (Likely the prior install was done on a different host arch; bun re-resolved optional platform deps when re-run.)
 
 ---
 
