@@ -134,11 +134,8 @@ class CooldownState extends State<DialogueStateName, DialogueArgs> {
     }
 }
 
-// TODO: follow convention: if smth used only inside one method it is this method scope variable. if it used in several methods it is class property
 export class MainGame extends Scene
 {
-    camera: Phaser.Cameras.Scene2D.Camera;
-
     music1: GameSound;
     music2: GameSound;
 
@@ -150,8 +147,6 @@ export class MainGame extends Scene
     rightAnswerKey2?: Phaser.Input.Keyboard.Key;
     wrongAnswer1Key2?: Phaser.Input.Keyboard.Key;
     wrongAnswer2Key2?: Phaser.Input.Keyboard.Key;
-
-    table: Phaser.GameObjects.Image;
 
     bubblePlayer: Phaser.GameObjects.Image;
     bubbleEnemy: Phaser.GameObjects.Image;
@@ -168,14 +163,12 @@ export class MainGame extends Scene
     skels: Phaser.GameObjects.Image[];
     currentSus: number;
 
-    blocks: Phaser.Physics.Arcade.Group;
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handMoveDirection: Direction;
 
     lootSprites: Array<string>;
     lootAmount: number;
     collectedLootCount: number;
-    loot: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     lootScoreMsg: Phaser.GameObjects.Text;
 
     constructor ()
@@ -213,9 +206,9 @@ export class MainGame extends Scene
         const lootPos: Pos = this.getLootRandomPos();
         log.loot(`SPAWNING loot at (${lootPos.x}, ${lootPos.y})`)
         const lootPic = this.lootSprites[Math.floor(Math.random()*4)];
-        this.loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
-        this.physics.add.collider(this.loot, this.hand, () => {
-            this.loot.destroy();
+        const loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
+        this.physics.add.collider(loot, this.hand, () => {
+            loot.destroy();
             this.lootAmount -= 1;
             this.collectedLootCount += 1;
             if (this.hand.body.velocity.x !== 0) {
@@ -420,10 +413,9 @@ export class MainGame extends Scene
         }
         this.music1.play();
 
-        this.camera = this.cameras.main;
-        this.camera.setBackgroundColor(0xff00ff);
+        this.cameras.main.setBackgroundColor(0xff00ff);
 
-        this.table = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
+        this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
         // DIALOGUE
 
@@ -475,29 +467,29 @@ export class MainGame extends Scene
 
         // ARCADE
 
-        this.blocks = this.physics.add.group({ immovable: true });
+        const blocks = this.physics.add.group({ immovable: true });
 
         jaggedHitboxUnderlay(this, SCREEN_CENTER.x, 1, 600, 100);
         const block1 = this.add.rectangle(SCREEN_CENTER.x, 1, 600, 100, 0xff0000, 0);
-        this.blocks.add(block1);
+        blocks.add(block1);
 
         jaggedHitboxUnderlay(this, SCREEN_CENTER.x, GAME_HEIGHT - 120, 600, 100);
         const block2 = this.add.rectangle(SCREEN_CENTER.x, (GAME_HEIGHT - 120), 600, 100, 0xff0000, 0);
-        this.blocks.add(block2);
+        blocks.add(block2);
 
         // sword sprite is 60x161, rotated 90deg → 161x60 in world
         jaggedHitboxUnderlay(this, ARCADE_AREA_CENTER.x, 200, 161, 60);
         const blockSword = this.physics.add.sprite(ARCADE_AREA_CENTER.x, 200, 'block8');
         blockSword.angle = 90;
         blockSword.setSize(161, 60);
-        this.blocks.add(blockSword);
+        blocks.add(blockSword);
 
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handMoveDirection = Direction.Left;
         this.hand.setVelocityX(-HAND_SPEED);
 
-        this.physics.add.collider(this.hand, this.blocks, () => {
+        this.physics.add.collider(this.hand, blocks, () => {
             this.scene.start('GameOver');
         });
 
