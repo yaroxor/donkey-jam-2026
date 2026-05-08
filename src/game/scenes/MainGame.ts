@@ -168,6 +168,7 @@ export class MainGame extends Scene
     currentSus: number;
 
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    handVis: Phaser.GameObjects.Graphics;
     handMoveDirection: Direction;
 
     lootSprites: Array<string>;
@@ -235,6 +236,19 @@ export class MainGame extends Scene
             }
             this.lootScoreMsg.setText(`${this.collectedLootCount}`);
         });
+    }
+
+    // Player hitbox indicator. Stroked rect outline + filled center dot,
+    // centered on origin so handVis.x/y mirroring the hand's position keeps
+    // the visualization aligned with the body. The dot stays put as the
+    // rectangle swaps W↔H on direction change, giving the player a stable
+    // focal point for where they actually are.
+    private redrawHandVis(width: number, height: number) {
+        this.handVis.clear();
+        this.handVis.lineStyle(2, 0xffffff, 0.8);
+        this.handVis.strokeRect(-width / 2, -height / 2, width, height);
+        this.handVis.fillStyle(0xffffff, 0.8);
+        this.handVis.fillCircle(0, 0, 3);
     }
 
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
@@ -453,6 +467,9 @@ export class MainGame extends Scene
         this.handMoveDirection = Direction.Left;
         this.hand.setVelocityX(-HAND_SPEED);
 
+        this.handVis = this.add.graphics();
+        this.redrawHandVis(106, 67);
+
         this.physics.add.collider(this.hand, blocks, () => {
             this.scene.start('GameOver');
         });
@@ -502,6 +519,7 @@ export class MainGame extends Scene
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Left;
                 this.hand.setSize(106, 67);
+                this.redrawHandVis(106, 67);
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
@@ -512,6 +530,7 @@ export class MainGame extends Scene
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
                 this.hand.setSize(106, 67);
+                this.redrawHandVis(106, 67);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
@@ -522,6 +541,7 @@ export class MainGame extends Scene
             if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
                 this.handMoveDirection = Direction.Up;
                 this.hand.setSize(67, 106);
+                this.redrawHandVis(67, 106);
                 this.hand.angle = 90;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
@@ -532,12 +552,17 @@ export class MainGame extends Scene
             if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
                 this.handMoveDirection = Direction.Down;
                 this.hand.setSize(67, 106);
+                this.redrawHandVis(67, 106);
                 this.hand.angle = 270;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
                 this.hand.setVelocityY(HAND_SPEED);
             }
         }
+
+        // Track hand position (drawn shape is centered on origin).
+        this.handVis.x = this.hand.x;
+        this.handVis.y = this.hand.y;
     }
 
     shutdown()
