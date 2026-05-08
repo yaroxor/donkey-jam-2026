@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
+import { SCREEN_CENTER } from '../config.ts';
 
 export class GameOver extends Scene
 {

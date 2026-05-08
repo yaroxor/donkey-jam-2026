@@ -28,6 +28,8 @@ const letterKeyCodes: Record<string, number> = {
     'F': 70
 }
 
+type GameSound = Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+
 // TODO?: mb move to utilities or smth
 // Source - https://stackoverflow.com/a/2450976
 // Posted by ChristopheD, modified by community. See post 'Timeline' for change history
@@ -53,17 +55,17 @@ export class MainGame extends Scene
 {
     camera: Phaser.Cameras.Scene2D.Camera;
 
-    music1;
-    music2;
+    music1: GameSound;
+    music2: GameSound;
 
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-    rightAnswerKey: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer1Key: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer2Key: Phaser.Input.Keyboard.Key | number;
+    rightAnswerKey?: Phaser.Input.Keyboard.Key;
+    wrongAnswer1Key?: Phaser.Input.Keyboard.Key;
+    wrongAnswer2Key?: Phaser.Input.Keyboard.Key;
 
-    rightAnswerKey2: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer1Key2: Phaser.Input.Keyboard.Key | number;
-    wrongAnswer2Key2: Phaser.Input.Keyboard.Key | number;
+    rightAnswerKey2?: Phaser.Input.Keyboard.Key;
+    wrongAnswer1Key2?: Phaser.Input.Keyboard.Key;
+    wrongAnswer2Key2?: Phaser.Input.Keyboard.Key;
 
     table: Phaser.GameObjects.Image;
 
@@ -81,9 +83,9 @@ export class MainGame extends Scene
     music12Switched: boolean;
     music21Switched: boolean;
 
-    scales: Phaser.GameObjects.Group;
-    demons: Phaser.GameObjects.Group;
-    skels: Phaser.GameObjects.Group;
+    scales: Phaser.GameObjects.Image[];
+    demons: Phaser.GameObjects.Image[];
+    skels: Phaser.GameObjects.Image[];
     currentSus: number;
     susProgressED: boolean;
 
@@ -115,14 +117,16 @@ export class MainGame extends Scene
         let y: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
         console.log(`randomized Y coord: ${y}`)
 
-        // blockSword 60x161
+        // blockSword sprite is 60x161, rotated 90deg → occupies 161x60 in world
         const block1LeftX: number = SCREEN_CENTER.x - 5 - 161/2;
         const block1RightX: number = SCREEN_CENTER.x - 5 + 161/2;
+        // Canvas Y grows downward; "Top" name predates that convention but values are correct
         const block1TopY: number = 200 + 60/2;
         const block1BotY: number = 200 - 60/2;
         console.log(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
-        if ((block1LeftX > x > block1RightX) && (block1TopY > y > block1BotY)) {
-            const verticalOffset = ((y - this.arcadeAreaCoordsCenter.y - 100 - 30/2) + 20)
+        if ((x > block1LeftX && x < block1RightX) && (y > block1BotY && y < block1TopY)) {
+            const arcadeAreaCenterY = this.arcadeAreaCoords.y + this.arcadeAreaCoords.height / 2;
+            const verticalOffset = ((y - arcadeAreaCenterY - 100 - 30/2) + 20)
             console.log(`loot (seem to be) on block, adding offset ${verticalOffset}`)
             y += verticalOffset;
         }
@@ -268,24 +272,6 @@ export class MainGame extends Scene
             this.music2.play();
         });
     }
-    private musicSwitchTrack2to1()
-    {
-        if (this.music21Switched) {
-            console.log(`ABORT music track switch -- it already switched`)
-            return;
-        }
-        this.music21Switched = true;
-        this.music12Switched = false;
-        const beat = this.music2.seek % 1.5;
-        this.time.delayedCall(Math.min(beat, (1.5 - beat)), () => {
-            console.log('switch to track 1 CALLBACK')
-            const playbackTime: number = this.music2.seek;
-            this.music2.stop();
-            this.music1.setSeek(playbackTime);
-            this.music1.play();
-        });
-    }
-
     private progressSus()
     {
         if (this.susProgressED) {
@@ -297,9 +283,9 @@ export class MainGame extends Scene
         this.susProgressED = true;
         console.log(`~~~ in progressSus body sus progressed was set to ${this.susProgressED}`)
 
-        this.scales.children.entries[this.currentSus].setAlpha(0);
-        this.demons.children.entries[this.currentSus].setAlpha(0);
-        this.skels.children.entries[this.currentSus].setAlpha(0);
+        this.scales[this.currentSus].setAlpha(0);
+        this.demons[this.currentSus].setAlpha(0);
+        this.skels[this.currentSus].setAlpha(0);
 
         this.currentSus += 1;
         console.log(`In progress sus body, after increment CURRENT SUS SCALE: ${this.currentSus}`)
@@ -309,11 +295,10 @@ export class MainGame extends Scene
             return;
         }
 
-        this.scales.children.entries[this.currentSus].setAlpha(1);
-        this.demons.children.entries[this.currentSus].setAlpha(1);
-        this.skels.children.entries[this.currentSus].setAlpha(1);
+        this.scales[this.currentSus].setAlpha(1);
+        this.demons[this.currentSus].setAlpha(1);
+        this.skels[this.currentSus].setAlpha(1);
 
-        this.currentDemon += 1;
         console.log('SUS Progressed')
     }
 
@@ -322,9 +307,9 @@ export class MainGame extends Scene
         this.bubblePlayer.setAlpha(0);
         this.bubbleEnemy.setAlpha(0);
         this.emojisImages.clear(false, true);
-        this.rightAnswerKey = 0;
-        this.wrongAnswer1Key = 0;
-        this.wrongAnswer2Key = 0;
+        this.rightAnswerKey = undefined;
+        this.wrongAnswer1Key = undefined;
+        this.wrongAnswer2Key = undefined;
         // TODO: state management
         this.isDialogueGoing = false;
         console.log(`is dialogue going after end dialogue function body -- ${this.isDialogueGoing}`)
@@ -344,7 +329,7 @@ export class MainGame extends Scene
         this.music21Switched = false;
         this.music12Switched = false;
 
-        this.timeDialogueStrat = 1.7976931348623157E+308;
+        this.timeOfDialogueStart = 1.7976931348623157E+308;
         this.timeDialogueEnd = 1.7976931348623157E+308;
 
         this.currentSus = 0;
@@ -360,11 +345,11 @@ export class MainGame extends Scene
     {
         if (!this.music1) {
             console.log(`creating music track 1`)
-            this.music1 = this.sound.add('music1', { loop: true });
+            this.music1 = this.sound.add('music1', { loop: true }) as GameSound;
         }
         if (!this.music2) {
             console.log(`creating music track 2`)
-            this.music2 = this.sound.add('music2', { loop: true });
+            this.music2 = this.sound.add('music2', { loop: true }) as GameSound;
         }
         this.music1.play();
         this.music21Switched = true; // imean track 1 is already playing
@@ -417,46 +402,30 @@ export class MainGame extends Scene
         this.isDialogueGoing = false;
         console.log(`is dialogue going on scene create -- ${this.isDialogueGoing}`)
 
-        this.scales = this.add.group();
-        const scale1 = this.add.image(1100, 50, 'scale1');
-        this.scales.add(scale1);
-        const scale2 = this.add.image(1100, 50, 'scale2');
-        scale2.setAlpha(0);
-        this.scales.add(scale2);
-        const scale3 = this.add.image(1100, 50, 'scale3');
-        scale3.setAlpha(0);
-        this.scales.add(scale3);
-        const scale4 = this.add.image(1100, 50, 'scale4');
-        scale4.setAlpha(0);
-        this.scales.add(scale4);
+        this.scales = [
+            this.add.image(1100, 50, 'scale1'),
+            this.add.image(1100, 50, 'scale2'),
+            this.add.image(1100, 50, 'scale3'),
+            this.add.image(1100, 50, 'scale4'),
+        ];
+        this.scales.slice(1).forEach(s => s.setAlpha(0));
         console.log(`after creation SUS SCALE: ${this.currentSus}`)
 
-        this.demons = this.add.group();
-        const demon1 = this.add.image(1100, 410, 'demon1');
-        this.demons.add(demon1);
-        const demon2 = this.add.image(1100, 410, 'demon2');
-        demon2.setAlpha(0);
-        this.demons.add(demon2);
-        const demon3 = this.add.image(1100, 410, 'demon3');
-        demon3.setAlpha(0);
-        this.demons.add(demon3);
-        const demon4 = this.add.image(1100, 410, 'demon4');
-        demon4.setAlpha(0);
-        this.demons.add(demon4);
+        this.demons = [
+            this.add.image(1100, 410, 'demon1'),
+            this.add.image(1100, 410, 'demon2'),
+            this.add.image(1100, 410, 'demon3'),
+            this.add.image(1100, 410, 'demon4'),
+        ];
+        this.demons.slice(1).forEach(d => d.setAlpha(0));
 
-
-        this.skels = this.add.group();
-        const skel1 = this.add.image(200, 400, 'skel1');
-        this.skels.add(skel1);
-        const skel2 = this.add.image(200, 400, 'skel2');
-        skel2.setAlpha(0);
-        this.skels.add(skel2);
-        const skel3 = this.add.image(200, 400, 'skel3');
-        skel3.setAlpha(0);
-        this.skels.add(skel3);
-        const skel4 = this.add.image(200, 400, 'skel4');
-        skel4.setAlpha(0);
-        this.skels.add(skel4);
+        this.skels = [
+            this.add.image(200, 400, 'skel1'),
+            this.add.image(200, 400, 'skel2'),
+            this.add.image(200, 400, 'skel3'),
+            this.add.image(200, 400, 'skel4'),
+        ];
+        this.skels.slice(1).forEach(s => s.setAlpha(0));
 
         this.currentSus = 0;
 
@@ -510,7 +479,7 @@ export class MainGame extends Scene
             }
         );
         this.lootAmount +=1;
-        this.spawnLoot(ARCADE_AREA_CENTER);
+        this.spawnLoot();
         console.log(`we have ${this.lootAmount} of loot in (after) CREATE`)
 
         if (this.input.keyboard) {
@@ -540,16 +509,13 @@ export class MainGame extends Scene
 
         // Dialogue answer INPUT
         // RIGHT
-        if ((this.rightAnswerKey && this.rightAnswerKey.isDown) || (this.rightAnswerKey2 && this.rightAnswerKey2.isDown)) {
+        if (this.rightAnswerKey?.isDown || this.rightAnswerKey2?.isDown) {
             console.log(`end dialogue w RIGHT answer`)
             this.endDialogue();
             this.timeDialogueEnd = this.time.now;
-            // console.log(`after right answer, switching music from track 2 to 1`)
-            // this.musicSwitchTrack2to1();
-            // console.log(`time of dialogue end after right answer is ${this.time.now}`)
         }
         // WRONG
-        if ((this.wrongAnswer1Key && this.wrongAnswer1Key.isDown) || (this.wrongAnswer2Key && this.wrongAnswer2Key.isDown) || (this.wrongAnswer1Key2 && this.wrongAnswer1Key2.isDown) || (this.wrongAnswer2Key2 && this.wrongAnswer2Key2.isDown)) {
+        if (this.wrongAnswer1Key?.isDown || this.wrongAnswer2Key?.isDown || this.wrongAnswer1Key2?.isDown || this.wrongAnswer2Key2?.isDown) {
             console.log(`end dialogue w WRONG answer at ${this.time.now}`)
             this.answerFail();
         }
@@ -571,11 +537,7 @@ export class MainGame extends Scene
             console.log(`we DONT HAVE any loot in UPDATE`)
             this.lootAmount += 1;
             this.time.delayedCall(1000, () => {
-                const ARCADE_AREA_CENTER: Pos = {
-                    x: (SCREEN_CENTER.x - 5),
-                    y: (GAME_HEIGHT/3 + 55)
-                };
-                this.spawnLoot(ARCADE_AREA_CENTER);
+                this.spawnLoot();
             })
         }
 
