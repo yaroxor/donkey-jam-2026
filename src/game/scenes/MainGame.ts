@@ -1,28 +1,14 @@
 import { Scene } from 'phaser';
 
-import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, HAND_SPEED, MUSIC_HALF_TACT_SECONDS } from '../config.ts';
+import {
+    GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
+    ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
+    HAND_SPEED, MUSIC_HALF_TACT_SECONDS,
+    Pos, Direction,
+} from '../config.ts';
 import { StateMachine, State } from '../StateMachine.ts';
 import { log } from '../debug.ts';
-
-// TODO?: also move to config?
-interface Pos {
-    x: number,
-    y: number
-}
-
-interface GameObjPos {
-    x: number,
-    y: number,
-    width: number,
-    height: number
-}
-
-enum Direction {
-  Up,
-  Down,
-  Left,
-  Right,
-}
+import { shuffle } from '../utils.ts';
 
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
@@ -31,26 +17,6 @@ const letterKeyCodes: Record<string, number> = {
 }
 
 type GameSound = Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
-
-// TODO?: mb move to utilities or smth
-// Source - https://stackoverflow.com/a/2450976
-// Posted by ChristopheD, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-02-04, License - CC BY-SA 4.0
-function shuffle(array: Array<string>) {
-  let currentIndex = array.length;
-
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-
-    // Pick a remaining element...
-    const randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
-
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex], array[currentIndex]];
-  }
-}
 
 // Visual warning underlay for a danger hitbox. Walks the rectangle's perimeter
 // in segments and perturbs each point outward by a few px, drawn as one closed
@@ -202,8 +168,6 @@ export class MainGame extends Scene
     skels: Phaser.GameObjects.Image[];
     currentSus: number;
 
-    arcadeAreaCoords: GameObjPos;
-
     blocks: Phaser.Physics.Arcade.Group;
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handMoveDirection: Direction;
@@ -221,27 +185,28 @@ export class MainGame extends Scene
 
     private getLootRandomPos(): Pos
     {
-        const x: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.x + 1 - 50)) + this.arcadeAreaCoords.x + 25;
+        const x: number = (Math.random() * ARCADE_AREA_LAYOUT.width) + ARCADE_AREA_LAYOUT.x;
         log.loot(`randomized X coord: ${x}`)
 
-        let y: number = (Math.random() * (this.arcadeAreaCoords.width - this.arcadeAreaCoords.y + 1 - 60 - 50)) + this.arcadeAreaCoords.y + 30 + 25;
+        let y: number = (Math.random() * ARCADE_AREA_LAYOUT.height) + ARCADE_AREA_LAYOUT.y;
         log.loot(`randomized Y coord: ${y}`)
 
-        // blockSword sprite is 60x161, rotated 90deg → occupies 161x60 in world
-        const block1LeftX: number = SCREEN_CENTER.x - 5 - 161/2;
-        const block1RightX: number = SCREEN_CENTER.x - 5 + 161/2;
-        // Canvas Y grows downward; "Top" name predates that convention but values are correct
-        const block1TopY: number = 200 + 60/2;
-        const block1BotY: number = 200 - 60/2;
-        log.loot(`BLOCK1 from ${block1LeftX} ${block1TopY} to ${block1RightX} ${block1BotY}`)
-        if ((x > block1LeftX && x < block1RightX) && (y > block1BotY && y < block1TopY)) {
-            const arcadeAreaCenterY = this.arcadeAreaCoords.y + this.arcadeAreaCoords.height / 2;
-            const verticalOffset = ((y - arcadeAreaCenterY - 100 - 30/2) + 20)
-            log.loot(`loot (seem to be) on block, adding offset ${verticalOffset}`)
-            y += verticalOffset;
+        // blockSword: native 60x161, rotated 90° → 161x60 in world.
+        // Inflate bounds by half the loot sprite size so the loot's visual
+        // box (not just its center) doesn't overlap the block.
+        const blockLeftX:  number = SCREEN_CENTER.x - 5 - 161/2 - LOOT_SIZE.width/2;
+        const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2 + LOOT_SIZE.width/2;
+        const blockTopY:   number = 200 - 60/2 - LOOT_SIZE.height/2;
+        const blockBotY:   number = 200 + 60/2 + LOOT_SIZE.height/2;
+        log.loot(`block-keepout from (${blockLeftX}, ${blockTopY}) to (${blockRightX}, ${blockBotY})`)
+        if (x > blockLeftX && x < blockRightX && y > blockTopY && y < blockBotY) {
+            // Inside keep-out: push y upward (smaller y) past the block top.
+            const verticalOffset = (y - blockTopY) + 40;
+            log.loot(`loot inside block keep-out, lifting by ${verticalOffset}`)
+            y -= verticalOffset;
         }
-        const lootPos = { x: x, y: y};
-        return lootPos;
+
+        return { x, y };
     }
 
     private spawnLoot() {
@@ -457,22 +422,6 @@ export class MainGame extends Scene
 
         this.camera = this.cameras.main;
         this.camera.setBackgroundColor(0xff00ff);
-
-        // TODO?: move this stuff into config
-        const ARCADE_AREA_CENTER: Pos = {
-            x: (SCREEN_CENTER.x - 5),
-            y: (GAME_HEIGHT/3 + 35)
-        }
-        const ARCADE_AREA_SIZE = {
-            width: 500,
-            height: 380
-        }
-        const ARCADE_AREA_TOP_LEFT_CORNER: Pos = {
-            x: ARCADE_AREA_CENTER.x - ARCADE_AREA_SIZE.width/2,
-            y: ARCADE_AREA_CENTER.y - ARCADE_AREA_SIZE.height/2
-        }
-
-        this.arcadeAreaCoords = { x: ARCADE_AREA_TOP_LEFT_CORNER.x, y: ARCADE_AREA_TOP_LEFT_CORNER.y, width: ARCADE_AREA_SIZE.width, height: ARCADE_AREA_SIZE.height };
 
         this.table = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'table');
 
