@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 
-import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER } from '../config.ts';
+import { GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
 
 export class MainMenu extends Scene
 {
@@ -24,6 +24,8 @@ export class MainMenu extends Scene
 
     create ()
     {
+        this.input.setDefaultCursor(MENU_CURSOR);
+
         this.poster = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'main-menu');
 
         this.infoScreen = this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'info-screen');

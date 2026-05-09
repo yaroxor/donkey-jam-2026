@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { SCREEN_CENTER } from '../config.ts';
+import { SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
 
 // Overlay scene launched on top of (and pausing) MainGame. Camera is
 // transparent — the frozen MainGame frame shows through any transparent
@@ -16,6 +16,8 @@ export class GameOver extends Scene
 
     create ()
     {
+        this.input.setDefaultCursor(MENU_CURSOR);
+
         this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'gameover');
 
         this.input.once('pointerdown', () => this.restart());

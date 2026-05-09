@@ -4,6 +4,7 @@ import {
     GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
     HAND_SPEED, MUSIC_HALF_TACT_SECONDS,
+    DEFAULT_CURSOR,
     Pos, Direction,
 } from '../config.ts';
 import { StateMachine, State } from '../StateMachine.ts';
@@ -386,6 +387,8 @@ export class MainGame extends Scene
 
     create ()
     {
+        this.input.setDefaultCursor(DEFAULT_CURSOR);
+
         log.music(`registering music tracks`)
         this.music = new MusicController(this);
         this.music.register(MUSIC_CALM, { loop: true });
@@ -496,8 +499,9 @@ export class MainGame extends Scene
             this.input.keyboard.on('keydown-ESC', () => this.pauseGame());
         }
 
-        // Pause button — top-right corner, above the demon character.
-        const pauseBtn = this.add.image(GAME_WIDTH - 30, 30, 'pause');
+        // Pause button — bottom-right corner, well clear of the suspicion
+        // meter (top-right) and the demon character.
+        const pauseBtn = this.add.image(GAME_WIDTH - 50, GAME_HEIGHT - 50, 'pause');
         pauseBtn.setDepth(2);
         pauseBtn.setInteractive();
         pauseBtn.on('pointerdown', () => this.pauseGame());

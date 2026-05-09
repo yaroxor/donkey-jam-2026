@@ -51,3 +51,9 @@ export const LOOT_SIZE: Size = {
 export const HAND_SPEED: number = 300; // px/s
 // Music tact is ~3s; switches happen on the half-tact for smoothness.
 export const MUSIC_HALF_TACT_SECONDS: number = 1.5;
+
+// CSS cursor strings. Menu scenes use the skeletal-hand cursor; gameplay
+// uses the OS default. Hotspot 25 10 lands at the index-finger tip on
+// the 100x52 cursor.png; tune if the click point feels off.
+export const MENU_CURSOR = 'url(assets/menuUI/cursor.png) 25 10, pointer';
+export const DEFAULT_CURSOR = 'default';
