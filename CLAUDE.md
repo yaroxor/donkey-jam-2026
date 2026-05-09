@@ -70,3 +70,17 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+## gstack integration
+
+This project is integrated with gstack — slug `slick_hand_joe` (mounted at `/workspace` per the host container setup; gstack uses `$PROJECT_NAME`-derived paths, see global `CLAUDE.md`).
+
+- **Per-feature design docs** produced by `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, etc. land at `~/.gstack/projects/slick_hand_joe/`. Other gstack skills auto-discover them on subsequent runs.
+- **Persistence reminder.** Claude's per-session conversation memory does NOT survive container restart. Anything worth keeping between sessions must live in a file:
+  - `CLAUDE.md` (this file) — repo-scoped guidance for future Claude sessions.
+  - `DESDOC.md` — game design source of truth (Russian, hand-curated).
+  - `REFACTOR.md` — architectural backlog (delete when empty).
+  - `~/.gstack/projects/slick_hand_joe/` — gstack per-feature design docs (model-readable).
+  - `~/.claude/projects/-workspace/memory/` — cross-project user memory (global, not per-project; see global `CLAUDE.md`).
+- **Open coordination — DESDOC vs. gstack design docs.** DESDOC.md is the long-form game design narrative (Russian). Per-feature gstack docs (e.g., the alarm-reactions one at `~/.gstack/projects/slick_hand_joe/dev-master-design-20260509-083149.md`) overlap with DESDOC content — both describe game mechanics. Canonical structure / merge-or-keep-separate / cross-referencing convention is TBD. Resolve next session.
+- **Open coordination — TODOs.md.** v1.0 TODOs currently live inline in DESDOC. Architectural backlog lives in REFACTOR.md. gstack convention prefers a dedicated `TODOS.md` for project-level work items, and separation-of-concerns argues for it independently (DESDOC = design narrative; TODOS.md = checklist). TBD next session.
