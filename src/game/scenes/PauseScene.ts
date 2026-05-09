@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { SCREEN_CENTER, MENU_CURSOR, DEFAULT_CURSOR } from '../config.ts';
+import { SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
 
 // Overlay scene launched on top of (and pausing) MainGame. Camera is
 // transparent — MainGame's frozen frame shows through any transparent
@@ -36,7 +36,6 @@ export class PauseScene extends Scene
 
     private resumeGame()
     {
-        this.input.setDefaultCursor(DEFAULT_CURSOR);
         this.scene.resume('MainGame');
         this.scene.stop();
     }

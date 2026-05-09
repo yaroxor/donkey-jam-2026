@@ -41,6 +41,7 @@ export class MainMenu extends Scene
         this.startButtonHovered.setAlpha(0);
         this.startButton.on('pointerover', () => {
             this.startButtonHovered.setAlpha(1);
+            this.input.setDefaultCursor(MENU_CURSOR);
         });
         this.startButton.on('pointerdown', () => {
             this.scene.start('MainGame');
@@ -58,6 +59,7 @@ export class MainMenu extends Scene
         this.infoButtonHovered.setAlpha(0);
         this.infoButton.on('pointerover', () => {
             this.infoButtonHovered.setAlpha(1);
+            this.input.setDefaultCursor(MENU_CURSOR);
         });
         this.infoButton.on('pointerdown', () => {
             this.infoScreen.setAlpha(1);
@@ -75,6 +77,7 @@ export class MainMenu extends Scene
         this.optionsButtonHovered.setAlpha(0);
         this.optionsButton.on('pointerover', () => {
             this.optionsButtonHovered.setAlpha(1);
+            this.input.setDefaultCursor(MENU_CURSOR);
         });
         this.optionsButton.on('pointerdown', () => {
             // No-op: there's no options screen yet.
