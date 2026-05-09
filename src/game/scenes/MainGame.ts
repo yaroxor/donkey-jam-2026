@@ -341,7 +341,8 @@ export class MainGame extends Scene
         log.sus(`progressSus: currentSus = ${this.currentSus}`)
 
         if (this.currentSus >= 4) {
-            this.scene.start('GameOver');
+            this.scene.pause();
+            this.scene.launch('GameOver');
             return true;
         }
 
@@ -471,7 +472,8 @@ export class MainGame extends Scene
         this.redrawHandVis(106, 67);
 
         this.physics.add.collider(this.hand, blocks, () => {
-            this.scene.start('GameOver');
+            this.scene.pause();
+            this.scene.launch('GameOver');
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
@@ -491,7 +493,20 @@ export class MainGame extends Scene
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
+            this.input.keyboard.on('keydown-ESC', () => this.pauseGame());
         }
+
+        // Pause button — top-right corner, above the demon character.
+        const pauseBtn = this.add.image(GAME_WIDTH - 30, 30, 'pause');
+        pauseBtn.setDepth(2);
+        pauseBtn.setInteractive();
+        pauseBtn.on('pointerdown', () => this.pauseGame());
+    }
+
+    private pauseGame()
+    {
+        this.scene.pause();
+        this.scene.launch('Pause');
     }
 
     update()

@@ -4,6 +4,7 @@ import { Boot } from './scenes/Boot';
 import { Preloader } from './scenes/Preloader';
 import { MainMenu } from './scenes/MainMenu';
 import { MainGame } from './scenes/MainGame';
+import { PauseScene } from './scenes/PauseScene';
 import { GameOver } from './scenes/GameOver';
 
 import { GAME_WIDTH, GAME_HEIGHT } from './config.ts';
@@ -22,6 +23,7 @@ const config: Phaser.Types.Core.GameConfig = {
         Preloader,
         MainMenu,
         MainGame,
+        PauseScene,
         GameOver
     ]
 };
