@@ -59,6 +59,38 @@ export const MUSIC_HALF_TACT_SECONDS: number = 1.5;
 export const MUSIC_CALM = 'music1';   // pre-suspicion / safe vibe
 export const MUSIC_ALARM = 'music2';  // suspicion-aware / tense
 
+// Per-level configuration. v1.0 has one entry; multi-level work (adventure
+// map, DESDOC TODO v2.0) expands this. Other passes add fields as they ship
+// (level-timer pass adds `timer:`, etc.).
+export interface LevelConfig {
+    id: number;
+    lootTarget: number;
+}
+
+export const LEVELS: LevelConfig[] = [
+    { id: 1, lootTarget: 5 },
+];
+
+// Current level index. Hardcoded for v1.0 single-level; becomes scene state
+// when multi-level work lands. Callers should access via
+// `LEVELS[CURRENT_LEVEL_INDEX]`.
+export const CURRENT_LEVEL_INDEX = 0;
+
+// Loot meter HUD layout. Anchor is the top-left corner of the first cell
+// (createLootMeter sets origin (0, 0) on each rectangle). Position chosen
+// to clear the arcade-area zone where storm bubbles will eventually render
+// (per the deferred alarm-reactions design's premise 6).
+export const LOOT_METER_ANCHOR: Pos = { x: 50, y: 30 };
+export const LOOT_METER_CELL_WIDTH: number = 30;
+export const LOOT_METER_CELL_HEIGHT: number = 30;
+export const LOOT_METER_CELL_GAP: number = 4;
+// Visual style. Tune in playtest. Sprite swap (when artist delivers the
+// loot-meter art per DESDOC line 28) replaces the rectangle fills with
+// textures; these color constants become unused at that point.
+export const LOOT_METER_FILL_COLOR: number = 0xffcc00;   // gold filled cell
+export const LOOT_METER_EMPTY_COLOR: number = 0x222222;  // dark empty cell
+export const LOOT_METER_STROKE_COLOR: number = 0x44323f; // matches HUD palette
+
 // CSS cursor for the menu skeletal-hand cursor. Used everywhere in the
 // game. Hotspot 55 15 approximates the index-finger tip on the 110x110
 // cursor.png (post-45°-CW rotation); tune if click point feels off.

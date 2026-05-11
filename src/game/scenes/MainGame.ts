@@ -6,6 +6,10 @@ import {
     HAND_SPEED,
     MUSIC_CALM, MUSIC_ALARM,
     MENU_CURSOR,
+    LEVELS, CURRENT_LEVEL_INDEX,
+    LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
+    LOOT_METER_CELL_GAP, LOOT_METER_FILL_COLOR, LOOT_METER_EMPTY_COLOR,
+    LOOT_METER_STROKE_COLOR,
     Pos, Direction,
 } from '../config.ts';
 import { StateMachine } from '../../lib/StateMachine.ts';
@@ -121,7 +125,7 @@ export class MainGame extends Scene
     lootSprites: Array<string>;
     lootAmount: number;
     collectedLootCount: number;
-    lootScoreMsg: Phaser.GameObjects.Text;
+    lootMeterCells: Phaser.GameObjects.Rectangle[];
 
     constructor ()
     {
@@ -181,7 +185,7 @@ export class MainGame extends Scene
                 }
 
             }
-            this.lootScoreMsg.setText(`${this.collectedLootCount}`);
+            this.updateLootMeter();
         });
     }
 
@@ -196,6 +200,43 @@ export class MainGame extends Scene
         this.handVis.strokeRect(-width / 2, -height / 2, width, height);
         this.handVis.fillStyle(0x66ff44, 0.9);
         this.handVis.fillCircle(0, 0, 3);
+    }
+
+    // Build the segmented loot meter for the current level. One Rectangle per
+    // loot item required to win. Each Rectangle's origin is set to (0, 0) so
+    // LOOT_METER_ANCHOR is the top-left of the first cell — the layout math
+    // below treats anchor as a top-left coordinate, not Phaser's default
+    // center anchor.
+    private createLootMeter(): Phaser.GameObjects.Rectangle[] {
+        const cfg = LEVELS[CURRENT_LEVEL_INDEX];
+        const cells: Phaser.GameObjects.Rectangle[] = [];
+        for (let i = 0; i < cfg.lootTarget; i++) {
+            const x = LOOT_METER_ANCHOR.x
+                + i * (LOOT_METER_CELL_WIDTH + LOOT_METER_CELL_GAP);
+            const cell = this.add.rectangle(
+                x, LOOT_METER_ANCHOR.y,
+                LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
+                LOOT_METER_EMPTY_COLOR,
+            );
+            cell.setOrigin(0, 0);
+            cell.setStrokeStyle(2, LOOT_METER_STROKE_COLOR);
+            cells.push(cell);
+        }
+        return cells;
+    }
+
+    // Re-render the meter against the current collectedLootCount. Forgiving
+    // by construction: collectedLootCount > lootTarget renders all cells full
+    // (excess is invisible); negative collectedLootCount renders all empty
+    // (the loop predicate is always false). Stun-decrement code is expected
+    // to floor at 0 anyway.
+    private updateLootMeter(): void {
+        for (let i = 0; i < this.lootMeterCells.length; i++) {
+            const filled = i < this.collectedLootCount;
+            this.lootMeterCells[i].setFillStyle(
+                filled ? LOOT_METER_FILL_COLOR : LOOT_METER_EMPTY_COLOR,
+            );
+        }
     }
 
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
@@ -429,16 +470,7 @@ export class MainGame extends Scene
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
-        this.lootScoreMsg = this.add.text(
-            50,
-            5,
-            `${this.collectedLootCount}`,
-            {
-                fontFamily: 'Architects Daughter',
-                fontSize: '96px',
-                color: '#44323f'
-            }
-        );
+        this.lootMeterCells = this.createLootMeter();
         this.lootAmount +=1;
         this.spawnLoot();
         log.loot(`we have ${this.lootAmount} of loot in (after) CREATE`)
