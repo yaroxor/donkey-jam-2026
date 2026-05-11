@@ -3,14 +3,19 @@ import { Scene } from 'phaser';
 import {
     GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
-    HAND_SPEED, MUSIC_HALF_TACT_SECONDS,
+    HAND_SPEED,
+    MUSIC_CALM, MUSIC_ALARM,
     MENU_CURSOR,
     Pos, Direction,
 } from '../config.ts';
-import { StateMachine, State } from '../../lib/StateMachine.ts';
+import { StateMachine } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
 import { log } from '../debug.ts';
 import { shuffle } from '../../lib/utils.ts';
+import {
+    IdleState, AskingState, CooldownState,
+    type DialogueStateName, type DialogueArgs,
+} from './dialogue-states.ts';
 
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
@@ -26,10 +31,6 @@ const hackLetterCodes: Record<string, number> = {
     'D': 69, // E
     'F': 85, // U
 };
-
-// Music track keys (asset names) named for what they mean in the game.
-const MUSIC_CALM = 'music1';   // pre-suspicion / safe vibe
-const MUSIC_ALARM = 'music2';  // suspicion-aware / tense
 
 // Visual warning underlay for a danger hitbox. Walks the rectangle's perimeter
 // in segments and perturbs each point outward by a few px, drawn as one closed
@@ -84,74 +85,6 @@ function jaggedHitboxUnderlay(
     g.closePath();
     g.fillPath();
     return g;
-}
-
-type DialogueStateName = 'idle' | 'asking' | 'cooldown';
-type DialogueArgs = [MainGame];
-
-// JustDown fires once per physical press; isDown stays true every frame
-// the key is held. Wrap to skip the undefined check at every call site.
-function justDown(key: Phaser.Input.Keyboard.Key | undefined): boolean {
-    return key !== undefined && Phaser.Input.Keyboard.JustDown(key);
-}
-
-class IdleState extends State<DialogueStateName, DialogueArgs> {
-    enter(scene: MainGame): void {
-        scene.time.delayedCall(2000, () => {
-            this.stateMachine.transition('asking');
-        });
-    }
-}
-
-class AskingState extends State<DialogueStateName, DialogueArgs> {
-    private timeoutTimer?: Phaser.Time.TimerEvent;
-
-    enter(scene: MainGame): void {
-        // Pass a ready-callback to showAskingUI: it fires when the last
-        // answer has rendered AND keys are bound. The answer-eligibility
-        // window starts from that moment, not from enter — so changes to
-        // the bubble/question/answer staging timings can't desync the
-        // window length.
-        scene.showAskingUI(() => {
-            this.timeoutTimer = scene.time.delayedCall(3000, () => this.fail(scene));
-        });
-    }
-
-    execute(scene: MainGame): void {
-        if (justDown(scene.rightAnswerKey) || justDown(scene.rightAnswerKey2)) {
-            scene.music.smoothSwitch(MUSIC_CALM, MUSIC_HALF_TACT_SECONDS);
-            this.stateMachine.transition('cooldown');
-        } else if (
-            justDown(scene.wrongAnswer1Key) || justDown(scene.wrongAnswer1Key2) ||
-            justDown(scene.wrongAnswer2Key) || justDown(scene.wrongAnswer2Key2)
-        ) {
-            this.fail(scene);
-        }
-    }
-
-    exit(scene: MainGame): void {
-        this.timeoutTimer?.remove();
-        scene.hideAskingUI();
-    }
-
-    private fail(scene: MainGame): void {
-        if (scene.progressSus()) {
-            return;
-        }
-        // Wrong-answer feedback: SFX fires every fail (smoothSwitch is
-        // idempotent when already on the alarm track).
-        scene.sound.play('crack-head');
-        scene.music.smoothSwitch(MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS);
-        this.stateMachine.transition('cooldown');
-    }
-}
-
-class CooldownState extends State<DialogueStateName, DialogueArgs> {
-    enter(scene: MainGame): void {
-        scene.time.delayedCall(5000, () => {
-            this.stateMachine.transition('asking');
-        });
-    }
 }
 
 export class MainGame extends Scene
