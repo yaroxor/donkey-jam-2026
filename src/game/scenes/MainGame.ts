@@ -186,6 +186,15 @@ export class MainGame extends Scene
 
             }
             this.updateLootMeter();
+            // Win trigger fires the moment the target is hit. Count-driven,
+            // not timer-driven — when the level-timer pass lands, it will
+            // own the LOSE-on-expiry path (timer up && count < target) but
+            // the WIN path stays here. `>=` over `===` is defensive against
+            // any future code path that increments by >1 in one frame.
+            if (this.collectedLootCount >= LEVELS[CURRENT_LEVEL_INDEX].lootTarget) {
+                this.scene.pause();
+                this.scene.launch('Win');
+            }
         });
     }
 
