@@ -24,7 +24,13 @@ bun run dev         # vite dev server
 bun run build       # production build
 bun run typecheck   # tsc --noEmit
 bun run lint        # eslint
+bun run test        # vitest run (one-shot; runs in pre-commit)
+bun run test:watch  # vitest watch mode (active TDD)
 ```
+
+## Testing
+
+vitest. Pure-TS surfaces covered (`utils.ts`, `StateMachine.ts`). Phaser-coupled code (`MusicController.ts`, the scenes) is deferred — needs scene mocking, separate pass. Co-located convention: `foo.test.ts` next to `foo.ts`. Pre-commit runs `bun run test` alongside typecheck + lint.
 
 ## Source map
 
