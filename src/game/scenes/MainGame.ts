@@ -15,8 +15,17 @@ import { shuffle } from '../utils.ts';
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
     'D': 68,
-    'F': 70
-}
+    'F': 70,
+};
+
+// Hack codes for layout-independent fallbacks (Cyrillic-layout keyboards
+// don't trigger S/D/F by keycode; these alternate codes happen to land on
+// the same physical keys on common Russian QWERTY layouts).
+const hackLetterCodes: Record<string, number> = {
+    'S': 79, // O
+    'D': 69, // E
+    'F': 85, // U
+};
 
 // Music track keys (asset names) named for what they mean in the game.
 const MUSIC_CALM = 'music1';   // pre-suspicion / safe vibe
@@ -98,10 +107,14 @@ class AskingState extends State<DialogueStateName, DialogueArgs> {
     private timeoutTimer?: Phaser.Time.TimerEvent;
 
     enter(scene: MainGame): void {
-        scene.showAskingUI();
-        // Match prior behavior: timer started after the last answer image
-        // rendered (~900ms), so total asking window was ~3.9s.
-        this.timeoutTimer = scene.time.delayedCall(3900, () => this.fail(scene));
+        // Pass a ready-callback to showAskingUI: it fires when the last
+        // answer has rendered AND keys are bound. The answer-eligibility
+        // window starts from that moment, not from enter — so changes to
+        // the bubble/question/answer staging timings can't desync the
+        // window length.
+        scene.showAskingUI(() => {
+            this.timeoutTimer = scene.time.delayedCall(3000, () => this.fail(scene));
+        });
     }
 
     execute(scene: MainGame): void {
@@ -260,7 +273,7 @@ export class MainGame extends Scene
         this.emojisImages.add(answer);
     }
 
-    showAskingUI()
+    showAskingUI(onReady: () => void)
     {
         log.dialogue(`showAskingUI fired at ${this.time.now}`)
         const QAndA = this.qAndA;
@@ -296,6 +309,13 @@ export class MainGame extends Scene
         for (let i = 0; i < 3; i++) {
             this.time.delayedCall(delay, () => {
                 this.answerConstructor(answerPositions[i], this.answerKeysLetters[i], answers[i]);
+                if (i === answers.length - 1) {
+                    // Last answer rendered: now bind keys and signal ready.
+                    // Player physically cannot press an answer key before this
+                    // point, so the answer-eligibility window starts here.
+                    this.bindAnswerKeys(rightLetter);
+                    onReady();
+                }
             });
             if (i == rightNumber) {
                 rightLetter = this.answerKeysLetters[i];
@@ -303,12 +323,9 @@ export class MainGame extends Scene
             delay += 100;
         };
         log.dialogue(`time after answers construction loop is ${this.time.now}`)
+    }
 
-        const hackLetterCodes: Record<string, number> = {
-            'S': 79, // O
-            'D': 69, // E
-            'F': 85 // U
-        }
+    private bindAnswerKeys(rightLetter: string): void {
         for (const letter in letterKeyCodes) {
             const keyCode: number = letterKeyCodes[letter];
             const hackKeyCode: number = hackLetterCodes[letter];
@@ -326,7 +343,6 @@ export class MainGame extends Scene
                     this.wrongAnswer2Key = this.input.keyboard.addKey(keyCode);
                     this.wrongAnswer2Key2 = this.input.keyboard.addKey(hackKeyCode);
                 }
-
             }
         }
     }
