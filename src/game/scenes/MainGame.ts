@@ -7,10 +7,10 @@ import {
     MENU_CURSOR,
     Pos, Direction,
 } from '../config.ts';
-import { StateMachine, State } from '../StateMachine.ts';
+import { StateMachine, State } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
 import { log } from '../debug.ts';
-import { shuffle } from '../utils.ts';
+import { shuffle } from '../../lib/utils.ts';
 
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
