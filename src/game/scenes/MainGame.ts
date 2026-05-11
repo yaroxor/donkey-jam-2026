@@ -192,8 +192,7 @@ export class MainGame extends Scene
             // the WIN path stays here. `>=` over `===` is defensive against
             // any future code path that increments by >1 in one frame.
             if (this.collectedLootCount >= LEVELS[CURRENT_LEVEL_INDEX].lootTarget) {
-                this.scene.pause();
-                this.scene.launch('Win');
+                this.endLevel('Win');
             }
         });
     }
@@ -341,8 +340,7 @@ export class MainGame extends Scene
         log.sus(`progressSus: currentSus = ${this.currentSus}`)
 
         if (this.currentSus >= 4) {
-            this.scene.pause();
-            this.scene.launch('GameOver');
+            this.endLevel('GameOver');
             return true;
         }
 
@@ -474,8 +472,7 @@ export class MainGame extends Scene
         this.redrawHandVis(106, 67);
 
         this.physics.add.collider(this.hand, blocks, () => {
-            this.scene.pause();
-            this.scene.launch('GameOver');
+            this.endLevel('GameOver');
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
@@ -501,6 +498,21 @@ export class MainGame extends Scene
     {
         this.scene.pause();
         this.scene.launch('Pause');
+    }
+
+    // Single exit point for "the level has ended" transitions — either via
+    // a loss path (sus full, block crash) or the win path (loot target hit).
+    // Pause the scene, stop all music (scene.pause alone doesn't stop sound
+    // because the SoundManager is game-scoped, not scene-scoped — see
+    // REFACTOR.md #4), then launch the appropriate overlay.
+    //
+    // pauseGame (the player-triggered ESC pause) intentionally does NOT route
+    // through here — it preserves music for continuity when the player
+    // resumes mid-game.
+    private endLevel(target: 'GameOver' | 'Win'): void {
+        this.scene.pause();
+        this.music.stopAll();
+        this.scene.launch(target);
     }
 
     update()

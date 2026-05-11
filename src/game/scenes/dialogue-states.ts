@@ -64,12 +64,17 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
     }
 
     private fail(scene: MainGame): void {
+        // Wrong-answer feedback fires on EVERY fail, including the one that
+        // triggers game-over (sus 3 → 4). Players hear punctuation at the
+        // most significant screw-up of the run, not just the early ones.
+        // Order matters: SFX before progressSus so the sound lands BEFORE
+        // the scene pauses (paused scenes don't process new audio events,
+        // though already-firing sounds keep playing).
+        scene.sound.play('crack-head');
         if (scene.progressSus()) {
             return;
         }
-        // Wrong-answer feedback: SFX fires every fail (smoothSwitch is
-        // idempotent when already on the alarm track).
-        scene.sound.play('crack-head');
+        // smoothSwitch to MUSIC_ALARM is idempotent when already on it.
         scene.music.smoothSwitch(MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS);
         this.stateMachine.transition('cooldown');
     }
