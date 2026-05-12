@@ -22,6 +22,15 @@ import {
     type DialogueStateName, type DialogueArgs,
 } from './dialogue-states.ts';
 
+// Hand sprite dimensions. The asset is 106x67 (long axis is along the
+// extended finger). The body swaps width/height when the hand rotates:
+// horizontal (L/R) → 106x67, vertical (U/D) → 67x106. Used by setSize
+// calls AND by the wrap / vertical-safe-zone math below — keep them as
+// the single source of truth so a future hand-asset swap only needs to
+// update these two numbers.
+const HAND_LONG_DIM = 106;
+const HAND_SHORT_DIM = 67;
+
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
     'D': 68,
@@ -141,28 +150,59 @@ export class MainGame extends Scene
 
     private getLootRandomPos(): Pos
     {
-        const x: number = (Math.random() * ARCADE_AREA_LAYOUT.width) + ARCADE_AREA_LAYOUT.x;
-        log.loot(`randomized X coord: ${x}`)
-
-        let y: number = (Math.random() * ARCADE_AREA_LAYOUT.height) + ARCADE_AREA_LAYOUT.y;
-        log.loot(`randomized Y coord: ${y}`)
-
-        // blockSword: native 60x161, rotated 90° → 161x60 in world.
-        // Inflate bounds by half the loot sprite size so the loot's visual
-        // box (not just its center) doesn't overlap the block.
+        // Static block (sword) keep-out: 60x161 native, rotated 90° → 161x60.
+        // Inflate by half a loot piece so loot's visual box doesn't overlap.
         const blockLeftX:  number = SCREEN_CENTER.x - 5 - 161/2 - LOOT_SIZE.width/2;
         const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2 + LOOT_SIZE.width/2;
         const blockTopY:   number = 200 - 60/2 - LOOT_SIZE.height/2;
         const blockBotY:   number = 200 + 60/2 + LOOT_SIZE.height/2;
-        log.loot(`block-keepout from (${blockLeftX}, ${blockTopY}) to (${blockRightX}, ${blockBotY})`)
-        if (x > blockLeftX && x < blockRightX && y > blockTopY && y < blockBotY) {
-            // Inside keep-out: push y upward (smaller y) past the block top.
-            const verticalOffset = (y - blockTopY) + 40;
-            log.loot(`loot inside block keep-out, lifting by ${verticalOffset}`)
-            y -= verticalOffset;
+
+        // Bounded resample loop for the dynamic hand keep-out. The hand AABB
+        // can swap dimensions (106x67 ↔ 67x106) and move every frame, so we
+        // can't push to a deterministic safe direction the way the block does.
+        // Resampling is fine: hand keep-out area is ~20% of the arcade area,
+        // so the probability of needing >5 attempts is <0.04%. Fallback after
+        // MAX_ATTEMPTS returns the last sampled pos — graceful degrade, no
+        // crash; in practice unreachable.
+        const MAX_ATTEMPTS = 20;
+        let x = 0, y = 0;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            x = (Math.random() * ARCADE_AREA_LAYOUT.width) + ARCADE_AREA_LAYOUT.x;
+            y = (Math.random() * ARCADE_AREA_LAYOUT.height) + ARCADE_AREA_LAYOUT.y;
+
+            // Block keep-out: deterministic upward push (block is fixed, room above).
+            if (x > blockLeftX && x < blockRightX && y > blockTopY && y < blockBotY) {
+                const verticalOffset = (y - blockTopY) + 40;
+                log.loot(`attempt ${attempt+1}: lifting past block keep-out by ${verticalOffset}`);
+                y -= verticalOffset;
+            }
+
+            if (this.isInsideHandKeepout(x, y)) {
+                log.loot(`attempt ${attempt+1}: (${x.toFixed(0)}, ${y.toFixed(0)}) inside hand keep-out, resampling`);
+                continue;
+            }
+
+            return { x, y };
         }
 
+        log.loot(`MAX_ATTEMPTS exhausted, returning (${x.toFixed(0)}, ${y.toFixed(0)})`);
         return { x, y };
+    }
+
+    // Inflated AABB around the hand's physics body. Padding = LOOT_SIZE on
+    // each side: forbids loot center within (hand_half + loot_w) of hand
+    // center, giving ~half a loot-piece of edge-to-edge breathing room.
+    // Prevents the "loot spawns on top of the hand and gets collected next
+    // frame" jankiness — count visibly jumps with no visible pickup.
+    private isInsideHandKeepout(x: number, y: number): boolean {
+        const cx = this.hand.body.center.x;
+        const cy = this.hand.body.center.y;
+        const halfW = this.hand.body.width / 2 + LOOT_SIZE.width;
+        const halfH = this.hand.body.height / 2 + LOOT_SIZE.height;
+        return (
+            x > cx - halfW && x < cx + halfW &&
+            y > cy - halfH && y < cy + halfH
+        );
     }
 
     private spawnLoot() {
@@ -581,19 +621,42 @@ export class MainGame extends Scene
             })
         }
 
-        // Horizontal WRAP
-        if (this.hand.x < 430 && this.handMoveDirection == Direction.Left) {
-            this.hand.x = 870;
+        // Horizontal wrap. Threshold is the arcade edge: when the hand's
+        // CENTER crosses it, half the (horizontal) hand has stuck out past
+        // the table. Spawn mirrors — center at the opposite arcade edge so
+        // half the hand sticks out on the other side, half is on the table.
+        const arcadeLeftX = ARCADE_AREA_LAYOUT.x;
+        const arcadeRightX = ARCADE_AREA_LAYOUT.x + ARCADE_AREA_LAYOUT.width;
+        if (this.hand.x < arcadeLeftX && this.handMoveDirection == Direction.Left) {
+            this.hand.x = arcadeRightX;
         }
-        if (this.hand.x > 850 && this.handMoveDirection == Direction.Right) {
-            this.hand.x = 410;
+        if (this.hand.x > arcadeRightX && this.handMoveDirection == Direction.Right) {
+            this.hand.x = arcadeLeftX;
         }
+
+        // Guard for the "running behind the table" bug: when the player
+        // turns horizontal→vertical, the hand body shrinks from
+        // HAND_LONG_DIM (106) to HAND_SHORT_DIM (67) horizontally. The
+        // center doesn't move, so a hand that was half-out horizontally is
+        // still ~half-out vertically. Vertical motion doesn't trigger the
+        // wrap (only horizontal directions do), so the hand would roam
+        // off-table indefinitely.
+        //
+        // Block the turn unless the hand center is far enough inside the
+        // table that the vertical body fits fully on. Cost: a brief
+        // ~110ms input-ignore window around each wrap (HAND_SHORT_DIM/2 px
+        // of horizontal travel at HAND_SPEED), which feels intuitive —
+        // "wait for the hand to be on the table before turning."
+        const verticalSafeMinX = arcadeLeftX + HAND_SHORT_DIM / 2;
+        const verticalSafeMaxX = arcadeRightX - HAND_SHORT_DIM / 2;
+        const handInVerticalSafeZone =
+            this.hand.x >= verticalSafeMinX && this.hand.x <= verticalSafeMaxX;
 
         if (this.cursors.left.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Left;
-                this.hand.setSize(106, 67);
-                this.redrawHandVis(106, 67);
+                this.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
+                this.redrawHandVis(HAND_LONG_DIM, HAND_SHORT_DIM);
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
@@ -603,8 +666,8 @@ export class MainGame extends Scene
         else if (this.cursors.right.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
-                this.hand.setSize(106, 67);
-                this.redrawHandVis(106, 67);
+                this.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
+                this.redrawHandVis(HAND_LONG_DIM, HAND_SHORT_DIM);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
@@ -612,10 +675,11 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.up.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
+            if ((this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right)
+                && handInVerticalSafeZone) {
                 this.handMoveDirection = Direction.Up;
-                this.hand.setSize(67, 106);
-                this.redrawHandVis(67, 106);
+                this.hand.setSize(HAND_SHORT_DIM, HAND_LONG_DIM);
+                this.redrawHandVis(HAND_SHORT_DIM, HAND_LONG_DIM);
                 this.hand.angle = 90;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
@@ -623,10 +687,11 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.down.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
+            if ((this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right)
+                && handInVerticalSafeZone) {
                 this.handMoveDirection = Direction.Down;
-                this.hand.setSize(67, 106);
-                this.redrawHandVis(67, 106);
+                this.hand.setSize(HAND_SHORT_DIM, HAND_LONG_DIM);
+                this.redrawHandVis(HAND_SHORT_DIM, HAND_LONG_DIM);
                 this.hand.angle = 270;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
