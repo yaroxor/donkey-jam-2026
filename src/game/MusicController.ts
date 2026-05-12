@@ -63,6 +63,18 @@ export class MusicController {
         this.current = null;
     }
 
+    // Apply a volume multiplier (0.0 to 1.0) to every registered track.
+    // Phaser's Sound.setVolume works regardless of play state — it stores
+    // the value, and playback respects it whether the track is already
+    // playing or not yet started. The Settings scene calls this on every
+    // volume adjustment so the change is audible immediately.
+    setVolume(v: number): void {
+        const clamped = Math.max(0, Math.min(1, v));
+        for (const t of Object.values(this.tracks)) {
+            t.setVolume(clamped);
+        }
+    }
+
     isPlaying(key: string): boolean {
         return this.current === key;
     }

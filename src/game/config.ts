@@ -84,6 +84,10 @@ export const LOOT_METER_ANCHOR: Pos = { x: 50, y: 30 };
 export const LOOT_METER_CELL_WIDTH: number = 30;
 export const LOOT_METER_CELL_HEIGHT: number = 30;
 export const LOOT_METER_CELL_GAP: number = 4;
+// Cells per row before wrapping to a new row below. Keeps the HUD compact at
+// high loot targets (the DEV tuner allows up to 25); production targets are
+// well under this so wrap doesn't trigger in shipped builds.
+export const LOOT_METER_ROW_LENGTH: number = 7;
 // Visual style. Tune in playtest. Sprite swap (when artist delivers the
 // loot-meter art per DESDOC line 28) replaces the rectangle fills with
 // textures; these color constants become unused at that point.

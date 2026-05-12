@@ -13,6 +13,7 @@
 
 import { State } from '../../lib/StateMachine.ts';
 import { MUSIC_CALM, MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS } from '../config.ts';
+import { loadSettings, effectiveVolume } from '../settings.ts';
 import type { MainGame } from './MainGame.ts';
 
 export type DialogueStateName = 'idle' | 'asking' | 'cooldown';
@@ -70,7 +71,7 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
         // Order matters: SFX before progressSus so the sound lands BEFORE
         // the scene pauses (paused scenes don't process new audio events,
         // though already-firing sounds keep playing).
-        scene.sound.play('crack-head');
+        scene.sound.play('crack-head', { volume: effectiveVolume(loadSettings(), 'sfx') });
         if (scene.progressSus()) {
             return;
         }

@@ -8,12 +8,13 @@ import {
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
     LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
-    LOOT_METER_CELL_GAP, LOOT_METER_FILL_COLOR, LOOT_METER_EMPTY_COLOR,
-    LOOT_METER_STROKE_COLOR,
+    LOOT_METER_CELL_GAP, LOOT_METER_ROW_LENGTH, LOOT_METER_FILL_COLOR,
+    LOOT_METER_EMPTY_COLOR, LOOT_METER_STROKE_COLOR,
     Pos, Direction,
 } from '../config.ts';
 import { StateMachine } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
+import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
 import { log } from '../debug.ts';
 import { shuffle } from '../../lib/utils.ts';
 import {
@@ -126,6 +127,12 @@ export class MainGame extends Scene
     lootAmount: number;
     collectedLootCount: number;
     lootMeterCells: Phaser.GameObjects.Rectangle[];
+    // Effective per-level loot target. Read once in init() from either
+    // settings.lootTargetOverride (DEV builds, when set) or the LEVELS
+    // config default. Single source of truth for the meter renderer and
+    // the win check — they cannot desync.
+    levelLootTarget: number;
+    muteBtn: Phaser.GameObjects.Text;
 
     constructor ()
     {
@@ -191,7 +198,7 @@ export class MainGame extends Scene
             // own the LOSE-on-expiry path (timer up && count < target) but
             // the WIN path stays here. `>=` over `===` is defensive against
             // any future code path that increments by >1 in one frame.
-            if (this.collectedLootCount >= LEVELS[CURRENT_LEVEL_INDEX].lootTarget) {
+            if (this.collectedLootCount >= this.levelLootTarget) {
                 this.endLevel('Win');
             }
         });
@@ -214,15 +221,19 @@ export class MainGame extends Scene
     // loot item required to win. Each Rectangle's origin is set to (0, 0) so
     // LOOT_METER_ANCHOR is the top-left of the first cell — the layout math
     // below treats anchor as a top-left coordinate, not Phaser's default
-    // center anchor.
+    // center anchor. Cells wrap to a new row every LOOT_METER_ROW_LENGTH so
+    // the HUD stays compact at high loot targets (DEV tuner allows up to 25).
     private createLootMeter(): Phaser.GameObjects.Rectangle[] {
-        const cfg = LEVELS[CURRENT_LEVEL_INDEX];
         const cells: Phaser.GameObjects.Rectangle[] = [];
-        for (let i = 0; i < cfg.lootTarget; i++) {
+        for (let i = 0; i < this.levelLootTarget; i++) {
+            const col = i % LOOT_METER_ROW_LENGTH;
+            const row = Math.floor(i / LOOT_METER_ROW_LENGTH);
             const x = LOOT_METER_ANCHOR.x
-                + i * (LOOT_METER_CELL_WIDTH + LOOT_METER_CELL_GAP);
+                + col * (LOOT_METER_CELL_WIDTH + LOOT_METER_CELL_GAP);
+            const y = LOOT_METER_ANCHOR.y
+                + row * (LOOT_METER_CELL_HEIGHT + LOOT_METER_CELL_GAP);
             const cell = this.add.rectangle(
-                x, LOOT_METER_ANCHOR.y,
+                x, y,
                 LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
                 LOOT_METER_EMPTY_COLOR,
             );
@@ -371,6 +382,17 @@ export class MainGame extends Scene
         this.lootAmount = 0;
         this.collectedLootCount = 0;
 
+        // Compute effective loot target for this level. The dev-only override
+        // (loot tuner row in Settings) is double-gated: must be a DEV build
+        // (Vite-stripped in production) AND must be a non-null value in
+        // localStorage. Otherwise fall through to the configured per-level
+        // default.
+        const settings = loadSettings();
+        const overrideActive = import.meta.env.DEV && settings.lootTargetOverride !== null;
+        this.levelLootTarget = overrideActive
+            ? settings.lootTargetOverride as number
+            : LEVELS[CURRENT_LEVEL_INDEX].lootTarget;
+
         this.dialogueFSM = new StateMachine<DialogueStateName, DialogueArgs>(
             'idle',
             {
@@ -492,6 +514,37 @@ export class MainGame extends Scene
         pauseBtn.setDepth(2);
         pauseBtn.setInteractive();
         pauseBtn.on('pointerdown', () => this.pauseGame());
+
+        // Mute button — paired with pause in the bottom-right "player
+        // controls" corner. Text-emoji placeholder until art arrives; swap
+        // for an Image with mute-on/mute-off textures when delivered.
+        const muted = loadSettings().muted;
+        // Pause sprite is 59x57 centered at GAME_WIDTH - 50, so its left edge
+        // sits at ~1200. Mute emoji (~48px wide, center origin) at
+        // GAME_WIDTH - 130 puts its right edge at ~1174 — ~26px gap.
+        this.muteBtn = this.add.text(
+            GAME_WIDTH - 130, GAME_HEIGHT - 50,
+            muted ? '🔇' : '🔊',
+            { fontFamily: 'Architects Daughter', fontSize: '48px', color: '#44323f' },
+        ).setOrigin(0.5).setDepth(2);
+        this.muteBtn.setInteractive();
+        this.muteBtn.on('pointerdown', () => this.toggleMute());
+
+        // Apply music volume from settings now that all tracks are registered
+        // and the calm track has started. setVolume works regardless of play
+        // state so order within create() doesn't matter, but doing it last
+        // matches the "settings are the final word" mental model.
+        this.music.setVolume(effectiveVolume(loadSettings(), 'music'));
+    }
+
+    private toggleMute(): void {
+        const settings = loadSettings();
+        settings.muted = !settings.muted;
+        saveSettings(settings);
+        this.muteBtn.setText(settings.muted ? '🔇' : '🔊');
+        // Music re-applies live; SFX picks up the new value on the next
+        // sound.play call (which re-reads loadSettings each time).
+        this.music.setVolume(effectiveVolume(settings, 'music'));
     }
 
     private pauseGame()

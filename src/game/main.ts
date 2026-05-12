@@ -7,6 +7,7 @@ import { MainGame } from './scenes/MainGame';
 import { PauseScene } from './scenes/PauseScene';
 import { GameOver } from './scenes/GameOver';
 import { Win } from './scenes/Win';
+import { Settings } from './scenes/Settings';
 
 import { GAME_WIDTH, GAME_HEIGHT } from './config.ts';
 
@@ -27,6 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
         PauseScene,
         GameOver,
         Win,
+        Settings,
     ]
 };
 
