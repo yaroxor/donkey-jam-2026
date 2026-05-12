@@ -48,6 +48,7 @@ interface FakeMainGame extends FakeScene {
     lastDirection: HandStateName;
     progressSus: ReturnType<typeof vi.fn>;
     updateLootMeter: ReturnType<typeof vi.fn>;
+    knockOutLootCell: ReturnType<typeof vi.fn>;
     redrawHandVis: ReturnType<typeof vi.fn>;
 }
 
@@ -72,6 +73,7 @@ function makeFakeMainGame(overrides: Partial<FakeMainGame> = {}): FakeMainGame {
         lastDirection: 'left',
         progressSus: vi.fn().mockReturnValue(false),
         updateLootMeter: vi.fn(),
+        knockOutLootCell: vi.fn(),
         redrawHandVis: vi.fn(),
         ...overrides,
     };
@@ -335,7 +337,7 @@ describe('StunnedState.enter — wall-hit SFX', () => {
 });
 
 describe('StunnedState.enter — loot decrement floors at 0', () => {
-    it('decrements collectedLootCount and refreshes meter when count > 0', () => {
+    it('decrements collectedLootCount, refreshes meter, and triggers knockout animation when count > 0', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ collectedLootCount: 3 });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -344,9 +346,13 @@ describe('StunnedState.enter — loot decrement floors at 0', () => {
 
         expect(scene.collectedLootCount).toBe(2);
         expect(scene.updateLootMeter).toHaveBeenCalledTimes(1);
+        // Knockout fires for the cell that just emptied — index =
+        // post-decrement count.
+        expect(scene.knockOutLootCell).toHaveBeenCalledTimes(1);
+        expect(scene.knockOutLootCell).toHaveBeenCalledWith(2);
     });
 
-    it('does NOT decrement or refresh meter when count is already 0', () => {
+    it('does NOT decrement, refresh meter, or trigger knockout when count is already 0', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ collectedLootCount: 0 });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -355,6 +361,7 @@ describe('StunnedState.enter — loot decrement floors at 0', () => {
 
         expect(scene.collectedLootCount).toBe(0);
         expect(scene.updateLootMeter).not.toHaveBeenCalled();
+        expect(scene.knockOutLootCell).not.toHaveBeenCalled();
     });
 });
 

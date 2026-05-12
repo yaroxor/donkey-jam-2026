@@ -310,6 +310,37 @@ export class MainGame extends Scene
         }
     }
 
+    // Spawn a transient cell-shaped sprite at the indexed loot-meter slot and
+    // animate it falling off the meter. Called by StunnedState after a stun-
+    // triggered decrement so the player gets a visible "loot knocked out" cue
+    // instead of just a silent cell-state flip from filled to empty. The
+    // index is the post-decrement loot count — equal to the index of the
+    // cell that just became empty.
+    knockOutLootCell(index: number): void {
+        if (index < 0 || index >= this.lootMeterCells.length) return;
+        const cell = this.lootMeterCells[index];
+        // Match the cell's origin (0, 0 top-left from createLootMeter) so the
+        // transient sprite starts exactly aligned with the slot it left.
+        const copy = this.add.rectangle(
+            cell.x, cell.y,
+            LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
+            LOOT_METER_FILL_COLOR,
+        ).setOrigin(0).setStrokeStyle(2, LOOT_METER_STROKE_COLOR);
+        // Quadratic ease-in approximates gravity (slow start, accelerating
+        // fall). 80px is enough to clear the meter row visually before fade
+        // completes. The whole tween is short so multiple consecutive stuns
+        // don't pile up flying boxes on screen.
+        this.tweens.add({
+            targets: copy,
+            y: cell.y + 80,
+            angle: 30,
+            alpha: 0,
+            duration: 600,
+            ease: 'Quad.easeIn',
+            onComplete: () => copy.destroy(),
+        });
+    }
+
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
     {
         log.dialogue(`answer constructor fired for letter ${Letter} at ${this.time.now}`)

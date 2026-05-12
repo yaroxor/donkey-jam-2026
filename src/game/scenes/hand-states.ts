@@ -159,6 +159,9 @@ export class StunnedState extends State<HandStateName, HandArgs> {
         if (scene.collectedLootCount > 0) {
             scene.collectedLootCount -= 1;
             scene.updateLootMeter();
+            // Post-decrement count = the index of the cell that just emptied.
+            // Spawn a transient copy at that slot and tween it falling off.
+            scene.knockOutLootCell(scene.collectedLootCount);
         }
 
         // progressSus increments suspicion and returns true if it overflowed
