@@ -336,9 +336,11 @@ export class MainGame extends Scene
         // it stays visible regardless of hand orientation/size.
         const bar = this.add.rectangle(x, y + 60, 54, 9, 0xaa44ff).setOrigin(0.5).setDepth(2);
 
-        // Emoji ABOVE the hand. Same depth as the bar.
+        // Emoji ABOVE the hand. Same depth as the bar. No fontFamily — emojis
+        // render via the platform emoji font regardless of fontFamily, so
+        // declaring it would be dead-letter (and misleading: it'd suggest
+        // the emoji is in the project's Architects Daughter display font).
         const emoji = this.add.text(x, y - 60, '💫', {
-            fontFamily: 'Architects Daughter',
             fontSize: '36px',
         }).setOrigin(0.5).setDepth(2);
 
@@ -819,6 +821,13 @@ export class MainGame extends Scene
         }
 
         this.dialogueFSM.step();
+        // dialogueFSM.step() can route through AskingState.fail → progressSus
+        // → endLevel('GameOver'), which sets `this.ended = true`. Re-check
+        // the guard before driving the hand FSM so it can't transition or
+        // mutate state on an about-to-pause scene the same frame.
+        if (this.ended) {
+            return;
+        }
         this.handFSM.step();
 
         // Refresh the timer countdown. getRemainingSeconds() returns the live

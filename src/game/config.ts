@@ -13,13 +13,6 @@ export interface Size {
 
 export interface GameObjLayout extends Pos, Size {}
 
-export enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 export const SCREEN_CENTER: Pos = {
     x: GAME_WIDTH / 2,
     y: GAME_HEIGHT / 2,
