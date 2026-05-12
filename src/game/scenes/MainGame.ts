@@ -311,35 +311,40 @@ export class MainGame extends Scene
     }
 
     // Spawn the "hand is stunned" visual indicator at (x, y) — typically
-    // the hand's center while it's frozen mid-stun. Two stacked elements
-    // inside a Container so the caller can destroy the whole cluster with
-    // one call:
-    //   - 💫 emoji (top), text-based, scale-pulses for a touch of life
-    //   - shrinking red bar (below), drains over `durationMs` so the
-    //     player can see how much stun is left before the bounce-back
+    // the hand's center while it's frozen mid-stun. Two elements stacked
+    // vertically around the hand, both rendered at depth 2 (HUD layer, on
+    // top of the hand sprite — fully visible):
+    //   - 💫 emoji ABOVE the hand (y - 60) — scale-pulses for liveness
+    //   - shrinking red bar BELOW the hand (y + 60) — drains over
+    //     `durationMs` so the player can see how much stun is left
+    //
+    // Caller gets a `{ destroy }` handle — single call cleans up both
+    // objects (StunnedState.exit). Cheaper than Phaser.GameObjects.Container
+    // since we don't need group-level transforms.
     //
     // Tuning knobs:
-    //   - emoji size: '36px'
-    //   - bar size: 44 wide × 5 tall
-    //   - bar color: 0xff3333 (alarm red, slightly desaturated)
-    //   - vertical offset above hand: y - 60 (clears both horizontal and
-    //     vertical hand body sizes; tighter feels cramped on vertical hand)
-    //   - emoji/bar internal spacing: emoji at container y=-15, bar at y=8
-    showStunIndicator(x: number, y: number, durationMs: number): Phaser.GameObjects.Container {
-        const container = this.add.container(x, y - 60);
+    //   - emoji size: '36px'; emoji y-offset: -60 (above the hand)
+    //   - bar y-offset: +60 (below the hand)
+    //   - bar size: 54 wide × 9 tall
+    //   - bar color: 0xaa44ff (vivid violet). Intentionally NOT red — the
+    //     danger-zone underlays (top + bottom walls) are red, and that's
+    //     where stunning happens, so a red timer bar would conflate with
+    //     the danger signal. Purple keeps "stun timer" distinct from
+    //     "danger zone" in the player's visual vocabulary.
+    showStunIndicator(x: number, y: number, durationMs: number): { destroy: () => void } {
+        // Bar BELOW the hand. Depth 2 puts it on top of the hand sprite so
+        // it stays visible regardless of hand orientation/size.
+        const bar = this.add.rectangle(x, y + 60, 54, 9, 0xaa44ff).setOrigin(0.5).setDepth(2);
 
-        const emoji = this.add.text(0, -15, '💫', {
+        // Emoji ABOVE the hand. Same depth as the bar.
+        const emoji = this.add.text(x, y - 60, '💫', {
             fontFamily: 'Architects Daughter',
             fontSize: '36px',
-        }).setOrigin(0.5);
-        container.add(emoji);
-
-        const bar = this.add.rectangle(0, 8, 44, 5, 0xff3333).setOrigin(0.5);
-        container.add(bar);
+        }).setOrigin(0.5).setDepth(2);
 
         // Bar drains over the stun duration. scaleX 1 → 0 shrinks from the
-        // center outward (origin (0.5, 0.5) above). Linear ease — the
-        // perceived "time remaining" should feel uniform.
+        // center outward (origin (0.5, 0.5) above). Linear ease — perceived
+        // "time remaining" should feel uniform.
         this.tweens.add({
             targets: bar,
             scaleX: 0,
@@ -347,9 +352,9 @@ export class MainGame extends Scene
             ease: 'Linear',
         });
 
-        // Tiny emoji scale-pulse for a touch of life so the indicator
-        // doesn't feel static. yoyo + repeat=-1 loops infinitely; the
-        // container.destroy() in StunnedState.exit cleans it up.
+        // Emoji scale-pulse for a touch of life. yoyo + repeat=-1 loops
+        // infinitely; the destroy() handle cleans it up by killing the
+        // target object.
         this.tweens.add({
             targets: emoji,
             scale: 1.15,
@@ -359,7 +364,12 @@ export class MainGame extends Scene
             ease: 'Sine.easeInOut',
         });
 
-        return container;
+        return {
+            destroy: () => {
+                bar.destroy();
+                emoji.destroy();
+            },
+        };
     }
 
     // Spawn a transient cell-shaped sprite at the indexed loot-meter slot and

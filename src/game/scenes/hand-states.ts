@@ -151,7 +151,7 @@ export class DownState extends State<HandStateName, HandArgs> {
 // stunned, so we don't get a per-frame re-stun from continued body overlap.
 export class StunnedState extends State<HandStateName, HandArgs> {
     private timer?: Phaser.Time.TimerEvent;
-    private indicator?: Phaser.GameObjects.Container;
+    private indicator?: { destroy: () => void };
 
     enter(scene: MainGame): void {
         scene.hand.setVelocityX(0);
