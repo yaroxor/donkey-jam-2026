@@ -558,15 +558,16 @@ export class MainGame extends Scene
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handVis = this.add.graphics();
 
-        // Wire the FSM and step once so LeftState.enter() runs now —
-        // applies setSize/angle/flipX/velocity to the freshly-created hand
-        // sprite. Without this, the sprite would have no velocity for one
-        // frame between create() finishing and update() running.
-        this.handFSM.step();
+        // The FSM is constructed in init() and first-stepped by update() on
+        // the next frame — at which point this.cursors (initialized later in
+        // create()) is available for LeftState.execute()'s input poll.
+        // Calling handFSM.step() here would fire enter()+execute() in one
+        // call, and execute() needs cursors. One frame of zero-velocity hand
+        // between create() and the first update() is negligible.
 
         // Collision → stun (replaces the previous instant-death). Two
         // guards: `ended` so endLevel-fired-but-not-yet-paused doesn't
-        // re-trigger; `isCurrent('stunned')` so Phaser's per-frame collider
+        // re-trigger; `is('stunned')` so Phaser's per-frame collider
         // re-fire while bodies still overlap during the 1s freeze doesn't
         // chain into a re-stun.
         this.physics.add.collider(this.hand, blocks, () => {
