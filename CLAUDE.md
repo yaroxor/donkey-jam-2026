@@ -61,10 +61,17 @@ vitest. Pure-TS surfaces covered (`utils.ts`, `StateMachine.ts`). Phaser-coupled
 - **Scene shutdown.** Whenever a scene starts background work (music, `delayedCall`, colliders that aren't auto-cleaned), it owns cleanup in `shutdown()`.
 - **Logging.** Use `log.<namespace>(...)` from `src/game/debug.ts` (currently `joe:dialogue` / `joe:loot` / `joe:music` / `joe:sus`). Don't use `console.log` for runtime traces — `console.warn`/`console.error` are still fine for genuine warnings/errors. Enable in browser DevTools: `localStorage.debug = 'joe:*'` (or any subset, e.g. `'joe:dialogue'`, `'joe:*,-joe:loot'`) then reload.
 
+## Architectural decisions
+
+Things we considered and rejected, kept around so future-Claude doesn't re-propose them.
+
+- **Splitting heist into Dialogue + Arcade scenes.** Inter-loop coupling (suspicion meter read by both, bubbles obscure the arcade area, stash state gates "look at table" events, single game-over) is by design — putting it across a `scene.launch` boundary turns class-field access into pub/sub ceremony without buying independent lifecycles. Internal FSMs deliver the same cognitive isolation for free. Inter-*mode* scenes (heist vs. adventure map vs. menu) remain the right boundary.
+- **Enabling `strictPropertyInitialization`.** ~20 fields still need late init via Phaser's `init()`/`create()` (scene plugins like `this.add`/`this.physics` aren't available at construction time). Flipping the flag would scatter 20 `!:` markers across the class for negligible safety gain — the bug class it catches (declared-but-never-written field) is already prevented by `init()`/`create()` discipline, and the typo bugs we did hit were caught by plain `strict: true`. Keep it off.
+
 ## In-repo reference docs
 
 - `DESDOC.md` — design doc (Russian, source of truth for game design)
-- `REFACTOR.md` — active refactor + bug backlog. Iterate against it; delete when empty.
+- `TODOS.md` — open backlog: v1.0/v2.0 features, bugs, deferred decisions. Iterate against it; check items off as they land.
 - `phaser-osmose-statemachine-tutorial.md` — Osmose's FSM tutorial, archived for reference
 
 ## Skill routing
@@ -93,8 +100,7 @@ This project is integrated with gstack — slug `slick_hand_joe` (mounted at `/w
 - **Persistence reminder.** Claude's per-session conversation memory does NOT survive container restart. Anything worth keeping between sessions must live in a file:
   - `CLAUDE.md` (this file) — repo-scoped guidance for future Claude sessions.
   - `DESDOC.md` — game design source of truth (Russian, hand-curated).
-  - `REFACTOR.md` — architectural backlog (delete when empty).
+  - `TODOS.md` — active backlog (features, bugs, deferred).
   - `~/.gstack/projects/slick_hand_joe/` — gstack per-feature design docs (model-readable).
   - `~/.claude/projects/-workspace/memory/` — cross-project user memory (global, not per-project; see global `CLAUDE.md`).
 - **Open coordination — DESDOC vs. gstack design docs.** DESDOC.md is the long-form game design narrative (Russian). Per-feature gstack docs (e.g., the alarm-reactions one at `~/.gstack/projects/slick_hand_joe/dev-master-design-20260509-083149.md`) overlap with DESDOC content — both describe game mechanics. Canonical structure / merge-or-keep-separate / cross-referencing convention is TBD. Resolve next session.
-- **Open coordination — TODOs.md.** v1.0 TODOs currently live inline in DESDOC. Architectural backlog lives in REFACTOR.md. gstack convention prefers a dedicated `TODOS.md` for project-level work items, and separation-of-concerns argues for it independently (DESDOC = design narrative; TODOS.md = checklist). TBD next session.
