@@ -24,3 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 .gstack/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Runtime / orchestrator
+.claude/
