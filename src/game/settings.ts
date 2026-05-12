@@ -13,6 +13,7 @@ export interface GameSettings {
     sfxVolume: number;                // 0.0 to 1.0
     muted: boolean;                   // master mute; overrides both volumes to 0
     lootTargetOverride: number | null;  // null = use LEVELS[i].lootTarget
+    timerOverride: number | null;       // seconds; null = use LEVELS[i].timerSeconds
 }
 
 const SETTINGS_KEY = 'slick_hand_joe:settings';
@@ -22,6 +23,7 @@ const DEFAULTS: GameSettings = {
     sfxVolume: 1.0,
     muted: false,
     lootTargetOverride: null,
+    timerOverride: null,
 };
 
 export function loadSettings(): GameSettings {

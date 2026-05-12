@@ -141,6 +141,12 @@ export class MainGame extends Scene
     // config default. Single source of truth for the meter renderer and
     // the win check — they cannot desync.
     levelLootTarget: number;
+    // Effective per-level time limit (seconds). Same override pattern as
+    // levelLootTarget. Drives both the delayedCall that triggers GameOver
+    // on expiry AND the countdown text refresh in update().
+    levelTimerSeconds: number;
+    levelTimer: Phaser.Time.TimerEvent;
+    timerText: Phaser.GameObjects.Text;
     muteBtn: Phaser.GameObjects.Text;
 
     constructor ()
@@ -428,10 +434,14 @@ export class MainGame extends Scene
         // localStorage. Otherwise fall through to the configured per-level
         // default.
         const settings = loadSettings();
-        const overrideActive = import.meta.env.DEV && settings.lootTargetOverride !== null;
-        this.levelLootTarget = overrideActive
+        const lootOverrideActive = import.meta.env.DEV && settings.lootTargetOverride !== null;
+        this.levelLootTarget = lootOverrideActive
             ? settings.lootTargetOverride as number
             : LEVELS[CURRENT_LEVEL_INDEX].lootTarget;
+        const timerOverrideActive = import.meta.env.DEV && settings.timerOverride !== null;
+        this.levelTimerSeconds = timerOverrideActive
+            ? settings.timerOverride as number
+            : LEVELS[CURRENT_LEVEL_INDEX].timerSeconds;
 
         this.dialogueFSM = new StateMachine<DialogueStateName, DialogueArgs>(
             'idle',
@@ -543,6 +553,41 @@ export class MainGame extends Scene
         this.spawnLoot();
         log.loot(`we have ${this.lootAmount} of loot in (after) CREATE`)
 
+        // Level timer. Sits over the lower portion of the bottom wall
+        // (centered at y=630) — the wall (centered at y=600) is painted
+        // with the translucent-red jaggedHitboxUnderlay danger visual, so
+        // the timer needs a dark card behind it for the red text to read.
+        // Card is HUD-palette purple (#44323f), matching the loot meter
+        // stroke and the settings buttons.
+        //
+        // The delayedCall fires GameOver on expiry; endLevel() cancels it on
+        // any other end path (Win, suspicion overflow, obstacle collision)
+        // so it can't double-trigger. update() refreshes the displayed
+        // countdown from the live remaining-seconds. Phaser's per-scene time
+        // clock pauses with the scene (ESC pause), so no extra wiring needed.
+        this.levelTimer = this.time.delayedCall(
+            this.levelTimerSeconds * 1000,
+            () => this.endLevel('GameOver'),
+        );
+        // Background card. Added BEFORE the text so display-list order puts
+        // it behind without needing setDepth gymnastics. Sized to fit
+        // through "5:00" (TIMER_MAX = 300s in settings) at 72px.
+        this.add.rectangle(SCREEN_CENTER.x, 630, 220, 100, 0x44323f)
+            .setOrigin(0.5)
+            .setStrokeStyle(2, 0x000000);
+        this.timerText = this.add.text(
+            SCREEN_CENTER.x, 630,
+            this.formatTime(this.levelTimerSeconds),
+            {
+                fontFamily: 'Architects Daughter',
+                fontSize: '72px',
+                fontStyle: 'bold',
+                color: '#dd1100',
+                stroke: '#440000',
+                strokeThickness: 6,
+            },
+        ).setOrigin(0.5);
+
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
             this.input.keyboard.on('keydown-ESC', () => this.pauseGame());
@@ -603,14 +648,33 @@ export class MainGame extends Scene
     // through here — it preserves music for continuity when the player
     // resumes mid-game.
     private endLevel(target: 'GameOver' | 'Win'): void {
+        // Cancel the level timer so a scene-pause-then-expiry path can't
+        // re-fire GameOver after we've already routed to Win (or vice versa).
+        // .remove() is idempotent — safe to call even if the timer already
+        // fired (which is how we got here when target === 'GameOver' via
+        // timer expiry).
+        this.levelTimer?.remove();
         this.scene.pause();
         this.music.stopAll();
         this.scene.launch(target);
     }
 
+    private formatTime(seconds: number): string {
+        const t = Math.max(0, Math.ceil(seconds));
+        const m = Math.floor(t / 60);
+        const s = t % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
     update()
     {
         this.dialogueFSM.step();
+
+        // Refresh the timer countdown. getRemainingSeconds() returns the live
+        // remaining time from Phaser's pause-aware clock; formatTime ceil's
+        // it so the displayed "1:00" stays visible for the full first second
+        // (rather than flicking to "0:59" at elapsed=0.001s).
+        this.timerText.setText(this.formatTime(this.levelTimer.getRemainingSeconds()));
 
         // Create LOOT
         if (this.lootAmount === 0) {

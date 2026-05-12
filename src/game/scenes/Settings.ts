@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 
-import { SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
+import { SCREEN_CENTER, MENU_CURSOR, LEVELS, CURRENT_LEVEL_INDEX } from '../config.ts';
 import { loadSettings, saveSettings, type GameSettings } from '../settings.ts';
 
 // Settings menu scene. Three rows (music volume, SFX volume, loot target
@@ -49,9 +49,10 @@ const COL_VALUE = 720;
 const COL_MINUS = 820;
 const COL_PLUS = 880;
 const Y_TITLE = 80;
-const Y_MUSIC = 200;
-const Y_SFX = 300;
-const Y_LOOT = 400;
+const Y_MUSIC = 180;
+const Y_SFX = 260;
+const Y_LOOT = 340;
+const Y_TIMER = 420;
 const Y_BACK = 580;
 
 // Adjustment steps and ranges.
@@ -59,6 +60,9 @@ const VOLUME_STEP = 0.1;   // 10% per click
 const LOOT_STEP = 1;
 const LOOT_MIN = 1;
 const LOOT_MAX = 25;       // matches the user's stated playtest ceiling
+const TIMER_STEP = 10;     // seconds per click
+const TIMER_MIN = 10;
+const TIMER_MAX = 300;     // 5 minutes; well past any playable heist length
 
 export class Settings extends Scene
 {
@@ -66,6 +70,7 @@ export class Settings extends Scene
     private musicValueText: Phaser.GameObjects.Text;
     private sfxValueText: Phaser.GameObjects.Text;
     private lootValueText?: Phaser.GameObjects.Text;
+    private timerValueText?: Phaser.GameObjects.Text;
 
     constructor ()
     {
@@ -100,17 +105,29 @@ export class Settings extends Scene
         this.addAdjustButton(COL_MINUS, Y_SFX, '-', () => this.adjustSfx(-VOLUME_STEP));
         this.addAdjustButton(COL_PLUS, Y_SFX, '+', () => this.adjustSfx(+VOLUME_STEP));
 
-        // Loot target tuner — DEV builds only. Vite dead-code-eliminates the
-        // entire block from production bundles when import.meta.env.DEV is
-        // statically false.
+        // DEV-only tuners. Vite dead-code-eliminates the whole block from
+        // production bundles when import.meta.env.DEV is statically false.
+        // When the override is null (never touched), display the current
+        // LEVELS default so the user sees the effective in-game value —
+        // first +/- click then engages the override.
         if (import.meta.env.DEV) {
+            const levelDefault = LEVELS[CURRENT_LEVEL_INDEX];
+
             this.add.text(COL_LABEL, Y_LOOT, 'Loot', TEXT_STYLE).setOrigin(0, 0.5);
-            const initial = this.settings.lootTargetOverride ?? LOOT_MIN;
+            const lootInitial = this.settings.lootTargetOverride ?? levelDefault.lootTarget;
             this.lootValueText = this.add.text(
-                COL_VALUE, Y_LOOT, `${initial}`, TEXT_STYLE,
+                COL_VALUE, Y_LOOT, `${lootInitial}`, TEXT_STYLE,
             ).setOrigin(0.5);
             this.addAdjustButton(COL_MINUS, Y_LOOT, '-', () => this.adjustLoot(-LOOT_STEP));
             this.addAdjustButton(COL_PLUS, Y_LOOT, '+', () => this.adjustLoot(+LOOT_STEP));
+
+            this.add.text(COL_LABEL, Y_TIMER, 'Timer', TEXT_STYLE).setOrigin(0, 0.5);
+            const timerInitial = this.settings.timerOverride ?? levelDefault.timerSeconds;
+            this.timerValueText = this.add.text(
+                COL_VALUE, Y_TIMER, `${timerInitial}s`, TEXT_STYLE,
+            ).setOrigin(0.5);
+            this.addAdjustButton(COL_MINUS, Y_TIMER, '-', () => this.adjustTimer(-TIMER_STEP));
+            this.addAdjustButton(COL_PLUS, Y_TIMER, '+', () => this.adjustTimer(+TIMER_STEP));
         }
 
         // Back button.
@@ -168,10 +185,18 @@ export class Settings extends Scene
     }
 
     private adjustLoot(delta: number): void {
-        const current = this.settings.lootTargetOverride ?? LOOT_MIN;
+        const current = this.settings.lootTargetOverride ?? LEVELS[CURRENT_LEVEL_INDEX].lootTarget;
         const next = Math.max(LOOT_MIN, Math.min(LOOT_MAX, current + delta));
         this.settings.lootTargetOverride = next;
         this.lootValueText?.setText(`${next}`);
+        saveSettings(this.settings);
+    }
+
+    private adjustTimer(delta: number): void {
+        const current = this.settings.timerOverride ?? LEVELS[CURRENT_LEVEL_INDEX].timerSeconds;
+        const next = Math.max(TIMER_MIN, Math.min(TIMER_MAX, current + delta));
+        this.settings.timerOverride = next;
+        this.timerValueText?.setText(`${next}s`);
         saveSettings(this.settings);
     }
 

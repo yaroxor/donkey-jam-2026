@@ -65,10 +65,11 @@ export const MUSIC_ALARM = 'music2';  // suspicion-aware / tense
 export interface LevelConfig {
     id: number;
     lootTarget: number;
+    timerSeconds: number;
 }
 
 export const LEVELS: LevelConfig[] = [
-    { id: 1, lootTarget: 5 },
+    { id: 1, lootTarget: 5, timerSeconds: 60 },
 ];
 
 // Current level index. Hardcoded for v1.0 single-level; becomes scene state
