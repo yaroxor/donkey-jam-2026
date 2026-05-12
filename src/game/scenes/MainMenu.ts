@@ -80,7 +80,7 @@ export class MainMenu extends Scene
             this.input.setDefaultCursor(MENU_CURSOR);
         });
         this.optionsButton.on('pointerdown', () => {
-            // No-op: there's no options screen yet.
+            this.scene.start('Settings');
         })
         this.optionsButton.on('pointerout', () => {
             this.optionsButtonHovered.setAlpha(0);

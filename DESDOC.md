@@ -80,17 +80,7 @@ Goetia -- Lesser Key of Solomon -- Aleister Crowley
 
 ---
 
-**TODO v1.0**:
-- таймер на прохождение
-- шкала лута
-- оп смотрит на стол при заполнении подозрения
-- нычка руки. при касании прячешься на секунду. можешь задоджить взгляд. а можешь проебать время если случайно наступил.
-- загрузить вопросами
-- стан / минус хп за врез (+ Hand FSM refactor — Up/Down/Left/Right + Stunned + Hidden states, reuse `src/game/StateMachine.ts`)
-- Integrate hand movement animation. The artist's GIF was completed during the jam (see "Done: Анимация руки" above) but never wired into the sprite. Replace the static `'hand'` image with proper Phaser animation frames.
-
-**TODO v2.0**:
-- adventure map
+**Открытые задачи**: см. [`TODOS.md`](./TODOS.md) — там и v1.0, и v2.0, и баги, и отложенные решения.
 
 ---
 

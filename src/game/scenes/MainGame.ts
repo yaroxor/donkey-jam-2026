@@ -3,14 +3,33 @@ import { Scene } from 'phaser';
 import {
     GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
-    HAND_SPEED, MUSIC_HALF_TACT_SECONDS,
+    HAND_SPEED,
+    MUSIC_CALM, MUSIC_ALARM,
     MENU_CURSOR,
+    LEVELS, CURRENT_LEVEL_INDEX,
+    LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
+    LOOT_METER_CELL_GAP, LOOT_METER_ROW_LENGTH, LOOT_METER_FILL_COLOR,
+    LOOT_METER_EMPTY_COLOR, LOOT_METER_STROKE_COLOR,
     Pos, Direction,
 } from '../config.ts';
-import { StateMachine, State } from '../StateMachine.ts';
+import { StateMachine } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
+import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
 import { log } from '../debug.ts';
-import { shuffle } from '../utils.ts';
+import { shuffle } from '../../lib/utils.ts';
+import {
+    IdleState, AskingState, CooldownState,
+    type DialogueStateName, type DialogueArgs,
+} from './dialogue-states.ts';
+
+// Hand sprite dimensions. The asset is 106x67 (long axis is along the
+// extended finger). The body swaps width/height when the hand rotates:
+// horizontal (L/R) → 106x67, vertical (U/D) → 67x106. Used by setSize
+// calls AND by the wrap / vertical-safe-zone math below — keep them as
+// the single source of truth so a future hand-asset swap only needs to
+// update these two numbers.
+const HAND_LONG_DIM = 106;
+const HAND_SHORT_DIM = 67;
 
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
@@ -26,10 +45,6 @@ const hackLetterCodes: Record<string, number> = {
     'D': 69, // E
     'F': 85, // U
 };
-
-// Music track keys (asset names) named for what they mean in the game.
-const MUSIC_CALM = 'music1';   // pre-suspicion / safe vibe
-const MUSIC_ALARM = 'music2';  // suspicion-aware / tense
 
 // Visual warning underlay for a danger hitbox. Walks the rectangle's perimeter
 // in segments and perturbs each point outward by a few px, drawn as one closed
@@ -86,74 +101,6 @@ function jaggedHitboxUnderlay(
     return g;
 }
 
-type DialogueStateName = 'idle' | 'asking' | 'cooldown';
-type DialogueArgs = [MainGame];
-
-// JustDown fires once per physical press; isDown stays true every frame
-// the key is held. Wrap to skip the undefined check at every call site.
-function justDown(key: Phaser.Input.Keyboard.Key | undefined): boolean {
-    return key !== undefined && Phaser.Input.Keyboard.JustDown(key);
-}
-
-class IdleState extends State<DialogueStateName, DialogueArgs> {
-    enter(scene: MainGame): void {
-        scene.time.delayedCall(2000, () => {
-            this.stateMachine.transition('asking');
-        });
-    }
-}
-
-class AskingState extends State<DialogueStateName, DialogueArgs> {
-    private timeoutTimer?: Phaser.Time.TimerEvent;
-
-    enter(scene: MainGame): void {
-        // Pass a ready-callback to showAskingUI: it fires when the last
-        // answer has rendered AND keys are bound. The answer-eligibility
-        // window starts from that moment, not from enter — so changes to
-        // the bubble/question/answer staging timings can't desync the
-        // window length.
-        scene.showAskingUI(() => {
-            this.timeoutTimer = scene.time.delayedCall(3000, () => this.fail(scene));
-        });
-    }
-
-    execute(scene: MainGame): void {
-        if (justDown(scene.rightAnswerKey) || justDown(scene.rightAnswerKey2)) {
-            scene.music.smoothSwitch(MUSIC_CALM, MUSIC_HALF_TACT_SECONDS);
-            this.stateMachine.transition('cooldown');
-        } else if (
-            justDown(scene.wrongAnswer1Key) || justDown(scene.wrongAnswer1Key2) ||
-            justDown(scene.wrongAnswer2Key) || justDown(scene.wrongAnswer2Key2)
-        ) {
-            this.fail(scene);
-        }
-    }
-
-    exit(scene: MainGame): void {
-        this.timeoutTimer?.remove();
-        scene.hideAskingUI();
-    }
-
-    private fail(scene: MainGame): void {
-        if (scene.progressSus()) {
-            return;
-        }
-        // Wrong-answer feedback: SFX fires every fail (smoothSwitch is
-        // idempotent when already on the alarm track).
-        scene.sound.play('crack-head');
-        scene.music.smoothSwitch(MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS);
-        this.stateMachine.transition('cooldown');
-    }
-}
-
-class CooldownState extends State<DialogueStateName, DialogueArgs> {
-    enter(scene: MainGame): void {
-        scene.time.delayedCall(5000, () => {
-            this.stateMachine.transition('asking');
-        });
-    }
-}
-
 export class MainGame extends Scene
 {
     music: MusicController;
@@ -188,7 +135,25 @@ export class MainGame extends Scene
     lootSprites: Array<string>;
     lootAmount: number;
     collectedLootCount: number;
-    lootScoreMsg: Phaser.GameObjects.Text;
+    lootMeterCells: Phaser.GameObjects.Rectangle[];
+    // Effective per-level loot target. Read once in init() from either
+    // settings.lootTargetOverride (DEV builds, when set) or the LEVELS
+    // config default. Single source of truth for the meter renderer and
+    // the win check — they cannot desync.
+    levelLootTarget: number;
+    // Effective per-level time limit (seconds). Same override pattern as
+    // levelLootTarget. Drives both the delayedCall that triggers GameOver
+    // on expiry AND the countdown text refresh in update().
+    levelTimerSeconds: number;
+    levelTimer: Phaser.Time.TimerEvent;
+    timerText: Phaser.GameObjects.Text;
+    muteBtn: Phaser.GameObjects.Text;
+    // True after endLevel() fires once. Guards update() so the same frame
+    // can't keep mutating hand direction / scheduling loot respawns / re-
+    // reading the cancelled timer after the level is logically over, and
+    // also makes endLevel() itself idempotent against double-fire (e.g. a
+    // pickup-triggered Win on the same frame the timer expires to GameOver).
+    ended: boolean;
 
     constructor ()
     {
@@ -197,28 +162,59 @@ export class MainGame extends Scene
 
     private getLootRandomPos(): Pos
     {
-        const x: number = (Math.random() * ARCADE_AREA_LAYOUT.width) + ARCADE_AREA_LAYOUT.x;
-        log.loot(`randomized X coord: ${x}`)
-
-        let y: number = (Math.random() * ARCADE_AREA_LAYOUT.height) + ARCADE_AREA_LAYOUT.y;
-        log.loot(`randomized Y coord: ${y}`)
-
-        // blockSword: native 60x161, rotated 90° → 161x60 in world.
-        // Inflate bounds by half the loot sprite size so the loot's visual
-        // box (not just its center) doesn't overlap the block.
+        // Static block (sword) keep-out: 60x161 native, rotated 90° → 161x60.
+        // Inflate by half a loot piece so loot's visual box doesn't overlap.
         const blockLeftX:  number = SCREEN_CENTER.x - 5 - 161/2 - LOOT_SIZE.width/2;
         const blockRightX: number = SCREEN_CENTER.x - 5 + 161/2 + LOOT_SIZE.width/2;
         const blockTopY:   number = 200 - 60/2 - LOOT_SIZE.height/2;
         const blockBotY:   number = 200 + 60/2 + LOOT_SIZE.height/2;
-        log.loot(`block-keepout from (${blockLeftX}, ${blockTopY}) to (${blockRightX}, ${blockBotY})`)
-        if (x > blockLeftX && x < blockRightX && y > blockTopY && y < blockBotY) {
-            // Inside keep-out: push y upward (smaller y) past the block top.
-            const verticalOffset = (y - blockTopY) + 40;
-            log.loot(`loot inside block keep-out, lifting by ${verticalOffset}`)
-            y -= verticalOffset;
+
+        // Bounded resample loop for the dynamic hand keep-out. The hand AABB
+        // can swap dimensions (106x67 ↔ 67x106) and move every frame, so we
+        // can't push to a deterministic safe direction the way the block does.
+        // Resampling is fine: hand keep-out area is ~20% of the arcade area,
+        // so the probability of needing >5 attempts is <0.04%. Fallback after
+        // MAX_ATTEMPTS returns the last sampled pos — graceful degrade, no
+        // crash; in practice unreachable.
+        const MAX_ATTEMPTS = 20;
+        let x = 0, y = 0;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            x = (Math.random() * ARCADE_AREA_LAYOUT.width) + ARCADE_AREA_LAYOUT.x;
+            y = (Math.random() * ARCADE_AREA_LAYOUT.height) + ARCADE_AREA_LAYOUT.y;
+
+            // Block keep-out: deterministic upward push (block is fixed, room above).
+            if (x > blockLeftX && x < blockRightX && y > blockTopY && y < blockBotY) {
+                const verticalOffset = (y - blockTopY) + 40;
+                log.loot(`attempt ${attempt+1}: lifting past block keep-out by ${verticalOffset}`);
+                y -= verticalOffset;
+            }
+
+            if (this.isInsideHandKeepout(x, y)) {
+                log.loot(`attempt ${attempt+1}: (${x.toFixed(0)}, ${y.toFixed(0)}) inside hand keep-out, resampling`);
+                continue;
+            }
+
+            return { x, y };
         }
 
+        log.loot(`MAX_ATTEMPTS exhausted, returning (${x.toFixed(0)}, ${y.toFixed(0)})`);
         return { x, y };
+    }
+
+    // Inflated AABB around the hand's physics body. Padding = LOOT_SIZE on
+    // each side: forbids loot center within (hand_half + loot_w) of hand
+    // center, giving ~half a loot-piece of edge-to-edge breathing room.
+    // Prevents the "loot spawns on top of the hand and gets collected next
+    // frame" jankiness — count visibly jumps with no visible pickup.
+    private isInsideHandKeepout(x: number, y: number): boolean {
+        const cx = this.hand.body.center.x;
+        const cy = this.hand.body.center.y;
+        const halfW = this.hand.body.width / 2 + LOOT_SIZE.width;
+        const halfH = this.hand.body.height / 2 + LOOT_SIZE.height;
+        return (
+            x > cx - halfW && x < cx + halfW &&
+            y > cy - halfH && y < cy + halfH
+        );
     }
 
     private spawnLoot() {
@@ -248,7 +244,15 @@ export class MainGame extends Scene
                 }
 
             }
-            this.lootScoreMsg.setText(`${this.collectedLootCount}`);
+            this.updateLootMeter();
+            // Win trigger fires the moment the target is hit. Count-driven,
+            // not timer-driven — when the level-timer pass lands, it will
+            // own the LOSE-on-expiry path (timer up && count < target) but
+            // the WIN path stays here. `>=` over `===` is defensive against
+            // any future code path that increments by >1 in one frame.
+            if (this.collectedLootCount >= this.levelLootTarget) {
+                this.endLevel('Win');
+            }
         });
     }
 
@@ -263,6 +267,47 @@ export class MainGame extends Scene
         this.handVis.strokeRect(-width / 2, -height / 2, width, height);
         this.handVis.fillStyle(0x66ff44, 0.9);
         this.handVis.fillCircle(0, 0, 3);
+    }
+
+    // Build the segmented loot meter for the current level. One Rectangle per
+    // loot item required to win. Each Rectangle's origin is set to (0, 0) so
+    // LOOT_METER_ANCHOR is the top-left of the first cell — the layout math
+    // below treats anchor as a top-left coordinate, not Phaser's default
+    // center anchor. Cells wrap to a new row every LOOT_METER_ROW_LENGTH so
+    // the HUD stays compact at high loot targets (DEV tuner allows up to 25).
+    private createLootMeter(): Phaser.GameObjects.Rectangle[] {
+        const cells: Phaser.GameObjects.Rectangle[] = [];
+        for (let i = 0; i < this.levelLootTarget; i++) {
+            const col = i % LOOT_METER_ROW_LENGTH;
+            const row = Math.floor(i / LOOT_METER_ROW_LENGTH);
+            const x = LOOT_METER_ANCHOR.x
+                + col * (LOOT_METER_CELL_WIDTH + LOOT_METER_CELL_GAP);
+            const y = LOOT_METER_ANCHOR.y
+                + row * (LOOT_METER_CELL_HEIGHT + LOOT_METER_CELL_GAP);
+            const cell = this.add.rectangle(
+                x, y,
+                LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
+                LOOT_METER_EMPTY_COLOR,
+            );
+            cell.setOrigin(0, 0);
+            cell.setStrokeStyle(2, LOOT_METER_STROKE_COLOR);
+            cells.push(cell);
+        }
+        return cells;
+    }
+
+    // Re-render the meter against the current collectedLootCount. Forgiving
+    // by construction: collectedLootCount > lootTarget renders all cells full
+    // (excess is invisible); negative collectedLootCount renders all empty
+    // (the loop predicate is always false). Stun-decrement code is expected
+    // to floor at 0 anyway.
+    private updateLootMeter(): void {
+        for (let i = 0; i < this.lootMeterCells.length; i++) {
+            const filled = i < this.collectedLootCount;
+            this.lootMeterCells[i].setFillStyle(
+                filled ? LOOT_METER_FILL_COLOR : LOOT_METER_EMPTY_COLOR,
+            );
+        }
     }
 
     private answerConstructor(Pos: Pos, Letter: string, Emoji: string)
@@ -358,8 +403,7 @@ export class MainGame extends Scene
         log.sus(`progressSus: currentSus = ${this.currentSus}`)
 
         if (this.currentSus >= 4) {
-            this.scene.pause();
-            this.scene.launch('GameOver');
+            this.endLevel('GameOver');
             return true;
         }
 
@@ -383,12 +427,28 @@ export class MainGame extends Scene
     }
 
     init() {
+        this.ended = false;
         this.currentSus = 0;
 
         this.handMoveDirection = Direction.Left;
 
         this.lootAmount = 0;
         this.collectedLootCount = 0;
+
+        // Compute effective loot target for this level. The dev-only override
+        // (loot tuner row in Settings) is double-gated: must be a DEV build
+        // (Vite-stripped in production) AND must be a non-null value in
+        // localStorage. Otherwise fall through to the configured per-level
+        // default.
+        const settings = loadSettings();
+        const lootOverrideActive = import.meta.env.DEV && settings.lootTargetOverride !== null;
+        this.levelLootTarget = lootOverrideActive
+            ? settings.lootTargetOverride as number
+            : LEVELS[CURRENT_LEVEL_INDEX].lootTarget;
+        const timerOverrideActive = import.meta.env.DEV && settings.timerOverride !== null;
+        this.levelTimerSeconds = timerOverrideActive
+            ? settings.timerOverride as number
+            : LEVELS[CURRENT_LEVEL_INDEX].timerSeconds;
 
         this.dialogueFSM = new StateMachine<DialogueStateName, DialogueArgs>(
             'idle',
@@ -491,24 +551,49 @@ export class MainGame extends Scene
         this.redrawHandVis(106, 67);
 
         this.physics.add.collider(this.hand, blocks, () => {
-            this.scene.pause();
-            this.scene.launch('GameOver');
+            this.endLevel('GameOver');
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
-        this.lootScoreMsg = this.add.text(
-            50,
-            5,
-            `${this.collectedLootCount}`,
-            {
-                fontFamily: 'Architects Daughter',
-                fontSize: '96px',
-                color: '#44323f'
-            }
-        );
+        this.lootMeterCells = this.createLootMeter();
         this.lootAmount +=1;
         this.spawnLoot();
         log.loot(`we have ${this.lootAmount} of loot in (after) CREATE`)
+
+        // Level timer. Sits over the lower portion of the bottom wall
+        // (centered at y=630) — the wall (centered at y=600) is painted
+        // with the translucent-red jaggedHitboxUnderlay danger visual, so
+        // the timer needs a dark card behind it for the red text to read.
+        // Card is HUD-palette purple (#44323f), matching the loot meter
+        // stroke and the settings buttons.
+        //
+        // The delayedCall fires GameOver on expiry; endLevel() cancels it on
+        // any other end path (Win, suspicion overflow, obstacle collision)
+        // so it can't double-trigger. update() refreshes the displayed
+        // countdown from the live remaining-seconds. Phaser's per-scene time
+        // clock pauses with the scene (ESC pause), so no extra wiring needed.
+        this.levelTimer = this.time.delayedCall(
+            this.levelTimerSeconds * 1000,
+            () => this.endLevel('GameOver'),
+        );
+        // Background card. Added BEFORE the text so display-list order puts
+        // it behind without needing setDepth gymnastics. Sized to fit
+        // through "5:00" (TIMER_MAX = 300s in settings) at 72px.
+        this.add.rectangle(SCREEN_CENTER.x, 630, 220, 100, 0x44323f)
+            .setOrigin(0.5)
+            .setStrokeStyle(2, 0x000000);
+        this.timerText = this.add.text(
+            SCREEN_CENTER.x, 630,
+            this.formatTime(this.levelTimerSeconds),
+            {
+                fontFamily: 'Architects Daughter',
+                fontSize: '72px',
+                fontStyle: 'bold',
+                color: '#dd1100',
+                stroke: '#440000',
+                strokeThickness: 6,
+            },
+        ).setOrigin(0.5);
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -521,6 +606,37 @@ export class MainGame extends Scene
         pauseBtn.setDepth(2);
         pauseBtn.setInteractive();
         pauseBtn.on('pointerdown', () => this.pauseGame());
+
+        // Mute button — paired with pause in the bottom-right "player
+        // controls" corner. Text-emoji placeholder until art arrives; swap
+        // for an Image with mute-on/mute-off textures when delivered.
+        const muted = loadSettings().muted;
+        // Pause sprite is 59x57 centered at GAME_WIDTH - 50, so its left edge
+        // sits at ~1200. Mute emoji (~48px wide, center origin) at
+        // GAME_WIDTH - 130 puts its right edge at ~1174 — ~26px gap.
+        this.muteBtn = this.add.text(
+            GAME_WIDTH - 130, GAME_HEIGHT - 50,
+            muted ? '🔇' : '🔊',
+            { fontFamily: 'Architects Daughter', fontSize: '48px', color: '#44323f' },
+        ).setOrigin(0.5).setDepth(2);
+        this.muteBtn.setInteractive();
+        this.muteBtn.on('pointerdown', () => this.toggleMute());
+
+        // Apply music volume from settings now that all tracks are registered
+        // and the calm track has started. setVolume works regardless of play
+        // state so order within create() doesn't matter, but doing it last
+        // matches the "settings are the final word" mental model.
+        this.music.setVolume(effectiveVolume(loadSettings(), 'music'));
+    }
+
+    private toggleMute(): void {
+        const settings = loadSettings();
+        settings.muted = !settings.muted;
+        saveSettings(settings);
+        this.muteBtn.setText(settings.muted ? '🔇' : '🔊');
+        // Music re-applies live; SFX picks up the new value on the next
+        // sound.play call (which re-reads loadSettings each time).
+        this.music.setVolume(effectiveVolume(settings, 'music'));
     }
 
     private pauseGame()
@@ -529,9 +645,57 @@ export class MainGame extends Scene
         this.scene.launch('Pause');
     }
 
+    // Single exit point for "the level has ended" transitions — either via
+    // a loss path (sus full, block crash, timer expiry) or the win path
+    // (loot target hit). Pause the scene, stop all music (scene.pause alone
+    // doesn't stop sound because the SoundManager is game-scoped, not
+    // scene-scoped — handled here via this.music.stopAll), then launch the
+    // appropriate overlay.
+    //
+    // pauseGame (the player-triggered ESC pause) intentionally does NOT route
+    // through here — it preserves music for continuity when the player
+    // resumes mid-game.
+    private endLevel(target: 'GameOver' | 'Win'): void {
+        // Idempotency guard. Without this, a near-simultaneous Win-from-
+        // pickup + GameOver-from-timer (or any double-trigger) would launch
+        // both overlays on top of each other. The `ended` flag also gates
+        // update() so the same frame can't keep mutating game state.
+        if (this.ended) {
+            return;
+        }
+        this.ended = true;
+        // Cancel the level timer so a scene-pause-then-expiry path can't
+        // re-fire GameOver after we've already routed to Win.
+        this.levelTimer?.remove();
+        this.scene.pause();
+        this.music.stopAll();
+        this.scene.launch(target);
+    }
+
+    private formatTime(seconds: number): string {
+        const t = Math.max(0, Math.ceil(seconds));
+        const m = Math.floor(t / 60);
+        const s = t % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
     update()
     {
+        // Early-out after endLevel(). Phaser pauses the scene asynchronously,
+        // so update() can continue running on the same frame that endLevel
+        // fired — the remaining body would then mutate hand direction,
+        // schedule another loot respawn, and read a just-removed timer.
+        if (this.ended) {
+            return;
+        }
+
         this.dialogueFSM.step();
+
+        // Refresh the timer countdown. getRemainingSeconds() returns the live
+        // remaining time from Phaser's pause-aware clock; formatTime ceil's
+        // it so the displayed "1:00" stays visible for the full first second
+        // (rather than flicking to "0:59" at elapsed=0.001s).
+        this.timerText.setText(this.formatTime(this.levelTimer.getRemainingSeconds()));
 
         // Create LOOT
         if (this.lootAmount === 0) {
@@ -542,19 +706,42 @@ export class MainGame extends Scene
             })
         }
 
-        // Horizontal WRAP
-        if (this.hand.x < 430 && this.handMoveDirection == Direction.Left) {
-            this.hand.x = 870;
+        // Horizontal wrap. Threshold is the arcade edge: when the hand's
+        // CENTER crosses it, half the (horizontal) hand has stuck out past
+        // the table. Spawn mirrors — center at the opposite arcade edge so
+        // half the hand sticks out on the other side, half is on the table.
+        const arcadeLeftX = ARCADE_AREA_LAYOUT.x;
+        const arcadeRightX = ARCADE_AREA_LAYOUT.x + ARCADE_AREA_LAYOUT.width;
+        if (this.hand.x < arcadeLeftX && this.handMoveDirection == Direction.Left) {
+            this.hand.x = arcadeRightX;
         }
-        if (this.hand.x > 850 && this.handMoveDirection == Direction.Right) {
-            this.hand.x = 410;
+        if (this.hand.x > arcadeRightX && this.handMoveDirection == Direction.Right) {
+            this.hand.x = arcadeLeftX;
         }
+
+        // Guard for the "running behind the table" bug: when the player
+        // turns horizontal→vertical, the hand body shrinks from
+        // HAND_LONG_DIM (106) to HAND_SHORT_DIM (67) horizontally. The
+        // center doesn't move, so a hand that was half-out horizontally is
+        // still ~half-out vertically. Vertical motion doesn't trigger the
+        // wrap (only horizontal directions do), so the hand would roam
+        // off-table indefinitely.
+        //
+        // Block the turn unless the hand center is far enough inside the
+        // table that the vertical body fits fully on. Cost: a brief
+        // ~110ms input-ignore window around each wrap (HAND_SHORT_DIM/2 px
+        // of horizontal travel at HAND_SPEED), which feels intuitive —
+        // "wait for the hand to be on the table before turning."
+        const verticalSafeMinX = arcadeLeftX + HAND_SHORT_DIM / 2;
+        const verticalSafeMaxX = arcadeRightX - HAND_SHORT_DIM / 2;
+        const handInVerticalSafeZone =
+            this.hand.x >= verticalSafeMinX && this.hand.x <= verticalSafeMaxX;
 
         if (this.cursors.left.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Left;
-                this.hand.setSize(106, 67);
-                this.redrawHandVis(106, 67);
+                this.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
+                this.redrawHandVis(HAND_LONG_DIM, HAND_SHORT_DIM);
                 this.hand.angle = 0;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityY(0);
@@ -564,8 +751,8 @@ export class MainGame extends Scene
         else if (this.cursors.right.isDown) {
             if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
                 this.handMoveDirection = Direction.Right;
-                this.hand.setSize(106, 67);
-                this.redrawHandVis(106, 67);
+                this.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
+                this.redrawHandVis(HAND_LONG_DIM, HAND_SHORT_DIM);
                 this.hand.angle = 0;
                 this.hand.setFlipX(true);
                 this.hand.setVelocityY(0);
@@ -573,10 +760,11 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.up.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
+            if ((this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right)
+                && handInVerticalSafeZone) {
                 this.handMoveDirection = Direction.Up;
-                this.hand.setSize(67, 106);
-                this.redrawHandVis(67, 106);
+                this.hand.setSize(HAND_SHORT_DIM, HAND_LONG_DIM);
+                this.redrawHandVis(HAND_SHORT_DIM, HAND_LONG_DIM);
                 this.hand.angle = 90;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
@@ -584,10 +772,11 @@ export class MainGame extends Scene
             }
         }
         else if (this.cursors.down.isDown) {
-            if (this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right) {
+            if ((this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right)
+                && handInVerticalSafeZone) {
                 this.handMoveDirection = Direction.Down;
-                this.hand.setSize(67, 106);
-                this.redrawHandVis(67, 106);
+                this.hand.setSize(HAND_SHORT_DIM, HAND_LONG_DIM);
+                this.redrawHandVis(HAND_SHORT_DIM, HAND_LONG_DIM);
                 this.hand.angle = 270;
                 this.hand.setFlipX(false);
                 this.hand.setVelocityX(0);
