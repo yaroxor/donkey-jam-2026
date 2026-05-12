@@ -321,6 +321,19 @@ describe('StunnedState.enter — velocity zeroed', () => {
     });
 });
 
+describe('StunnedState.enter — wall-hit SFX', () => {
+    it('plays the wall-hit sound effect', () => {
+        const stunned = new StunnedState();
+        const scene = makeFakeMainGame();
+        const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
+
+        fsm.step();
+
+        expect(scene.sound.play).toHaveBeenCalledTimes(1);
+        expect(scene.sound.play.mock.calls[0][0]).toBe('wall-hit');
+    });
+});
+
 describe('StunnedState.enter — loot decrement floors at 0', () => {
     it('decrements collectedLootCount and refreshes meter when count > 0', () => {
         const stunned = new StunnedState();

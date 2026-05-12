@@ -20,6 +20,7 @@
 
 import { State } from '../../lib/StateMachine.ts';
 import { HAND_SPEED, HAND_LONG_DIM, HAND_SHORT_DIM, ARCADE_AREA_LAYOUT } from '../config.ts';
+import { loadSettings, effectiveVolume } from '../settings.ts';
 import type { MainGame } from './MainGame.ts';
 
 export type HandStateName = 'left' | 'right' | 'up' | 'down' | 'stunned';
@@ -148,6 +149,12 @@ export class StunnedState extends State<HandStateName, HandArgs> {
     enter(scene: MainGame): void {
         scene.hand.setVelocityX(0);
         scene.hand.setVelocityY(0);
+
+        // Wall-hit SFX. Plays at user-tuned SFX volume; muted respects the
+        // master mute. Wrong-answer pattern in dialogue-states uses the same
+        // (loadSettings, effectiveVolume) read on every play to pick up
+        // settings changes mid-game.
+        scene.sound.play('wall-hit', { volume: effectiveVolume(loadSettings(), 'sfx') });
 
         if (scene.collectedLootCount > 0) {
             scene.collectedLootCount -= 1;

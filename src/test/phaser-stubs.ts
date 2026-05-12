@@ -93,6 +93,8 @@ export interface FakeScene {
         sounds: Map<string, FakeSound>;
         add: ReturnType<typeof vi.fn>;
         getAll: ReturnType<typeof vi.fn>;
+        /** Fire-and-forget one-shot play. Records the key + config for assertions. */
+        play: ReturnType<typeof vi.fn>;
     };
 }
 
@@ -120,6 +122,7 @@ export function makeFakeScene(): FakeScene {
                 const s = sounds.get(key);
                 return s ? [s] : [];
             }),
+            play: vi.fn(),
         },
     };
 }
