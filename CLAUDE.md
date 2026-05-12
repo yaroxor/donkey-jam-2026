@@ -8,6 +8,8 @@ Repo-scoped guidance for Claude Code working on `donkey-jam-2026`.
 
 Status: post-jam independent continuation. v1.0 features still in flight. Design source of truth is `DESDOC.md` (Russian — preserve language; do not translate).
 
+**Team:** 4 people. The user is the only coder. Other contributors: musician, sprite artist, "idea guy". Don't frame the user as "solo dev"/"only person on the project" — they are the only person *coding* but not the only person *on the project*.
+
 ## Document provenance (this repo)
 
 `DESDOC.md` is the only human-authored doc here. Everything else under version control — this `CLAUDE.md`, `REFACTOR.md`, `phaser-osmose-statemachine-tutorial.md` (archived) — and the per-feature docs under `~/.gstack/projects/slick_hand_joe/` were drafted by Claude across past sessions and reviewed only briefly before commit. They're prior-Claude proposals the user signed off on lightly, not user-stated rules. When citing a convention from one of them, frame it as "convention we settled on", not "the user said". When current user input contradicts a convention here, user input wins; the doc is the lower-confidence source.
