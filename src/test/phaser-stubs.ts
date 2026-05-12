@@ -19,6 +19,7 @@ import type { Scene } from 'phaser';
 
 export class FakeSound {
     seek = 0;
+    volume = 1;
     isPlaying = false;
 
     // Arrow-function fields bind `this` to the instance, so vi.fn(() => ...)
@@ -34,6 +35,10 @@ export class FakeSound {
 
     setSeek = vi.fn((t: number): void => {
         this.seek = t;
+    });
+
+    setVolume = vi.fn((v: number): void => {
+        this.volume = v;
     });
 
     constructor(public readonly key: string) {}

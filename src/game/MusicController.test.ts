@@ -249,3 +249,40 @@ describe('MusicController.isPlaying', () => {
         expect(mc.isPlaying('unregistered')).toBe(false);
     });
 });
+
+describe('MusicController.setVolume', () => {
+    it('applies the value to every registered track', () => {
+        const { scene, mc } = setup();
+        mc.register('calm');
+        mc.register('alarm');
+
+        mc.setVolume(0.5);
+
+        expect(scene.sound.sounds.get('calm')?.setVolume).toHaveBeenCalledWith(0.5);
+        expect(scene.sound.sounds.get('alarm')?.setVolume).toHaveBeenCalledWith(0.5);
+    });
+
+    it('clamps negative input to 0', () => {
+        const { scene, mc } = setup();
+        mc.register('calm');
+
+        mc.setVolume(-1);
+
+        expect(scene.sound.sounds.get('calm')?.setVolume).toHaveBeenCalledWith(0);
+    });
+
+    it('clamps input above 1 to 1', () => {
+        const { scene, mc } = setup();
+        mc.register('calm');
+
+        mc.setVolume(2.5);
+
+        expect(scene.sound.sounds.get('calm')?.setVolume).toHaveBeenCalledWith(1);
+    });
+
+    it('is a no-op when no tracks are registered', () => {
+        const { mc } = setup();
+        // No tracks registered. Should not throw.
+        expect(() => mc.setVolume(0.5)).not.toThrow();
+    });
+});
