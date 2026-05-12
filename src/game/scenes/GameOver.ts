@@ -28,7 +28,7 @@ export class GameOver extends Scene
 
     update()
     {
-        if (this.spaceKey?.isDown) {
+        if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
             this.restart();
         }
     }

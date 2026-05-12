@@ -148,6 +148,12 @@ export class MainGame extends Scene
     levelTimer: Phaser.Time.TimerEvent;
     timerText: Phaser.GameObjects.Text;
     muteBtn: Phaser.GameObjects.Text;
+    // True after endLevel() fires once. Guards update() so the same frame
+    // can't keep mutating hand direction / scheduling loot respawns / re-
+    // reading the cancelled timer after the level is logically over, and
+    // also makes endLevel() itself idempotent against double-fire (e.g. a
+    // pickup-triggered Win on the same frame the timer expires to GameOver).
+    ended: boolean;
 
     constructor ()
     {
@@ -421,6 +427,7 @@ export class MainGame extends Scene
     }
 
     init() {
+        this.ended = false;
         this.currentSus = 0;
 
         this.handMoveDirection = Direction.Left;
@@ -639,20 +646,26 @@ export class MainGame extends Scene
     }
 
     // Single exit point for "the level has ended" transitions — either via
-    // a loss path (sus full, block crash) or the win path (loot target hit).
-    // Pause the scene, stop all music (scene.pause alone doesn't stop sound
-    // because the SoundManager is game-scoped, not scene-scoped — see
-    // REFACTOR.md #4), then launch the appropriate overlay.
+    // a loss path (sus full, block crash, timer expiry) or the win path
+    // (loot target hit). Pause the scene, stop all music (scene.pause alone
+    // doesn't stop sound because the SoundManager is game-scoped, not
+    // scene-scoped — handled here via this.music.stopAll), then launch the
+    // appropriate overlay.
     //
     // pauseGame (the player-triggered ESC pause) intentionally does NOT route
     // through here — it preserves music for continuity when the player
     // resumes mid-game.
     private endLevel(target: 'GameOver' | 'Win'): void {
+        // Idempotency guard. Without this, a near-simultaneous Win-from-
+        // pickup + GameOver-from-timer (or any double-trigger) would launch
+        // both overlays on top of each other. The `ended` flag also gates
+        // update() so the same frame can't keep mutating game state.
+        if (this.ended) {
+            return;
+        }
+        this.ended = true;
         // Cancel the level timer so a scene-pause-then-expiry path can't
-        // re-fire GameOver after we've already routed to Win (or vice versa).
-        // .remove() is idempotent — safe to call even if the timer already
-        // fired (which is how we got here when target === 'GameOver' via
-        // timer expiry).
+        // re-fire GameOver after we've already routed to Win.
         this.levelTimer?.remove();
         this.scene.pause();
         this.music.stopAll();
@@ -668,6 +681,14 @@ export class MainGame extends Scene
 
     update()
     {
+        // Early-out after endLevel(). Phaser pauses the scene asynchronously,
+        // so update() can continue running on the same frame that endLevel
+        // fired — the remaining body would then mutate hand direction,
+        // schedule another loot respawn, and read a just-removed timer.
+        if (this.ended) {
+            return;
+        }
+
         this.dialogueFSM.step();
 
         // Refresh the timer countdown. getRemainingSeconds() returns the live
