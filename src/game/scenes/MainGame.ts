@@ -3,16 +3,19 @@ import { Scene } from 'phaser';
 import {
     GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
-    HAND_SPEED, HAND_LONG_DIM, HAND_SHORT_DIM,
+    HAND_SPEED,
     MUSIC_CALM, MUSIC_ALARM,
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
     LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
     LOOT_METER_CELL_GAP, LOOT_METER_ROW_LENGTH, LOOT_METER_FILL_COLOR,
     LOOT_METER_EMPTY_COLOR, LOOT_METER_STROKE_COLOR,
-    Pos, Direction,
+    Pos,
 } from '../config.ts';
-import type { HandStateName } from './hand-states.ts';
+import {
+    LeftState, RightState, UpState, DownState, StunnedState,
+    type HandStateName, type HandArgs,
+} from './hand-states.ts';
 import { StateMachine } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
 import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
@@ -114,6 +117,7 @@ export class MainGame extends Scene
     answerKeysLetters: Array<string>;
 
     dialogueFSM: StateMachine<DialogueStateName, DialogueArgs>;
+    handFSM: StateMachine<HandStateName, HandArgs>;
 
     scales: Phaser.GameObjects.Image[];
     demons: Phaser.GameObjects.Image[];
@@ -122,7 +126,6 @@ export class MainGame extends Scene
 
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handVis: Phaser.GameObjects.Graphics;
-    handMoveDirection: Direction;
     // FSM-state name of the last direction the hand moved in (set by each
     // direction state's enter handler). Read by StunnedState on timer
     // expiry to pick the bounce-back direction. Initialized in init() to
@@ -427,7 +430,6 @@ export class MainGame extends Scene
         this.ended = false;
         this.currentSus = 0;
 
-        this.handMoveDirection = Direction.Left;
         this.lastDirection = 'left';
 
         this.lootAmount = 0;
@@ -454,6 +456,18 @@ export class MainGame extends Scene
                 idle: new IdleState(),
                 asking: new AskingState(),
                 cooldown: new CooldownState(),
+            },
+            [this],
+        );
+
+        this.handFSM = new StateMachine<HandStateName, HandArgs>(
+            'left',
+            {
+                left:    new LeftState(),
+                right:   new RightState(),
+                up:      new UpState(),
+                down:    new DownState(),
+                stunned: new StunnedState(),
             },
             [this],
         );
@@ -542,14 +556,23 @@ export class MainGame extends Scene
 
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
-        this.handMoveDirection = Direction.Left;
-        this.hand.setVelocityX(-HAND_SPEED);
-
         this.handVis = this.add.graphics();
-        this.redrawHandVis(106, 67);
 
+        // Wire the FSM and step once so LeftState.enter() runs now —
+        // applies setSize/angle/flipX/velocity to the freshly-created hand
+        // sprite. Without this, the sprite would have no velocity for one
+        // frame between create() finishing and update() running.
+        this.handFSM.step();
+
+        // Collision → stun (replaces the previous instant-death). Two
+        // guards: `ended` so endLevel-fired-but-not-yet-paused doesn't
+        // re-trigger; `isCurrent('stunned')` so Phaser's per-frame collider
+        // re-fire while bodies still overlap during the 1s freeze doesn't
+        // chain into a re-stun.
         this.physics.add.collider(this.hand, blocks, () => {
-            this.endLevel('GameOver');
+            if (this.ended) return;
+            if (this.handFSM.is('stunned')) return;
+            this.handFSM.transition('stunned');
         });
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
@@ -688,6 +711,7 @@ export class MainGame extends Scene
         }
 
         this.dialogueFSM.step();
+        this.handFSM.step();
 
         // Refresh the timer countdown. getRemainingSeconds() returns the live
         // remaining time from Phaser's pause-aware clock; formatTime ceil's
@@ -702,84 +726,6 @@ export class MainGame extends Scene
             this.time.delayedCall(1000, () => {
                 this.spawnLoot();
             })
-        }
-
-        // Horizontal wrap. Threshold is the arcade edge: when the hand's
-        // CENTER crosses it, half the (horizontal) hand has stuck out past
-        // the table. Spawn mirrors — center at the opposite arcade edge so
-        // half the hand sticks out on the other side, half is on the table.
-        const arcadeLeftX = ARCADE_AREA_LAYOUT.x;
-        const arcadeRightX = ARCADE_AREA_LAYOUT.x + ARCADE_AREA_LAYOUT.width;
-        if (this.hand.x < arcadeLeftX && this.handMoveDirection == Direction.Left) {
-            this.hand.x = arcadeRightX;
-        }
-        if (this.hand.x > arcadeRightX && this.handMoveDirection == Direction.Right) {
-            this.hand.x = arcadeLeftX;
-        }
-
-        // Guard for the "running behind the table" bug: when the player
-        // turns horizontal→vertical, the hand body shrinks from
-        // HAND_LONG_DIM (106) to HAND_SHORT_DIM (67) horizontally. The
-        // center doesn't move, so a hand that was half-out horizontally is
-        // still ~half-out vertically. Vertical motion doesn't trigger the
-        // wrap (only horizontal directions do), so the hand would roam
-        // off-table indefinitely.
-        //
-        // Block the turn unless the hand center is far enough inside the
-        // table that the vertical body fits fully on. Cost: a brief
-        // ~110ms input-ignore window around each wrap (HAND_SHORT_DIM/2 px
-        // of horizontal travel at HAND_SPEED), which feels intuitive —
-        // "wait for the hand to be on the table before turning."
-        const verticalSafeMinX = arcadeLeftX + HAND_SHORT_DIM / 2;
-        const verticalSafeMaxX = arcadeRightX - HAND_SHORT_DIM / 2;
-        const handInVerticalSafeZone =
-            this.hand.x >= verticalSafeMinX && this.hand.x <= verticalSafeMaxX;
-
-        if (this.cursors.left.isDown) {
-            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
-                this.handMoveDirection = Direction.Left;
-                this.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
-                this.redrawHandVis(HAND_LONG_DIM, HAND_SHORT_DIM);
-                this.hand.angle = 0;
-                this.hand.setFlipX(false);
-                this.hand.setVelocityY(0);
-                this.hand.setVelocityX(-HAND_SPEED);
-            }
-        }
-        else if (this.cursors.right.isDown) {
-            if (this.handMoveDirection == Direction.Up || this.handMoveDirection == Direction.Down) {
-                this.handMoveDirection = Direction.Right;
-                this.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
-                this.redrawHandVis(HAND_LONG_DIM, HAND_SHORT_DIM);
-                this.hand.angle = 0;
-                this.hand.setFlipX(true);
-                this.hand.setVelocityY(0);
-                this.hand.setVelocityX(HAND_SPEED);
-            }
-        }
-        else if (this.cursors.up.isDown) {
-            if ((this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right)
-                && handInVerticalSafeZone) {
-                this.handMoveDirection = Direction.Up;
-                this.hand.setSize(HAND_SHORT_DIM, HAND_LONG_DIM);
-                this.redrawHandVis(HAND_SHORT_DIM, HAND_LONG_DIM);
-                this.hand.angle = 90;
-                this.hand.setFlipX(false);
-                this.hand.setVelocityX(0);
-                this.hand.setVelocityY(-HAND_SPEED);
-            }
-        }
-        else if (this.cursors.down.isDown) {
-            if ((this.handMoveDirection == Direction.Left || this.handMoveDirection == Direction.Right)
-                && handInVerticalSafeZone) {
-                this.handMoveDirection = Direction.Down;
-                this.hand.setSize(HAND_SHORT_DIM, HAND_LONG_DIM);
-                this.redrawHandVis(HAND_SHORT_DIM, HAND_LONG_DIM);
-                this.hand.angle = 270;
-                this.hand.setFlipX(false);
-                this.hand.setVelocityX(0);
-                this.hand.setVelocityY(HAND_SPEED);
-            }
         }
 
         // Track hand position (drawn shape is centered on origin).
