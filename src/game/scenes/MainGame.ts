@@ -332,15 +332,29 @@ export class MainGame extends Scene
     //     the danger signal. Purple keeps "stun timer" distinct from
     //     "danger zone" in the player's visual vocabulary.
     showStunIndicator(x: number, y: number, durationMs: number): { destroy: () => void } {
+        // Clamp the indicator y-coords so neither element lands inside the
+        // red wall danger zones — those are exactly the places stuns happen
+        // (top wall spans y≈-49..57, bottom wall y≈543..657 with jaggedness).
+        // EMOJI_MIN_Y keeps the emoji's center 9px below the top wall's
+        // lower edge so the emoji visually clears the red. BAR_MAX_Y keeps
+        // the bar 3px above the bottom wall's upper edge. When the hand is
+        // close enough to a wall that the standard ±60 offset would land
+        // inside the danger zone, the indicator stacks tighter on the
+        // safe side instead of overlapping the wall.
+        const EMOJI_MIN_Y = 66;
+        const BAR_MAX_Y = 540;
+        const emojiY = Math.max(y - 60, EMOJI_MIN_Y);
+        const barY = Math.min(y + 60, BAR_MAX_Y);
+
         // Bar BELOW the hand. Depth 2 puts it on top of the hand sprite so
         // it stays visible regardless of hand orientation/size.
-        const bar = this.add.rectangle(x, y + 60, 54, 9, 0xaa44ff).setOrigin(0.5).setDepth(2);
+        const bar = this.add.rectangle(x, barY, 54, 9, 0xaa44ff).setOrigin(0.5).setDepth(2);
 
         // Emoji ABOVE the hand. Same depth as the bar. No fontFamily — emojis
         // render via the platform emoji font regardless of fontFamily, so
         // declaring it would be dead-letter (and misleading: it'd suggest
         // the emoji is in the project's Architects Daughter display font).
-        const emoji = this.add.text(x, y - 60, '💫', {
+        const emoji = this.add.text(x, emojiY, '💫', {
             fontSize: '36px',
         }).setOrigin(0.5).setDepth(2);
 
