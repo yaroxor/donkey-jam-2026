@@ -49,6 +49,15 @@ export const LOOT_SIZE: Size = {
 
 // Game-feel tuning.
 export const HAND_SPEED: number = 300; // px/s
+
+// Hand sprite dimensions. The asset is 106x67 (long axis along the extended
+// finger). The body swaps width/height when the hand rotates: horizontal
+// (L/R) → HAND_LONG_DIM × HAND_SHORT_DIM, vertical (U/D) → swapped. Shared
+// between MainGame (setSize / wrap math) and hand-states.ts (per-direction
+// enter handlers). Single source of truth — a hand-asset swap only needs
+// to update these two numbers.
+export const HAND_LONG_DIM: number = 106;
+export const HAND_SHORT_DIM: number = 67;
 // Music tact is ~3s; switches happen on the half-tact for smoothness.
 export const MUSIC_HALF_TACT_SECONDS: number = 1.5;
 

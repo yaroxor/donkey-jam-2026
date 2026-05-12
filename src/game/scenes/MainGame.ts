@@ -3,7 +3,7 @@ import { Scene } from 'phaser';
 import {
     GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
-    HAND_SPEED,
+    HAND_SPEED, HAND_LONG_DIM, HAND_SHORT_DIM,
     MUSIC_CALM, MUSIC_ALARM,
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
@@ -12,6 +12,7 @@ import {
     LOOT_METER_EMPTY_COLOR, LOOT_METER_STROKE_COLOR,
     Pos, Direction,
 } from '../config.ts';
+import type { HandStateName } from './hand-states.ts';
 import { StateMachine } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
 import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
@@ -21,15 +22,6 @@ import {
     IdleState, AskingState, CooldownState,
     type DialogueStateName, type DialogueArgs,
 } from './dialogue-states.ts';
-
-// Hand sprite dimensions. The asset is 106x67 (long axis is along the
-// extended finger). The body swaps width/height when the hand rotates:
-// horizontal (L/R) → 106x67, vertical (U/D) → 67x106. Used by setSize
-// calls AND by the wrap / vertical-safe-zone math below — keep them as
-// the single source of truth so a future hand-asset swap only needs to
-// update these two numbers.
-const HAND_LONG_DIM = 106;
-const HAND_SHORT_DIM = 67;
 
 const letterKeyCodes: Record<string, number> = {
     'S': 83,
@@ -131,6 +123,11 @@ export class MainGame extends Scene
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handVis: Phaser.GameObjects.Graphics;
     handMoveDirection: Direction;
+    // FSM-state name of the last direction the hand moved in (set by each
+    // direction state's enter handler). Read by StunnedState on timer
+    // expiry to pick the bounce-back direction. Initialized in init() to
+    // match the level-start direction.
+    lastDirection: HandStateName;
 
     lootSprites: Array<string>;
     lootAmount: number;
@@ -261,7 +258,7 @@ export class MainGame extends Scene
     // the visualization aligned with the body. The dot stays put as the
     // rectangle swaps W↔H on direction change, giving the player a stable
     // focal point for where they actually are.
-    private redrawHandVis(width: number, height: number) {
+    redrawHandVis(width: number, height: number) {
         this.handVis.clear();
         this.handVis.lineStyle(3, 0x66ff44, 0.9);
         this.handVis.strokeRect(-width / 2, -height / 2, width, height);
@@ -301,7 +298,7 @@ export class MainGame extends Scene
     // (excess is invisible); negative collectedLootCount renders all empty
     // (the loop predicate is always false). Stun-decrement code is expected
     // to floor at 0 anyway.
-    private updateLootMeter(): void {
+    updateLootMeter(): void {
         for (let i = 0; i < this.lootMeterCells.length; i++) {
             const filled = i < this.collectedLootCount;
             this.lootMeterCells[i].setFillStyle(
@@ -431,6 +428,7 @@ export class MainGame extends Scene
         this.currentSus = 0;
 
         this.handMoveDirection = Direction.Left;
+        this.lastDirection = 'left';
 
         this.lootAmount = 0;
         this.collectedLootCount = 0;
