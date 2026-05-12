@@ -1,0 +1,9 @@
+# Generated demo outputs. Game-asset .wav files go to public/assets/music/
+# alongside the script that produced them, and are committed there.
+*.wav
+
+# uv-managed virtualenv.
+.venv/
+
+# Python bytecode cache.
+__pycache__/
