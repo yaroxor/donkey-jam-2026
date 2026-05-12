@@ -243,6 +243,30 @@ describe('RightState.execute — safe-zone gate', () => {
         right.execute(asMainGame(scene));
         expect(fsm.is('right')).toBe(true);
     });
+
+    it('transitions to up when in safe zone and up is held', () => {
+        const right = new RightState();
+        const scene = makeFakeMainGame({
+            hand: { ...makeFakeMainGame().hand, x: 600 }, // solidly in safe zone
+            cursors: { left: { isDown: false }, right: { isDown: false }, up: { isDown: true }, down: { isDown: false } },
+        });
+        const fsm = makeFSM('right', { right }, asMainGame(scene));
+        fsm.step();
+        right.execute(asMainGame(scene));
+        expect(fsm.is('up')).toBe(true);
+    });
+
+    it('transitions to down when in safe zone and down is held', () => {
+        const right = new RightState();
+        const scene = makeFakeMainGame({
+            hand: { ...makeFakeMainGame().hand, x: 600 },
+            cursors: { left: { isDown: false }, right: { isDown: false }, up: { isDown: false }, down: { isDown: true } },
+        });
+        const fsm = makeFSM('right', { right }, asMainGame(scene));
+        fsm.step();
+        right.execute(asMainGame(scene));
+        expect(fsm.is('down')).toBe(true);
+    });
 });
 
 // ────────────────────────────────────────────────────────────────────────
@@ -307,6 +331,30 @@ describe('DownState.enter', () => {
         expect(scene.hand.angle).toBe(270);
         expect(scene.hand.setVelocityY).toHaveBeenCalledWith(300);
         expect(scene.lastDirection).toBe('down');
+    });
+});
+
+describe('DownState.execute — horizontal transition is unconditional', () => {
+    it('transitions to left when left is held', () => {
+        const down = new DownState();
+        const scene = makeFakeMainGame({
+            cursors: { left: { isDown: true }, right: { isDown: false }, up: { isDown: false }, down: { isDown: false } },
+        });
+        const fsm = makeFSM('down', { down }, asMainGame(scene));
+        fsm.step();
+        down.execute(asMainGame(scene));
+        expect(fsm.is('left')).toBe(true);
+    });
+
+    it('transitions to right when right is held', () => {
+        const down = new DownState();
+        const scene = makeFakeMainGame({
+            cursors: { left: { isDown: false }, right: { isDown: true }, up: { isDown: false }, down: { isDown: false } },
+        });
+        const fsm = makeFSM('down', { down }, asMainGame(scene));
+        fsm.step();
+        down.execute(asMainGame(scene));
+        expect(fsm.is('right')).toBe(true);
     });
 });
 
