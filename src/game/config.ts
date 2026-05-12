@@ -92,6 +92,16 @@ export const LOOT_METER_EMPTY_COLOR: number = 0x222222;  // dark empty cell
 export const LOOT_METER_STROKE_COLOR: number = 0x44323f; // matches HUD palette
 
 // CSS cursor for the menu skeletal-hand cursor. Used everywhere in the
-// game. Hotspot 55 15 approximates the index-finger tip on the 110x110
-// cursor.png (post-45°-CW rotation); tune if click point feels off.
-export const MENU_CURSOR = 'url(assets/menuUI/cursor.png) 55 15, pointer';
+// game. Cursor.png is 110x110; the opaque hand silhouette lives in canvas
+// coords (18, 15) to (100, 87) per `convert -trim` measurement, with the
+// pointing fingertip in the upper-LEFT of that box (hand points up-and-
+// left). Hotspot (18, 15) puts the click-registration point at the
+// visible fingertip.
+//
+// The earlier hotspot (55, 15) was the top-center of the canvas — ~40px
+// RIGHT of the actual fingertip — which made small interactive elements
+// feel offset by ~one button width left (user had to point left of a
+// target to land a click on it). Big MainMenu buttons absorbed the
+// offset within their hit area, so the misalignment only surfaced on
+// the Settings scene's 40x40 +/- buttons.
+export const MENU_CURSOR = 'url(assets/menuUI/cursor.png) 18 15, pointer';
