@@ -38,6 +38,7 @@ interface FakeHandBody {
     setVelocityY: ReturnType<typeof vi.fn>;
     setFlipX: ReturnType<typeof vi.fn>;
     x: number;
+    y: number;
     angle: number;
 }
 
@@ -49,6 +50,7 @@ interface FakeMainGame extends FakeScene {
     progressSus: ReturnType<typeof vi.fn>;
     updateLootMeter: ReturnType<typeof vi.fn>;
     knockOutLootCell: ReturnType<typeof vi.fn>;
+    showStunIndicator: ReturnType<typeof vi.fn>;
     redrawHandVis: ReturnType<typeof vi.fn>;
 }
 
@@ -61,6 +63,7 @@ function makeFakeMainGame(overrides: Partial<FakeMainGame> = {}): FakeMainGame {
             setVelocityY: vi.fn(),
             setFlipX: vi.fn(),
             x: 640,
+            y: 410,
             angle: 0,
         },
         cursors: {
@@ -74,6 +77,7 @@ function makeFakeMainGame(overrides: Partial<FakeMainGame> = {}): FakeMainGame {
         progressSus: vi.fn().mockReturnValue(false),
         updateLootMeter: vi.fn(),
         knockOutLootCell: vi.fn(),
+        showStunIndicator: vi.fn(() => ({ destroy: vi.fn() })),
         redrawHandVis: vi.fn(),
         ...overrides,
     };
@@ -366,7 +370,7 @@ describe('StunnedState.enter — loot decrement floors at 0', () => {
 });
 
 describe('StunnedState.enter — suspicion bump + game-over short-circuit', () => {
-    it('schedules the 1s timer when progressSus returns false', () => {
+    it('schedules the 1s timer and spawns the visual indicator when progressSus returns false', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(false) });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -376,9 +380,13 @@ describe('StunnedState.enter — suspicion bump + game-over short-circuit', () =
         expect(scene.progressSus).toHaveBeenCalledTimes(1);
         expect(scene.time.delayedCall).toHaveBeenCalledTimes(1);
         expect(scene.time.timers[0].delay).toBe(1000);
+        expect(scene.showStunIndicator).toHaveBeenCalledTimes(1);
+        // Indicator spawn position = hand center; duration = stun length so
+        // the bar drain matches the timer.
+        expect(scene.showStunIndicator).toHaveBeenCalledWith(scene.hand.x, scene.hand.y, 1000);
     });
 
-    it('does NOT schedule the timer when progressSus returns true (overflow → endLevel)', () => {
+    it('does NOT schedule the timer OR spawn the indicator when progressSus returns true', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(true) });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -387,6 +395,7 @@ describe('StunnedState.enter — suspicion bump + game-over short-circuit', () =
 
         expect(scene.progressSus).toHaveBeenCalledTimes(1);
         expect(scene.time.delayedCall).not.toHaveBeenCalled();
+        expect(scene.showStunIndicator).not.toHaveBeenCalled();
     });
 });
 
@@ -429,19 +438,21 @@ describe('StunnedState.enter — bounce direction on timer fire', () => {
 });
 
 describe('StunnedState.exit', () => {
-    it('cancels the timer when one was scheduled', () => {
+    it('cancels the timer and destroys the indicator when both were created', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame();
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
         fsm.step();
         const timer = scene.time.timers[0];
+        const indicator = scene.showStunIndicator.mock.results[0].value as { destroy: ReturnType<typeof vi.fn> };
 
         stunned.exit();
 
         expect(timer.remove).toHaveBeenCalledTimes(1);
+        expect(indicator.destroy).toHaveBeenCalledTimes(1);
     });
 
-    it('is idempotent when no timer was scheduled (sus-overflow path)', () => {
+    it('is idempotent when no timer or indicator were created (sus-overflow path)', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(true) });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));

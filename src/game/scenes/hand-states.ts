@@ -26,6 +26,12 @@ import type { MainGame } from './MainGame.ts';
 export type HandStateName = 'left' | 'right' | 'up' | 'down' | 'stunned';
 export type HandArgs = [MainGame];
 
+// Stun duration in ms. Used by both the StunnedState timer (controls when
+// the bounce-back fires) AND the duration-bar visual indicator (controls
+// how long the bar takes to drain). Single source of truth so they stay
+// in lockstep — a dial of the punishment length is one number.
+const STUN_DURATION_MS = 1000;
+
 // Pre-computed wrap + vertical-safe-zone thresholds. The wrap fires when
 // the hand's CENTER crosses the arcade edge (half the horizontal hand has
 // stuck out). The vertical-safe-zone gates L/R → U/D turns so the
@@ -145,6 +151,7 @@ export class DownState extends State<HandStateName, HandArgs> {
 // stunned, so we don't get a per-frame re-stun from continued body overlap.
 export class StunnedState extends State<HandStateName, HandArgs> {
     private timer?: Phaser.Time.TimerEvent;
+    private indicator?: Phaser.GameObjects.Container;
 
     enter(scene: MainGame): void {
         scene.hand.setVelocityX(0);
@@ -166,23 +173,28 @@ export class StunnedState extends State<HandStateName, HandArgs> {
 
         // progressSus increments suspicion and returns true if it overflowed
         // (sus ≥ 4) and triggered endLevel('GameOver'). In that case the
-        // scene is about to pause; scheduling a timer would be wasted work
-        // (Phaser pauses the per-scene clock so the callback wouldn't fire
-        // anyway, but skipping makes the intent explicit).
+        // scene is about to pause; scheduling a timer or spawning a visual
+        // indicator would be wasted work (Phaser pauses the per-scene clock
+        // so neither would fire/render meaningfully). Skip both explicitly.
         if (scene.progressSus()) {
             return;
         }
 
-        this.timer = scene.time.delayedCall(1000, () => {
+        this.indicator = scene.showStunIndicator(scene.hand.x, scene.hand.y, STUN_DURATION_MS);
+
+        this.timer = scene.time.delayedCall(STUN_DURATION_MS, () => {
             this.stateMachine.transition(OPPOSITE[scene.lastDirection]);
         });
     }
 
     exit(): void {
-        // Idempotent: safe to call when the timer was never scheduled
-        // (sus-overflow short-circuit path) and safe to call after the
-        // timer already fired (Phaser's TimerEvent.remove handles both).
+        // Idempotent: safe to call when the timer/indicator were never
+        // created (sus-overflow short-circuit path) and safe to call after
+        // the timer already fired (Phaser's TimerEvent.remove handles both,
+        // Container.destroy is single-call-safe).
         this.timer?.remove();
         this.timer = undefined;
+        this.indicator?.destroy();
+        this.indicator = undefined;
     }
 }

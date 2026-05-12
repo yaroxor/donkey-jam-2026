@@ -310,33 +310,99 @@ export class MainGame extends Scene
         }
     }
 
+    // Spawn the "hand is stunned" visual indicator at (x, y) — typically
+    // the hand's center while it's frozen mid-stun. Two stacked elements
+    // inside a Container so the caller can destroy the whole cluster with
+    // one call:
+    //   - 💫 emoji (top), text-based, scale-pulses for a touch of life
+    //   - shrinking red bar (below), drains over `durationMs` so the
+    //     player can see how much stun is left before the bounce-back
+    //
+    // Tuning knobs:
+    //   - emoji size: '36px'
+    //   - bar size: 44 wide × 5 tall
+    //   - bar color: 0xff3333 (alarm red, slightly desaturated)
+    //   - vertical offset above hand: y - 60 (clears both horizontal and
+    //     vertical hand body sizes; tighter feels cramped on vertical hand)
+    //   - emoji/bar internal spacing: emoji at container y=-15, bar at y=8
+    showStunIndicator(x: number, y: number, durationMs: number): Phaser.GameObjects.Container {
+        const container = this.add.container(x, y - 60);
+
+        const emoji = this.add.text(0, -15, '💫', {
+            fontFamily: 'Architects Daughter',
+            fontSize: '36px',
+        }).setOrigin(0.5);
+        container.add(emoji);
+
+        const bar = this.add.rectangle(0, 8, 44, 5, 0xff3333).setOrigin(0.5);
+        container.add(bar);
+
+        // Bar drains over the stun duration. scaleX 1 → 0 shrinks from the
+        // center outward (origin (0.5, 0.5) above). Linear ease — the
+        // perceived "time remaining" should feel uniform.
+        this.tweens.add({
+            targets: bar,
+            scaleX: 0,
+            duration: durationMs,
+            ease: 'Linear',
+        });
+
+        // Tiny emoji scale-pulse for a touch of life so the indicator
+        // doesn't feel static. yoyo + repeat=-1 loops infinitely; the
+        // container.destroy() in StunnedState.exit cleans it up.
+        this.tweens.add({
+            targets: emoji,
+            scale: 1.15,
+            duration: 250,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+
+        return container;
+    }
+
     // Spawn a transient cell-shaped sprite at the indexed loot-meter slot and
-    // animate it falling off the meter. Called by StunnedState after a stun-
-    // triggered decrement so the player gets a visible "loot knocked out" cue
-    // instead of just a silent cell-state flip from filled to empty. The
-    // index is the post-decrement loot count — equal to the index of the
-    // cell that just became empty.
+    // animate it being knocked off the meter. Called by StunnedState after a
+    // stun-triggered decrement so the player gets a visible "loot knocked
+    // out" cue instead of just a silent cell-state flip. Index is the
+    // post-decrement loot count — equal to the index of the cell that just
+    // became empty.
+    //
+    // Motion shape (crispy two-phase + delayed fade):
+    //   t=0    spawn at cell pos, opaque
+    //   t=100  apex of small upward jump (~15px) — easeOut, decelerating
+    //   t=350  bottom of fall (~100px below cell, ~35° tumble) — Cubic easeIn
+    //   t=250  alpha fade BEGINS (so movement dominates early frames)
+    //   t=450  alpha = 0 → destroy
+    //
+    // Tuning knobs: jump apex (-15 / duration 100), fall distance (+100),
+    // fall duration (250), tumble angle (35°), fade delay (250), fade
+    // duration (200).
     knockOutLootCell(index: number): void {
         if (index < 0 || index >= this.lootMeterCells.length) return;
         const cell = this.lootMeterCells[index];
-        // Match the cell's origin (0, 0 top-left from createLootMeter) so the
-        // transient sprite starts exactly aligned with the slot it left.
         const copy = this.add.rectangle(
             cell.x, cell.y,
             LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
             LOOT_METER_FILL_COLOR,
         ).setOrigin(0).setStrokeStyle(2, LOOT_METER_STROKE_COLOR);
-        // Quadratic ease-in approximates gravity (slow start, accelerating
-        // fall). 80px is enough to clear the meter row visually before fade
-        // completes. The whole tween is short so multiple consecutive stuns
-        // don't pile up flying boxes on screen.
+        // Phase 1 → 2: small jump up, then accelerating fall with tumble.
+        this.tweens.chain({
+            targets: copy,
+            tweens: [
+                { y: cell.y - 15, duration: 100, ease: 'Quad.easeOut' },
+                { y: cell.y + 100, angle: 35, duration: 250, ease: 'Cubic.easeIn' },
+            ],
+        });
+        // Alpha fade runs in parallel but starts late so the early movement
+        // reads clearly. Destroy fires when the fade completes (this tween
+        // outlasts the movement chain by ~100ms).
         this.tweens.add({
             targets: copy,
-            y: cell.y + 80,
-            angle: 30,
             alpha: 0,
-            duration: 600,
-            ease: 'Quad.easeIn',
+            delay: 250,
+            duration: 200,
             onComplete: () => copy.destroy(),
         });
     }
