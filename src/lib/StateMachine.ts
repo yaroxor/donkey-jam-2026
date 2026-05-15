@@ -1,5 +1,6 @@
-// Osmose-style finite state machine. Pattern reference:
-// phaser-osmose-statemachine-tutorial.md at repo root.
+// Finite state machine — pattern from Osmose's "Phaser Tutorial Series: FSM"
+// (2019, https://github.com/Osmose). See dialogue-states.ts and hand-states.ts
+// for concrete State<Names, Args> subclasses.
 
 export abstract class State<Names extends string, Args extends unknown[]> {
     stateMachine!: StateMachine<Names, Args>;
