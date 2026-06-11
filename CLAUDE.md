@@ -36,7 +36,7 @@ bun run test:watch  # vitest watch mode (active TDD)
 
 - **vitest** for unit tests. Pure-TS surfaces covered: `utils.ts`, `StateMachine.ts`, `MusicController.ts`, `settings.ts`, the hand FSM states in `hand-states.ts`, and `AskingState`'s ready-callback contract. The rest of `dialogue-states.ts` (`AskingState.execute`/`fail`, `IdleState`, `CooldownState`) is untested — execute/fail call the runtime `Phaser` global, which vitest doesn't provide. Co-located convention: `foo.test.ts` next to `foo.ts`.
 - **Playwright** for end-to-end browser tests at `e2e/`. Covers Phaser-coupled scene lifecycle paths that can't be unit-tested without scene mocking (`8e51714` landed the suite + smoke test for `MainGame`).
-- Pre-commit runs typecheck + lint + `bun run test` (vitest one-shot) — those gates can't be missed.
+- **No pre-commit hook** (removed 2026-06-11 in favor of one quality system): typecheck + lint + vitest run in the forge gate on every push. Nothing enforces them before push — run `bun run typecheck` / `bun run lint` / `bun run test` locally while iterating.
 - **Before handing changes back to the user for playtest, run `bunx playwright test`.** Pre-commit doesn't run Playwright (browser overhead), so Claude owns this gate. Catches Phaser scene-lifecycle regressions that vitest can't see (e.g., the `cursors` ordering bug that motivated the suite).
 
 ## Remotes & CI gate
@@ -46,7 +46,7 @@ Dual remotes:
 - `origin` — GitHub (`yaroxor/donkey-jam-2026`). The Claude container has no GitHub credentials (forge SSH key only, no `gh`); the user pushes origin from the host.
 - `forge` — forge.lan (`yaroxor/slick_hand_joe`). The container pushes here; every push runs the CI gate (Forgejo Actions → `just ci`). **Advisory** — no branch protection, direct push to master; read the result and fix-forward until green.
 
-Gate scope (see `justfile`): secrets (trufflehog), format (prettier `--check` on md/yml), spell (codebook, en+ru; vocabulary in `codebook.toml`, DESDOC.md spell-ignored), commit-msg (cog, from the `v1.4.0` baseline tag — jam-era history predates Conventional Commits). Typecheck/eslint/vitest are deliberately NOT in the gate (the runner installs no node_modules); the local pre-commit hook owns them.
+Gate scope (see `justfile`): secrets (trufflehog), format (prettier `--check` on md/yml), spell (codebook, en+ru; vocabulary in `codebook.toml`, DESDOC.md spell-ignored), commit-msg (cog, from the `v1.4.0` baseline tag — jam-era history predates Conventional Commits), then the TS checks — typecheck/lint/vitest via `bun install --frozen-lockfile` + package scripts (the runner image carries bun; the checks run from the repo's own node_modules). Playwright stays manual (no browsers in the runner image).
 
 Loop: work → `bunx prettier@3.8.3 --write "**/*.{md,yml,yaml}"` (the runner-pinned version) → commit → `git push forge master` → `forge-gate.sh -w` (on red: `forge-logs.sh -f`).
 

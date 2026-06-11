@@ -1,16 +1,14 @@
 # slick_hand_joe gate checks. Run by the CI gate (forge runner, `runs-on: gate`)
 # and by hand: `just ci`. Each recipe is one objective check; any non-zero exit
-# fails the gate. Mirrors the forge template, narrowed to this repo's stack.
+# fails the gate. The gate is the ONE quality system for this repo -- the local
+# pre-commit hook was removed (2026-06-11) in its favor.
 #
-# Deliberately ABSENT from the gate: lint (typescript-eslint), typecheck (tsc),
-# and tests (vitest) -- all three need node_modules, which the runner image does
-# not install (no bun there, by design). They are enforced instead by the local
-# pre-commit hook (simple-git-hooks: typecheck + lint + vitest), which cannot be
-# missed. The gate covers what pre-commit does not: prose checks over the full
-# tree and commit-message conformance.
+# Still manual: `bunx playwright test` (browsers aren't in the runner image);
+# run it before handing scene-coupled changes back for playtest.
 
-# Run every gate check (this is what the workflow invokes). Tripwire first.
-ci: secrets format spell commit-msg
+# Run every gate check (this is what the workflow invokes). Tripwire first,
+# cheap prose checks next, the dependency-installing TS checks last.
+ci: secrets format spell commit-msg typecheck lint test
 
 # Secrets: trufflehog scans the working tree. `--fail` exits non-zero on any
 # finding; `--no-update` skips the self-update check. Kept first -- a leak is
@@ -26,8 +24,8 @@ format:
     prettier --check "**/*.{md,yml,yaml}"
 
 # Spelling: codebook is code-aware (understands identifiers) and bilingual here
-# (en_us + ru -- DESDOC/TODOS carry Russian design notes). Project vocabulary
-# lives in codebook.toml; add legit names/jargon there, FIX real typos.
+# (en_us + ru -- TODOS and code comments carry Russian design notes). Project
+# vocabulary lives in codebook.toml; add legit names/jargon there, FIX typos.
 spell:
     codebook-lsp lint .
 
@@ -37,3 +35,23 @@ spell:
 # workflow checkout uses fetch-depth: 0.
 commit-msg:
     cog check --from-latest-tag --ignore-merge-commits
+
+# Dev dependencies for the three checks below. just dedupes shared dependencies
+# within one invocation, so `just ci` installs once. The runner image carries
+# bun (pinned 1.3.14) + Node 24; tsc / eslint / vitest execute from the repo's
+# own node_modules per bun.lock -- NOT from the image's npm globals.
+install:
+    bun install --frozen-lockfile
+
+# Types: tsc over src + e2e (tsconfig include covers both).
+typecheck: install
+    bun run typecheck
+
+# Lint: eslint flat config with typescript-eslint, resolved from local
+# node_modules (the runner's global eslint is not used).
+lint: install
+    bun run lint
+
+# Tests: vitest one-shot.
+test: install
+    bun run test
