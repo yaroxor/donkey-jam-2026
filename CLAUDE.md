@@ -39,6 +39,17 @@ bun run test:watch  # vitest watch mode (active TDD)
 - Pre-commit runs typecheck + lint + `bun run test` (vitest one-shot) — those gates can't be missed.
 - **Before handing changes back to the user for playtest, run `bunx playwright test`.** Pre-commit doesn't run Playwright (browser overhead), so Claude owns this gate. Catches Phaser scene-lifecycle regressions that vitest can't see (e.g., the `cursors` ordering bug that motivated the suite).
 
+## Remotes & CI gate
+
+Dual remotes:
+
+- `origin` — GitHub (`yaroxor/donkey-jam-2026`). The Claude container has no GitHub credentials (forge SSH key only, no `gh`); the user pushes origin from the host.
+- `forge` — forge.lan (`yaroxor/donkey-jam-2026`). The container pushes here; every push runs the CI gate (Forgejo Actions → `just ci`). **Advisory** — no branch protection, direct push to master; read the result and fix-forward until green.
+
+Gate scope (see `justfile`): secrets (trufflehog), format (prettier `--check` on md/yml), spell (codebook, en+ru; vocabulary in `codebook.toml`, DESDOC.md spell-ignored), commit-msg (cog, from the `v1.4.0` baseline tag — jam-era history predates Conventional Commits). Typecheck/eslint/vitest are deliberately NOT in the gate (the runner installs no node_modules); the local pre-commit hook owns them.
+
+Loop: work → `bunx prettier@3.8.3 --write "**/*.{md,yml,yaml}"` (the runner-pinned version) → commit → `git push forge master` → `forge-gate.sh -w` (on red: `forge-logs.sh -f`).
+
 ## Source map
 
 - `src/main.ts` — Vite entry, mounts the Phaser game into `#game-container`
