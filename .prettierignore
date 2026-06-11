@@ -1,0 +1,8 @@
+# Generated / vendored -- not ours to style. prettier descends dot-dirs and
+# scans the disk (not the git index), so gitignored build/test output needs
+# listing here too.
+node_modules/
+dist/
+tools/sfx/.venv/
+test-results/
+playwright-report/

@@ -1,0 +1,19 @@
+name: CI
+# The gate. Runs on every push; advisory on this repo (no branch protection) --
+# read it with forge-gate.sh / forge-logs.sh and fix-forward until green.
+on: [push]
+
+jobs:
+  gate:
+    # `gate` is the runner label (forge runner t470s) -> each run executes in a
+    # fresh runner:0.1 container, which carries the check tools.
+    runs-on: gate
+    steps:
+      # Fully-qualified so it doesn't depend on the instance's DEFAULT_ACTIONS_URL.
+      # fetch-depth: 0 = full history + tags, which `cog check --from-latest-tag`
+      # needs to find the v1.4.0 baseline.
+      - uses: https://data.forgejo.org/actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Single entry point: runs secrets / format / spell / commit-msg via the justfile.
+      - run: just ci

@@ -1,0 +1,5 @@
+# cocogitto config -- consumed by `just commit-msg` (cog check) in the gate.
+# tag_prefix lets cog recognize v-prefixed tags (v1.4.0 is the conventional-
+# commits baseline: jam-era history before it is exempt from the check).
+tag_prefix = "v"
+ignore_merge_commits = true

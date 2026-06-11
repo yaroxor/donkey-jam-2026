@@ -1,0 +1,37 @@
+# codebook (spell check) config -- consumed by `just spell` (codebook-lsp lint)
+# in the gate, and by the editor LSP.
+#
+# dictionaries: en_us for English; ru because TODOS.md, code comments, and asset
+#   filenames carry Russian design notes.
+# ignore_paths:
+#   - docs/DESDOC.md -- hand-authored Russian design doc with deliberate slang
+#     and game-jam-speed typos; it is the user's voice, not ours to spell-gate.
+#     It stays format- and secrets-gated.
+#   - lockfiles -- generated package-name soup, not ours to spell-own.
+#   - codebook.toml -- don't spell-check the spell config itself.
+# words: project allow-list (case-insensitive). Add a term when a legitimate
+#   name/jargon trips the gate; real typos get FIXED, not allow-listed.
+
+dictionaries = ["en_us", "ru"]
+ignore_paths = ["docs/DESDOC.md", "codebook.toml", "bun.lock", "tools/sfx/uv.lock"]
+
+words = [
+  # stack / tooling
+  "phaser", "vite", "vitest", "bunx", "tsc", "tsconfig", "eslint", "playwright",
+  "chromium", "forgejo", "trufflehog", "cocogitto", "codebook", "justfile",
+  "prettierignore", "lockfile", "lockfiles", "gitignore", "scipy", "numpy",
+  "venv", "pyproject", "localstorage", "favicon",
+  # project / gamedev jargon
+  "gstack", "desdoc", "gamedev", "sfx", "skel", "sus", "hitbox", "hitboxes",
+  "playtest", "playtests", "respawn", "respawns", "stash", "stun", "looped",
+  "keycode", "keycodes", "gameplay", "speedrun", "jam's",
+  # synth / audio
+  "karplus", "adsr", "midi", "bpm", "wav",
+  # people / names
+  "yaroxor", "yaroxar", "efimgugnin", "heavygray", "goetia", "crowley",
+  # keyboard layouts
+  "dvorak", "colemak", "qwerty", "jcuken",
+  # Russian slang / transliterations the ru dictionary lacks
+  "нычка", "нычки", "задоджить", "проебать", "палево", "хитбокс", "хитбоксов",
+  "лут", "лута", "стан", "буллетхел", "булетхел", "сабвейсерв",
+]
