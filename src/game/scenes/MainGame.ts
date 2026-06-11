@@ -619,13 +619,13 @@ export class MainGame extends Scene
         this.bubblePlayer.setAlpha(0);
         this.bubblePlayer.setDepth(1);
 
-        this.emojis = ['drum', 'casino', 'movie-tape', 'cat', 'dice', 'money-bag', 'mice', 'meet', 'tennis', 'note', 'jew', 'palete', 'cook', 'ghost', 'ball', 'skull'];
+        this.emojis = ['drum', 'casino', 'movie-tape', 'cat', 'dice', 'money-bag', 'mice', 'meet', 'tennis', 'note', 'jew', 'palette', 'cook', 'ghost', 'ball', 'skull'];
         this.qAndA = {
             'casinoDemon': 'dice',
             'catDemon': 'mice',
             'money-bagDemon': 'jew',
             'noteDemon': 'drum',
-            'paleteDemon': 'movie-tape',
+            'paletteDemon': 'movie-tape',
             'cookDemon': 'meet',
             'ghostDemon': 'skull',
             'ballDemon': 'tennis',
