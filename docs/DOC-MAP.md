@@ -43,6 +43,8 @@ Outside the reading chain:
 
 Produced by gstack skills (`/office-hours`, `/plan-eng-review`, etc.) and stored outside the repo at `~/.gstack/projects/slick_hand_joe/`. Auto-discovered by subsequent gstack runs.
 
+**Provenance: advisory at best.** These docs are model-authored and wordy enough that they were never fully human-reviewed (user direction, 2026-06-11). Treat their contents — including "pre-decided" reductions — as proposals to surface and confirm, not settled decisions. Dated overlays (`## Implementation note` / `## Status update`) supersede doc bodies wherever they conflict.
+
 ### Design / plan docs
 
 | File | Topic | Declared status | Reality (2026-05-14) |

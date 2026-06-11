@@ -6,7 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
 // settings, hand-states, dialogue-states). Phaser-coupled paths (scene
 // lifecycle, collider callbacks, input wiring) are intentionally deferred
 // from vitest — they need a real browser to exercise. This config runs
-// those tests against a built artifact via `vite preview`.
+// those tests against the Vite dev server (see the webServer note below
+// for why dev, not a built artifact).
 //
 // Run: `bun run test:e2e`
 //

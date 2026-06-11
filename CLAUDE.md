@@ -14,6 +14,8 @@ Status: post-jam independent continuation. v1.0 features still in flight. Design
 
 `DESDOC.md` is the only human-authored doc here. Everything else under version control — this `CLAUDE.md`, `TODOS.md` — and the per-feature docs under `~/.gstack/projects/slick_hand_joe/` were drafted by Claude across past sessions and reviewed only briefly before commit. They're prior-Claude proposals the user signed off on lightly, not user-stated rules. When citing a convention from one of them, frame it as "convention we settled on", not "the user said". When current user input contradicts a convention here, user input wins; the doc is the lower-confidence source.
 
+The gstack docs sit one rung lower still: they are wordy enough that the user could not review them completely — treat them as **advisory at best** (user direction, 2026-06-11). That includes their "pre-decided" items (e.g. the alarm-reactions R1-R5 reductions): good starting points to surface when work resumes, not settled rulings to silently apply.
+
 ## Stack
 
 - Phaser 3.90, TypeScript, Vite
@@ -32,7 +34,7 @@ bun run test:watch  # vitest watch mode (active TDD)
 
 ## Testing
 
-- **vitest** for unit tests. Pure-TS surfaces covered: `utils.ts`, `StateMachine.ts`, `MusicController.ts`, `settings.ts`, the FSM state classes in `dialogue-states.ts` and `hand-states.ts`. Co-located convention: `foo.test.ts` next to `foo.ts`.
+- **vitest** for unit tests. Pure-TS surfaces covered: `utils.ts`, `StateMachine.ts`, `MusicController.ts`, `settings.ts`, the hand FSM states in `hand-states.ts`, and `AskingState`'s ready-callback contract. The rest of `dialogue-states.ts` (`AskingState.execute`/`fail`, `IdleState`, `CooldownState`) is untested — execute/fail call the runtime `Phaser` global, which vitest doesn't provide. Co-located convention: `foo.test.ts` next to `foo.ts`.
 - **Playwright** for end-to-end browser tests at `e2e/`. Covers Phaser-coupled scene lifecycle paths that can't be unit-tested without scene mocking (`8e51714` landed the suite + smoke test for `MainGame`).
 - Pre-commit runs typecheck + lint + `bun run test` (vitest one-shot) — those gates can't be missed.
 - **Before handing changes back to the user for playtest, run `bunx playwright test`.** Pre-commit doesn't run Playwright (browser overhead), so Claude owns this gate. Catches Phaser scene-lifecycle regressions that vitest can't see (e.g., the `cursors` ordering bug that motivated the suite).

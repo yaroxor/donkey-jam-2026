@@ -32,7 +32,7 @@ The lookup-table form scales to multi-binding subsystems: `SUS_LEVELS` originall
 
 When a value will be tuned per-level, per-difficulty, per-something, surface it as a config table in `src/game/config.ts` rather than as scattered constants.
 
-Existing example: `LEVELS: LevelConfig[]` (currently one entry `{ id: 1, lootTarget: 5 }`) + `CURRENT_LEVEL_INDEX`. Originated in `dev-master-design-20260511-155307.md` (loot meter). Cheap substrate now (one entry); the spine that the level-timer pass hung `timer:` on, that multi-level work will hang more entries on, that per-level music tuning will hang `music:` on.
+Existing example: `LEVELS: LevelConfig[]` (currently one entry `{ id: 1, lootTarget: 5, timerSeconds: 60 }`) + `CURRENT_LEVEL_INDEX`. Originated in `dev-master-design-20260511-155307.md` (loot meter). Cheap substrate now (one entry); the spine that the level-timer pass hung `timerSeconds:` on, that multi-level work will hang more entries on, that per-level music tuning will hang `music:` on.
 
 Planned next instance: `SUS_LEVELS` (see "State modeling" above).
 
@@ -42,7 +42,7 @@ Rule: tables are cheap; ad-hoc constants scattered across files are expensive. W
 
 - **Inline TS module vs externalized data file?** Currently TS — gives type-checking and IDE support for the single entry. Externalizing to JSON (or similar) helps when level data wants to be data-not-code: level editor support, hot reload, non-coder contributors editing levels. Defer until multi-level work has stakeholders.
 - **Flat array vs campaign structure?** Today the table is a flat `LevelConfig[]` indexed by `CURRENT_LEVEL_INDEX`. A campaign (level progression with gating, per-stage difficulty curves, narrative beats between heists) wants richer structure. Defer until v2.0 adventure map shapes the requirement.
-- **Anticipated columns as features land.** `timer` (already exists inline; could migrate to `LEVELS`), `lootTarget` (already in), `stashCount` (when stash spots ships), and speculative ones like `difficultyMultiplier` / `timeBonus`. The substrate stays the same; only the row shape grows.
+- **Anticipated columns as features land.** `lootTarget` and `timerSeconds` are already in; next is likely `stashCount` (when stash spots ships), then speculative ones like `difficultyMultiplier` / `timeBonus`. The substrate stays the same; only the row shape grows.
 
 ## Generic / project code split
 
