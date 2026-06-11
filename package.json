@@ -1,11 +1,11 @@
 {
-    "name": "game-jam-game",
-    "description": "here will be game description",
+    "name": "slick-hand-joe",
+    "description": "Phaser 3 game about a skeleton thief and his sentient severed hand pulling off heists",
     "version": "1.4.0",
     "type": "module",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/yaroxar/donkey-jam-2026.git"
+        "url": "git+https://github.com/yaroxor/donkey-jam-2026.git"
     },
     "author": "efimgugnin, nel$on, yaroxor, heavygray",
     "license": "MIT",
