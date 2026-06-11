@@ -47,15 +47,15 @@ Produced by gstack skills (`/office-hours`, `/plan-eng-review`, etc.) and stored
 
 ### Design / plan docs
 
-| File | Topic | Declared status | Reality (2026-05-14) |
-|------|-------|-----------------|----------------------|
-| `dev-master-design-20260509-083149.md` | Alarm reactions (storm + look-at-table) | ON HOLD | Deps mostly cleared (stun, loot meter, level timer shipped; music progression has approved plan; stash spots still v1.0 open). Doc body still useful — R1-R4 reductions are pre-decided and carry forward when work resumes. |
-| `dev-master-design-20260511-121959.md` | Dep scope map (alarm reactions deps) | RETIRED 2026-05-14 | Navigation role fulfilled. Pre-thinking for the remaining un-designed node (stash spots) migrated to `TODOS.md`. Body preserved as historical record. |
-| `dev-master-design-20260511-123429.md` | Music progression (sus-coupled 4-track) | APPROVED | Not shipped. 2-track stub still in production. The `SUS_LEVELS` table proposed here is now endorsed as a multi-binding architectural slot beyond music's needs (see `ARCHITECTURE.md`). |
-| `dev-master-design-20260511-155307.md` | Loot meter (segmented HUD + LEVELS) | SHIPPED 2026-05-11 (`71bd8af`) | Status updated 2026-05-13. Implementation note in doc body. Sprite swap still pending art. |
-| `dev-master-design-20260511-183443.md` | Settings menu + in-game mute | SHIPPED 2026-05-12 (`624f127`) | Status updated 2026-05-13. Implementation note in doc body. |
-| `dev-master-eng-review-test-plan-20260511-113314.md` | Alarm reactions playtest checklist | ON HOLD | Derivative of alarm-reactions design; resumes alongside it. |
-| `dev-master-plan-stun-20260512-105430.md` | Stun mechanic + Hand FSM refactor | SHIPPED 2026-05-12 (PR #2, merge `f511358`) | Status updated 2026-05-13. Implementation note in doc body. `Hidden` state correctly remains deferred. |
+| File                                                 | Topic                                   | Declared status                             | Reality (2026-05-14)                                                                                                                                                                                                         |
+| ---------------------------------------------------- | --------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dev-master-design-20260509-083149.md`               | Alarm reactions (storm + look-at-table) | ON HOLD                                     | Deps mostly cleared (stun, loot meter, level timer shipped; music progression has approved plan; stash spots still v1.0 open). Doc body still useful — R1-R4 reductions are pre-decided and carry forward when work resumes. |
+| `dev-master-design-20260511-121959.md`               | Dep scope map (alarm reactions deps)    | RETIRED 2026-05-14                          | Navigation role fulfilled. Pre-thinking for the remaining un-designed node (stash spots) migrated to `TODOS.md`. Body preserved as historical record.                                                                        |
+| `dev-master-design-20260511-123429.md`               | Music progression (sus-coupled 4-track) | APPROVED                                    | Not shipped. 2-track stub still in production. The `SUS_LEVELS` table proposed here is now endorsed as a multi-binding architectural slot beyond music's needs (see `ARCHITECTURE.md`).                                      |
+| `dev-master-design-20260511-155307.md`               | Loot meter (segmented HUD + LEVELS)     | SHIPPED 2026-05-11 (`71bd8af`)              | Status updated 2026-05-13. Implementation note in doc body. Sprite swap still pending art.                                                                                                                                   |
+| `dev-master-design-20260511-183443.md`               | Settings menu + in-game mute            | SHIPPED 2026-05-12 (`624f127`)              | Status updated 2026-05-13. Implementation note in doc body.                                                                                                                                                                  |
+| `dev-master-eng-review-test-plan-20260511-113314.md` | Alarm reactions playtest checklist      | ON HOLD                                     | Derivative of alarm-reactions design; resumes alongside it.                                                                                                                                                                  |
+| `dev-master-plan-stun-20260512-105430.md`            | Stun mechanic + Hand FSM refactor       | SHIPPED 2026-05-12 (PR #2, merge `f511358`) | Status updated 2026-05-13. Implementation note in doc body. `Hidden` state correctly remains deferred.                                                                                                                       |
 
 ### Metadata logs (`.jsonl`)
 
@@ -65,4 +65,3 @@ Not human-readable design content — gstack runtime state.
 - `timeline.jsonl` — per-event timestamps.
 - `master-reviews.jsonl` — log of `/plan-*-review` runs against master.
 - `featstun-mechanic-reviews.jsonl` — log of review runs against the `feat/stun-mechanic` branch.
-

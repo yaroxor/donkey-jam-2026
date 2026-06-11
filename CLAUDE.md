@@ -8,7 +8,7 @@ Repo-scoped guidance for Claude Code working on `donkey-jam-2026`.
 
 Status: post-jam independent continuation. v1.0 features still in flight. Design source of truth is `DESDOC.md` (Russian — preserve language; do not translate).
 
-**Team:** 4 people. The user is the only coder. Other contributors: musician, sprite artist, "idea guy". Don't frame the user as "solo dev"/"only person on the project" — they are the only person *coding* but not the only person *on the project*.
+**Team:** 4 people. The user is the only coder. Other contributors: musician, sprite artist, "idea guy". Don't frame the user as "solo dev"/"only person on the project" — they are the only person _coding_ but not the only person _on the project_.
 
 ## Document provenance (this repo)
 
@@ -89,6 +89,7 @@ bun run test:watch  # vitest watch mode (active TDD)
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
 
 Key routing rules:
+
 - Product ideas/brainstorming → invoke /office-hours
 - Strategy/scope → invoke /plan-ceo-review
 - Architecture → invoke /plan-eng-review
@@ -113,4 +114,4 @@ This project is integrated with gstack — slug `slick_hand_joe` (mounted at `/w
   - `docs/TODOS.md` — active backlog (features, bugs, deferred).
   - `~/.gstack/projects/slick_hand_joe/` — gstack per-feature design docs (model-readable).
   - `~/.claude/projects/-workspace/memory/` — cross-project user memory (global, not per-project; see global `CLAUDE.md`).
-- **DESDOC vs. gstack design docs.** DESDOC.md is the game-design narrative (Russian, hand-authored, long-form). Per-feature gstack docs are scoped to one feature each (English, model-authored, granular). They overlap on mechanics but not on role: DESDOC says *what the game is*; gstack docs say *why this implementation*. ARCHITECTURE.md cross-references specific gstack docs where a pattern's original rationale lives.
+- **DESDOC vs. gstack design docs.** DESDOC.md is the game-design narrative (Russian, hand-authored, long-form). Per-feature gstack docs are scoped to one feature each (English, model-authored, granular). They overlap on mechanics but not on role: DESDOC says _what the game is_; gstack docs say _why this implementation_. ARCHITECTURE.md cross-references specific gstack docs where a pattern's original rationale lives.

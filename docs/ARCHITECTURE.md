@@ -20,9 +20,9 @@ Two patterns applied to different shapes of state.
 
 **Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/scenes/dialogue-states.ts` (AskingState + CooldownState) and `src/game/scenes/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState).
 
-**Lookup table** when state is a static configuration mapping — no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. *(Still proposed; not shipped — see `dev-master-design-20260511-123429.md` for the music-progression usage that would land it.)*
+**Lookup table** when state is a static configuration mapping — no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(Still proposed; not shipped — see `dev-master-design-20260511-123429.md` for the music-progression usage that would land it.)_
 
-**Decision rule.** Ask: "does this state need to *do* something on entry, on each step, on exit?" If yes → FSM. If it's just "while in this state, show this sprite / play this track" → table.
+**Decision rule.** Ask: "does this state need to _do_ something on entry, on each step, on exit?" If yes → FSM. If it's just "while in this state, show this sprite / play this track" → table.
 
 **Timing rule.** Introduce an FSM with the feature that needs it, not preemptively. Pair the refactor with the first feature that adds real new states. Converting plain enum-style code without new states is churn.
 
@@ -89,4 +89,4 @@ DESDOC.md line 72 originally pitched the obstacle-collision penalty as "стан
 
 ### Standalone Hand FSM refactor
 
-Hand-direction state was rewritten as an FSM (`hand-states.ts`) *as part of* the stun feature, not as a preemptive refactor. Per the "introduce-with-feature" timing rule. Plain enum-style direction code with simple gating doesn't need a machine until a new state with timer/exit semantics shows up (Stunned was the trigger).
+Hand-direction state was rewritten as an FSM (`hand-states.ts`) _as part of_ the stun feature, not as a preemptive refactor. Per the "introduce-with-feature" timing rule. Plain enum-style direction code with simple gating doesn't need a machine until a new state with timer/exit semantics shows up (Stunned was the trigger).
