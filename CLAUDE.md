@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Repo-scoped guidance for Claude Code working on `donkey-jam-2026`.
+Repo-scoped guidance for Claude Code working on `slick_hand_joe` (GitHub repo name: `donkey-jam-2026`).
 
 ## Project
 
@@ -44,7 +44,7 @@ bun run test:watch  # vitest watch mode (active TDD)
 Dual remotes:
 
 - `origin` — GitHub (`yaroxor/donkey-jam-2026`). The Claude container has no GitHub credentials (forge SSH key only, no `gh`); the user pushes origin from the host.
-- `forge` — forge.lan (`yaroxor/donkey-jam-2026`). The container pushes here; every push runs the CI gate (Forgejo Actions → `just ci`). **Advisory** — no branch protection, direct push to master; read the result and fix-forward until green.
+- `forge` — forge.lan (`yaroxor/slick_hand_joe`). The container pushes here; every push runs the CI gate (Forgejo Actions → `just ci`). **Advisory** — no branch protection, direct push to master; read the result and fix-forward until green.
 
 Gate scope (see `justfile`): secrets (trufflehog), format (prettier `--check` on md/yml), spell (codebook, en+ru; vocabulary in `codebook.toml`, DESDOC.md spell-ignored), commit-msg (cog, from the `v1.4.0` baseline tag — jam-era history predates Conventional Commits). Typecheck/eslint/vitest are deliberately NOT in the gate (the runner installs no node_modules); the local pre-commit hook owns them.
 
