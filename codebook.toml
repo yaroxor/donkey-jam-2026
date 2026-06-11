@@ -7,31 +7,49 @@
 #   - docs/DESDOC.md -- hand-authored Russian design doc with deliberate slang
 #     and game-jam-speed typos; it is the user's voice, not ours to spell-gate.
 #     It stays format- and secrets-gated.
-#   - lockfiles -- generated package-name soup, not ours to spell-own.
+#   - LICENSE -- upstream MIT boilerplate, not ours to spell-own.
+#   - lockfiles -- generated package-name soup.
 #   - codebook.toml -- don't spell-check the spell config itself.
-# words: project allow-list (case-insensitive). Add a term when a legitimate
-#   name/jargon trips the gate; real typos get FIXED, not allow-listed.
+# words: project allow-list (case-insensitive), seeded from the first gate run
+#   (2026-06-11, 146 findings). Add a term when a legitimate name/jargon trips
+#   the gate; real typos get FIXED, not allow-listed (e.g. the 'palete' texture
+#   key became 'palette' instead of an entry here).
 
 dictionaries = ["en_us", "ru"]
-ignore_paths = ["docs/DESDOC.md", "codebook.toml", "bun.lock", "tools/sfx/uv.lock"]
+ignore_paths = ["docs/DESDOC.md", "LICENSE", "codebook.toml", "bun.lock", "tools/sfx/uv.lock"]
 
 words = [
-  # stack / tooling
+  # tools / stack
   "phaser", "vite", "vitest", "bunx", "tsc", "tsconfig", "eslint", "playwright",
   "chromium", "forgejo", "trufflehog", "cocogitto", "codebook", "justfile",
-  "prettierignore", "lockfile", "lockfiles", "gitignore", "scipy", "numpy",
-  "venv", "pyproject", "localstorage", "favicon",
+  "prettierignore", "gitignore", "lockfile", "lockfiles", "scipy", "numpy",
+  "venv", "pyproject", "localstorage", "favicon", "preconnect", "magick", "sut",
+  # phaser / web API event names and idioms
+  "pointerdown", "pointerover", "pointerout", "pageerror", "tweens", "yoyo",
+  "esc", "preloader", "gameover", "lifecycle", "keycode", "keycodes",
   # project / gamedev jargon
-  "gstack", "desdoc", "gamedev", "sfx", "skel", "sus", "hitbox", "hitboxes",
-  "playtest", "playtests", "respawn", "respawns", "stash", "stun", "looped",
-  "keycode", "keycodes", "gameplay", "speedrun", "jam's",
+  "gstack", "desdoc", "gamedev", "sfx", "skel", "skels", "sus", "hitbox",
+  "hitboxes", "playtest", "playtests", "playthrough", "respawn", "respawns",
+  "stash", "stun", "permastun", "looped", "gameplay", "speedrun", "cooldown",
+  "crossfade", "substate", "substates", "interactives", "hotspot", "keepout",
+  "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
+  "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra",
+  # acronyms / key clusters
+  "aabb", "tbd", "oeu", "asd",
+  # tokenizer artifacts: hex colors in prose ("0xaa44ff" -> "xaa"), hyphen
+  # splits of valid spellings ("pre-empts" -> "empts", "re-entrancy" -> "entrancy")
+  "xaa", "empts", "entrancy",
+  # possessives codebook tokenizes as distinct words
+  "phaser's", "vite's", "preloader's", "settings's", "desdoc's", "repo's",
+  "fsm's", "osmose's", "ceil's", "ts's", "jam's",
   # synth / audio
-  "karplus", "adsr", "midi", "bpm", "wav",
+  "karplus", "adsr", "midi", "bpm", "wav", "ostinato",
   # people / names
-  "yaroxor", "yaroxar", "efimgugnin", "heavygray", "goetia", "crowley",
+  "yaroxor", "yaroxar", "efimgugnin", "heavygray", "nel", "goetia", "crowley",
   # keyboard layouts
   "dvorak", "colemak", "qwerty", "jcuken",
-  # Russian slang / transliterations the ru dictionary lacks
-  "нычка", "нычки", "задоджить", "проебать", "палево", "хитбокс", "хитбоксов",
-  "лут", "лута", "стан", "буллетхел", "булетхел", "сабвейсерв",
+  # Russian slang / words the ru dictionary lacks. Only forms that appear in
+  # gate-checked files (TODOS, ARCHITECTURE, code) belong here -- DESDOC-only
+  # slang (булетхел, сабвейсерв, палево, лут) needs no entry, DESDOC is ignored.
+  "нычка", "задоджить", "проебать", "хитбокс", "хитбоксов", "орк", "хп", "врез",
 ]
