@@ -4,6 +4,7 @@ import {
     GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
     HAND_SPEED,
+    STASH_TRIGGER_SIZE,
     MUSIC_CALM, MUSIC_ALARM,
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
@@ -13,7 +14,7 @@ import {
     Pos,
 } from '../config.ts';
 import {
-    LeftState, RightState, UpState, DownState, StunnedState,
+    LeftState, RightState, UpState, DownState, StunnedState, HiddenState,
     type HandStateName, type HandArgs,
 } from './hand-states.ts';
 import { StateMachine } from '../../lib/StateMachine.ts';
@@ -127,10 +128,17 @@ export class MainGame extends Scene
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handVis: Phaser.GameObjects.Graphics;
     // FSM-state name of the last direction the hand moved in (set by each
-    // direction state's enter handler). Read by StunnedState on timer
-    // expiry to pick the bounce-back direction. Initialized in init() to
-    // match the level-start direction.
+    // direction state's enter handler). Read on timer expiry by
+    // StunnedState (bounce = OPPOSITE of it) and HiddenState (resume =
+    // same direction). Initialized in init() to match the level-start
+    // direction.
     lastDirection: HandStateName;
+
+    // Stash spots — one record per hole on the table. `armed` is the
+    // edge-trigger for the hide: cleared when a hide fires, restored by
+    // update() once the hand has fully left the zone. Built in create()
+    // from LEVELS[CURRENT_LEVEL_INDEX].stashSpots.
+    stashSpots: { zone: Phaser.GameObjects.Zone; armed: boolean }[];
 
     lootSprites: Array<string>;
     lootAmount: number;
@@ -194,6 +202,11 @@ export class MainGame extends Scene
                 continue;
             }
 
+            if (this.isInsideStashKeepout(x, y)) {
+                log.loot(`attempt ${attempt+1}: (${x.toFixed(0)}, ${y.toFixed(0)}) inside stash keep-out, resampling`);
+                continue;
+            }
+
             return { x, y };
         }
 
@@ -217,12 +230,31 @@ export class MainGame extends Scene
         );
     }
 
+    // Stash keep-out mirrors the hand keep-out inflation: forbid loot
+    // centers within (zone_half + loot_size) of a stash center, so loot
+    // can't sit over a hole — visually unreadable, and collecting it would
+    // force a hide through the trigger zone.
+    private isInsideStashKeepout(x: number, y: number): boolean {
+        return this.stashSpots.some(({ zone }) => {
+            const halfW = zone.width / 2 + LOOT_SIZE.width;
+            const halfH = zone.height / 2 + LOOT_SIZE.height;
+            return (
+                x > zone.x - halfW && x < zone.x + halfW &&
+                y > zone.y - halfH && y < zone.y + halfH
+            );
+        });
+    }
+
     private spawnLoot() {
         const lootPos: Pos = this.getLootRandomPos();
         log.loot(`SPAWNING loot at (${lootPos.x}, ${lootPos.y})`)
         const lootPic = this.lootSprites[Math.floor(Math.random()*4)];
         const loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
         this.physics.add.collider(loot, this.hand, () => {
+            // No pickup while hidden — the hand is "in the hole". If a hide
+            // froze the hand with its body touching this loot, collect on
+            // pop-out (bodies still overlap then) instead of invisibly.
+            if (this.handFSM.is('hidden')) return;
             loot.destroy();
             this.lootAmount -= 1;
             this.collectedLootCount += 1;
@@ -591,6 +623,7 @@ export class MainGame extends Scene
                 up:      new UpState(),
                 down:    new DownState(),
                 stunned: new StunnedState(),
+                hidden:  new HiddenState(),
             },
             [this],
         );
@@ -605,6 +638,14 @@ export class MainGame extends Scene
         this.music.register(MUSIC_CALM, { loop: true });
         this.music.register(MUSIC_ALARM, { loop: true });
         this.music.play(MUSIC_CALM);
+
+        // Cleanup on scene stop. Phaser does NOT auto-call a `shutdown()`
+        // method on Scene subclasses — cleanup must subscribe to the
+        // SHUTDOWN event (once(): create() re-subscribes on every scene
+        // (re)start). The SoundManager is game-scoped, so without this the
+        // Pause → LEAVE path (scene.stop without endLevel) left the
+        // gameplay track playing over MainMenu.
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.music.stopAll());
 
         this.cameras.main.setBackgroundColor(0xff00ff);
 
@@ -677,6 +718,18 @@ export class MainGame extends Scene
         blockSword.setSize(161, 60);
         blocks.add(blockSword);
 
+        // STASH spots — cracked-hole tiles the hand auto-hides in (DESDOC
+        // "нычка"). Image renders under the hand via display-list order
+        // (created before it). The physics zone covers only the dark hole
+        // CENTER (STASH_TRIGGER_SIZE), not the full crack span. hole.png is
+        // 126x150 native.
+        this.stashSpots = LEVELS[CURRENT_LEVEL_INDEX].stashSpots.map((pos) => {
+            this.add.image(pos.x, pos.y, 'hole');
+            const zone = this.add.zone(pos.x, pos.y, STASH_TRIGGER_SIZE.width, STASH_TRIGGER_SIZE.height);
+            this.physics.add.existing(zone, true);
+            return { zone, armed: true };
+        });
+
         // 106x67
         this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
         this.handVis = this.add.graphics();
@@ -696,8 +749,37 @@ export class MainGame extends Scene
         this.physics.add.collider(this.hand, blocks, () => {
             if (this.ended) return;
             if (this.handFSM.is('stunned')) return;
+            // Hidden ⊥ Stunned (TODOS pre-thinking: mutually exclusive).
+            // Defensive — a hidden hand has zero velocity mid-table and
+            // shouldn't reach a wall, but the guard makes it a non-issue.
+            if (this.handFSM.is('hidden')) return;
             this.handFSM.transition('stunned');
         });
+
+        // Touch → hide (overlap, not collider — the hole doesn't block
+        // movement; the hand sinks in). Guards mirror the stun collider's.
+        // `armed` is the edge-trigger: cleared here, restored by update()
+        // once the hand has fully left the zone — the "auto-step-out"
+        // resolution of the TODOS re-trigger question, so popping out while
+        // still over the hole can't chain into an immediate re-hide.
+        for (const spot of this.stashSpots) {
+            this.physics.add.overlap(this.hand, spot.zone, () => {
+                if (this.ended || !spot.armed) return;
+                if (this.handFSM.is('stunned') || this.handFSM.is('hidden')) return;
+                spot.armed = false;
+                // Disarm every OTHER zone the hand currently touches too:
+                // on pop-out it is still touching them, and an armed
+                // adjacent zone would chain straight into a re-hide.
+                // No-op today (one spot); matters once levels have 2+.
+                for (const other of this.stashSpots) {
+                    if (other !== spot && this.physics.overlap(this.hand, other.zone)) {
+                        other.armed = false;
+                    }
+                }
+                log.hand(`stash hide at (${spot.zone.x}, ${spot.zone.y})`);
+                this.handFSM.transition('hidden');
+            });
+        }
 
         this.lootSprites = ['loot1', 'loot2', 'loot3', 'loot4'];
         this.lootMeterCells = this.createLootMeter();
@@ -784,6 +866,14 @@ export class MainGame extends Scene
         this.music.setVolume(effectiveVolume(settings, 'music'));
     }
 
+    // "Is the hand safely stashed right now?" — the predicate the deferred
+    // alarm-reactions look-at-table check consumes (per the retired dep
+    // scope map). Named for intent so the future glance code doesn't read
+    // as FSM plumbing.
+    handIsStashed(): boolean {
+        return this.handFSM.is('hidden');
+    }
+
     private pauseGame()
     {
         this.scene.pause();
@@ -844,6 +934,15 @@ export class MainGame extends Scene
         }
         this.handFSM.step();
 
+        // Re-arm stash zones once the hand has fully left them (see the
+        // overlap wiring in create). Cheap: 1-3 AABB checks per frame.
+        for (const spot of this.stashSpots) {
+            if (!spot.armed && !this.physics.overlap(this.hand, spot.zone)) {
+                spot.armed = true;
+                log.hand(`stash re-armed at (${spot.zone.x}, ${spot.zone.y})`);
+            }
+        }
+
         // Refresh the timer countdown. getRemainingSeconds() returns the live
         // remaining time from Phaser's pause-aware clock; formatTime ceil's
         // it so the displayed "1:00" stays visible for the full first second
@@ -864,11 +963,4 @@ export class MainGame extends Scene
         this.handVis.y = this.hand.y;
     }
 
-    shutdown()
-    {
-        // SoundManager is game-scoped, so sounds keep playing past scene
-        // shutdown unless explicitly stopped. Everything else (display list,
-        // physics world, time clock, input plugin) Phaser resets for us.
-        this.music.stopAll();
-    }
 }

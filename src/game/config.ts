@@ -40,6 +40,22 @@ export const LOOT_SIZE: Size = {
     height: 61,
 };
 
+// Stash hole sprite (public/assets/hole.png): 126x150 as shipped — keyed out
+// of the artist's flattened 740x579 drop (checkerboard background removed by
+// luminance) and downscaled; identify-verified.
+export const HOLE_SIZE: Size = {
+    width: 126,
+    height: 150,
+};
+
+// Stash trigger zone — the dark hole CENTER of the sprite, not the full crack
+// span, so brushing the outer cracks doesn't swallow the hand. Measured on
+// the keyed source: center blob ≈215x280 of 438x520, scaled by 126/438 → ≈62x80.
+export const STASH_TRIGGER_SIZE: Size = {
+    width: 62,
+    height: 80,
+};
+
 // Game-feel tuning.
 export const HAND_SPEED: number = 300; // px/s
 
@@ -68,10 +84,17 @@ export interface LevelConfig {
     id: number;
     lootTarget: number;
     timerSeconds: number;
+    // Stash hole centers. Entering a hole's trigger zone auto-hides the hand
+    // for ~1s (HiddenState) — dodge value arrives with the look-at-table
+    // mechanic; until then the cost is wasted level-timer time.
+    stashSpots: Pos[];
 }
 
 export const LEVELS: LevelConfig[] = [
-    { id: 1, lootTarget: 5, timerSeconds: 60 },
+    // Stash at (470, 280): left of the sword block (y≈200 band spans
+    // x 558..712), clear of the hand spawn row (y=410 — spawning onto a
+    // trigger would hide the hand at level start), inside the arcade area.
+    { id: 1, lootTarget: 5, timerSeconds: 60, stashSpots: [{ x: 470, y: 280 }] },
 ];
 
 // Current level index. Hardcoded for v1.0 single-level; becomes scene state

@@ -13,17 +13,21 @@
 //   Any direction → Stunned on hand-vs-block collision (collider callback
 //                                                       in MainGame.create)
 //   Stunned → OPPOSITE[lastDirection] after a 1s timer (bounce-off-wall)
+//   Any direction → Hidden on stash-zone overlap (overlap callback in
+//                                                 MainGame.create)
+//   Hidden → lastDirection after a 1s timer (pop out, resume travel)
 //
 // Direction state .enter() applies setSize/angle/flipX/velocity for that
 // orientation AND mirrors the current direction onto scene.lastDirection
-// so Stunned can pick the bounce target.
+// so Stunned (bounce = opposite) and Hidden (resume = same) can pick
+// their exit targets.
 
 import { State } from '../../lib/StateMachine.ts';
 import { HAND_SPEED, HAND_LONG_DIM, HAND_SHORT_DIM, ARCADE_AREA_LAYOUT } from '../config.ts';
 import { loadSettings, effectiveVolume } from '../settings.ts';
 import type { MainGame } from './MainGame.ts';
 
-export type HandStateName = 'left' | 'right' | 'up' | 'down' | 'stunned';
+export type HandStateName = 'left' | 'right' | 'up' | 'down' | 'stunned' | 'hidden';
 export type HandArgs = [MainGame];
 
 // Stun duration in ms. Used by both the StunnedState timer (controls when
@@ -53,6 +57,7 @@ const OPPOSITE: Record<HandStateName, HandStateName> = {
     up:      'down',
     down:    'up',
     stunned: 'left',  // unreachable; type-completeness default only
+    hidden:  'left',  // unreachable; type-completeness default only
 };
 
 // Apply horizontal-orientation visuals + velocity. Shared between Left and
@@ -142,6 +147,47 @@ export class DownState extends State<HandStateName, HandArgs> {
         } else if (scene.cursors.right.isDown) {
             this.stateMachine.transition('right');
         }
+    }
+}
+
+// Hide duration in ms (DESDOC "нычка": "при касании прячешься на секунду").
+// Scaling per level is an open playtest question — promote to a LEVELS
+// column if levels want different durations.
+const HIDDEN_DURATION_MS = 1000;
+
+// Stash hide: freeze + vanish into the hole, then resume the direction of
+// travel — NOT the stun bounce. Nothing was hit; the hand sinks in and pops
+// out still going the way it was going (lastDirection, which Hidden never
+// writes). Triggered by the stash-zone overlap callback in MainGame.create;
+// that callback also owns the re-arm rule (a zone re-arms only once the
+// hand has fully LEFT it, so popping out inside the zone can't chain into
+// an immediate re-hide). Cost model per DESDOC: wasted level-timer time —
+// no loot decrement, no suspicion bump, deliberately unlike Stunned.
+export class HiddenState extends State<HandStateName, HandArgs> {
+    private timer?: Phaser.Time.TimerEvent;
+
+    enter(scene: MainGame): void {
+        scene.hand.setVelocityX(0);
+        scene.hand.setVelocityY(0);
+        // Vanish: the hand is "in the hole". The hole sprite stays visible;
+        // hiding both the sprite and the hitbox-vis sells the sink-in.
+        scene.hand.setVisible(false);
+        scene.handVis.setVisible(false);
+
+        this.timer = scene.time.delayedCall(HIDDEN_DURATION_MS, () => {
+            this.stateMachine.transition(scene.lastDirection);
+        });
+    }
+
+    exit(scene: MainGame): void {
+        // Idempotent, mirroring StunnedState.exit: remove() is safe after
+        // fire, setVisible(true) is safe when already visible. Restoring
+        // visibility here (not in the timer) covers exits that bypass the
+        // timer — e.g. a future external transition.
+        scene.hand.setVisible(true);
+        scene.handVis.setVisible(true);
+        this.timer?.remove();
+        this.timer = undefined;
     }
 }
 

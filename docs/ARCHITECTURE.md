@@ -18,7 +18,7 @@ Rule: inter-mode boundaries get scenes; intra-mode subsystems get FSMs.
 
 Two patterns applied to different shapes of state.
 
-**Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/scenes/dialogue-states.ts` (AskingState + CooldownState) and `src/game/scenes/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState).
+**Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/scenes/dialogue-states.ts` (AskingState + CooldownState) and `src/game/scenes/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState / HiddenState).
 
 **Lookup table** when state is a static configuration mapping — no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(Still proposed; not shipped — see `dev-master-design-20260511-123429.md` for the music-progression usage that would land it.)_
 
@@ -42,7 +42,7 @@ Rule: tables are cheap; ad-hoc constants scattered across files are expensive. W
 
 - **Inline TS module vs externalized data file?** Currently TS — gives type-checking and IDE support for the single entry. Externalizing to JSON (or similar) helps when level data wants to be data-not-code: level editor support, hot reload, non-coder contributors editing levels. Defer until multi-level work has stakeholders.
 - **Flat array vs campaign structure?** Today the table is a flat `LevelConfig[]` indexed by `CURRENT_LEVEL_INDEX`. A campaign (level progression with gating, per-stage difficulty curves, narrative beats between heists) wants richer structure. Defer until v2.0 adventure map shapes the requirement.
-- **Anticipated columns as features land.** `lootTarget` and `timerSeconds` are already in; next is likely `stashCount` (when stash spots ships), then speculative ones like `difficultyMultiplier` / `timeBonus`. The substrate stays the same; only the row shape grows.
+- **Anticipated columns as features land.** `lootTarget`, `timerSeconds`, and `stashSpots` (positions, not the anticipated bare count — placement matters for gameplay) are already in; speculative next ones: `difficultyMultiplier` / `timeBonus`. The substrate stays the same; only the row shape grows.
 
 ## Generic / project code split
 

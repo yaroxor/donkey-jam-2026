@@ -7,13 +7,14 @@ Open work items for `donkey-jam-2026`. v1.0/v2.0 feature backlog, bugs, deferred
 ## v1.0 backlog (from DESDOC)
 
 - оп смотрит на стол при заполнении подозрения
-- нычка руки. при касании прячешься на секунду. можешь задоджить взгляд. а можешь проебать время если случайно наступил.
-  - Pre-thinking carried over from retired dep scope map (`~/.gstack/projects/slick_hand_joe/dev-master-design-20260511-121959.md`, retired 2026-05-14):
-    - Hand FSM substrate already exists — implementation adds a `HiddenState` to `src/game/scenes/hand-states.ts`, not the full FSM.
-    - Open design questions: tile count per level (~1-3 starting), sprite art status (none in DESDOC), Hidden duration (~1s, scaling TBD), accidentally-stepped cost (just the 1s pause?), re-trigger rule (if hand still touching stash when Hidden ends, re-enter or auto-step-out?).
-    - `Hidden` and `Stunned` are likely mutually exclusive (neither interrupts the other); confirm at design time.
-    - Soft dep on level timer was the original gate; timer already shipped so no longer relevant.
-    - Required by: alarm-reactions' look-at-table check (`MainGame.handIsStashed()` predicate).
+  - Unblocked: stash prototype shipped 2026-06-11, `MainGame.handIsStashed()` predicate exists. Resume via the alarm-reactions design (`~/.gstack/projects/slick_hand_joe/dev-master-design-20260509-083149.md` — advisory; surface its R1-R5 calls for confirmation first).
+- нычка руки — **prototype shipped 2026-06-11.** `HiddenState` in `hand-states.ts`, one stash hole at (470, 280) via `LEVELS[].stashSpots`, hole art from the user's drop (keyed + resized to 126x150, `public/assets/hole.png`). Calls made in the prototype (revisit on playtest):
+  - Touch → auto-hide 1s; cost = wasted level-timer time only (no loot/sus penalty). Resume continues the direction of travel (no bounce).
+  - Re-trigger: auto-step-out — a zone re-arms only after the hand fully leaves it.
+  - `Hidden` ⊥ `Stunned` confirmed: collider and overlap callbacks guard against each other.
+  - Trigger zone = the dark hole center (62x80), not the crack span.
+  - **Playtest watch-items:** turning vertical on the stash column can chain wall-stun → hide → wall-stun (pinball); if it feels punishing, add a re-arm cooldown. Hide has no SFX/animation yet (sink-in tween + plop sound are open polish). Tile count per level and duration scaling still open.
+  - Додж-ценность (задоджить взгляд) приедет вместе с look-at-table.
 - загрузить вопросами
 - Integrate hand movement animation. The artist's GIF was completed during the jam but never wired into the sprite. Replace the static `'hand'` image with proper Phaser animation frames.
 

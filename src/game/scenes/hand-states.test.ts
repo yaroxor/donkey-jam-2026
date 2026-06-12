@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-    LeftState, RightState, UpState, DownState, StunnedState,
+    LeftState, RightState, UpState, DownState, StunnedState, HiddenState,
     type HandStateName, type HandArgs,
 } from './hand-states.ts';
 import { StateMachine, type State } from '../../lib/StateMachine.ts';
@@ -19,6 +19,9 @@ import { makeFakeScene, type FakeScene, type FakeTimerEvent } from '../../test/p
 //     suspicion bump may short-circuit (sus overflow), 1s timer scheduled
 //     to OPPOSITE[lastDirection]
 //   - StunnedState.exit(): timer cancellation, idempotent
+//   - HiddenState (stash hide): freeze + vanish, NO stun-style penalties,
+//     1s timer resumes lastDirection (same, not opposite); exit restores
+//     visibility, idempotent
 //
 // Phaser-coupled paths (collider callback, handFSM wiring in MainGame
 // update/init/create) are DEFERRED per CLAUDE.md project policy — they
@@ -37,6 +40,7 @@ interface FakeHandBody {
     setVelocityX: ReturnType<typeof vi.fn>;
     setVelocityY: ReturnType<typeof vi.fn>;
     setFlipX: ReturnType<typeof vi.fn>;
+    setVisible: ReturnType<typeof vi.fn>;
     x: number;
     y: number;
     angle: number;
@@ -44,6 +48,7 @@ interface FakeHandBody {
 
 interface FakeMainGame extends FakeScene {
     hand: FakeHandBody;
+    handVis: { setVisible: ReturnType<typeof vi.fn> };
     cursors: { left: FakeCursor; right: FakeCursor; up: FakeCursor; down: FakeCursor };
     collectedLootCount: number;
     lastDirection: HandStateName;
@@ -62,10 +67,12 @@ function makeFakeMainGame(overrides: Partial<FakeMainGame> = {}): FakeMainGame {
             setVelocityX: vi.fn(),
             setVelocityY: vi.fn(),
             setFlipX: vi.fn(),
+            setVisible: vi.fn(),
             x: 640,
             y: 410,
             angle: 0,
         },
+        handVis: { setVisible: vi.fn() },
         cursors: {
             left:  { isDown: false },
             right: { isDown: false },
@@ -109,6 +116,7 @@ function makeFSM(
         up:      realStates.up      ?? makeStubState(),
         down:    realStates.down    ?? makeStubState(),
         stunned: realStates.stunned ?? makeStubState(),
+        hidden:  realStates.hidden  ?? makeStubState(),
     };
     return new StateMachine<HandStateName, HandArgs>(initial, states, [scene]);
 }
@@ -482,6 +490,98 @@ describe('StunnedState.enter — bounce direction on timer fire', () => {
         const { fsm, timer } = setupBounce('down');
         timer.fire();
         expect(fsm.is('up')).toBe(true);
+    });
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// HiddenState (stash hide)
+// ────────────────────────────────────────────────────────────────────────
+
+describe('HiddenState.enter — freeze and vanish', () => {
+    it('zeroes both velocity axes and hides the hand sprite + hitbox vis', () => {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame();
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+
+        fsm.step();
+
+        expect(scene.hand.setVelocityX).toHaveBeenCalledWith(0);
+        expect(scene.hand.setVelocityY).toHaveBeenCalledWith(0);
+        expect(scene.hand.setVisible).toHaveBeenCalledWith(false);
+        expect(scene.handVis.setVisible).toHaveBeenCalledWith(false);
+    });
+
+    it('has no stun-style side effects: no SFX, no loot decrement, no suspicion bump', () => {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame({ collectedLootCount: 3 });
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+
+        fsm.step();
+
+        expect(scene.sound.play).not.toHaveBeenCalled();
+        expect(scene.collectedLootCount).toBe(3);
+        expect(scene.updateLootMeter).not.toHaveBeenCalled();
+        expect(scene.progressSus).not.toHaveBeenCalled();
+    });
+});
+
+describe('HiddenState — resume direction on timer fire', () => {
+    function setupHide(lastDirection: HandStateName): {
+        scene: FakeMainGame;
+        fsm: StateMachine<HandStateName, HandArgs>;
+        timer: FakeTimerEvent;
+    } {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame({ lastDirection });
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+        fsm.step();
+        return { scene, fsm, timer: scene.time.timers[0] };
+    }
+
+    it('schedules a 1000ms timer', () => {
+        const { scene } = setupHide('left');
+        expect(scene.time.delayedCall).toHaveBeenCalledTimes(1);
+        expect(scene.time.timers[0].delay).toBe(1000);
+    });
+
+    // Unlike the stun bounce (OPPOSITE), the hide resumes the SAME
+    // direction — the hand pops out still traveling the way it was going.
+    it('left resumes left (not the stun bounce)', () => {
+        const { fsm, timer } = setupHide('left');
+        timer.fire();
+        expect(fsm.is('left')).toBe(true);
+    });
+
+    it('down resumes down', () => {
+        const { fsm, timer } = setupHide('down');
+        timer.fire();
+        expect(fsm.is('down')).toBe(true);
+    });
+});
+
+describe('HiddenState.exit', () => {
+    it('restores hand + hitbox-vis visibility and cancels the timer', () => {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame();
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+        fsm.step();
+        const timer = scene.time.timers[0];
+
+        hidden.exit(asMainGame(scene));
+
+        expect(scene.hand.setVisible).toHaveBeenCalledWith(true);
+        expect(scene.handVis.setVisible).toHaveBeenCalledWith(true);
+        expect(timer.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('is idempotent on double exit', () => {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame();
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+        fsm.step();
+
+        hidden.exit(asMainGame(scene));
+        expect(() => hidden.exit(asMainGame(scene))).not.toThrow();
     });
 });
 

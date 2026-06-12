@@ -43,7 +43,9 @@ export class PauseScene extends Scene
     private leaveToMenu()
     {
         // MainGame is paused beneath us; explicitly stop it so it doesn't
-        // linger in memory or fire shutdown later.
+        // linger in memory. Its SHUTDOWN-event cleanup (subscribed in
+        // MainGame.create) stops the music here — this path bypasses
+        // endLevel, which is the only other music-stopping exit.
         this.scene.stop('MainGame');
         this.scene.start('MainMenu');
     }

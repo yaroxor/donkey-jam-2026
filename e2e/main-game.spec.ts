@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// End-to-end smoke + 4 core scenarios for slick_hand_joe.
+// End-to-end smoke + 5 core scenarios for slick_hand_joe.
 //
 // What these test that vitest can't: scene-lifecycle ordering (init →
 // create → update), real Phaser keyboard input wiring, real arcade-physics
@@ -159,10 +159,33 @@ test('reaching loot target triggers Win scene', async ({ page }) => {
     ];
 
     for (let i = 0; i < 40; i++) {
-        const won = await page.evaluate(() => {
-            return (window as GameWindow).__game!.scene.isActive('Win');
+        const ended = await page.evaluate(() => {
+            const g = (window as GameWindow).__game!;
+            return { won: g.scene.isActive('Win'), lost: g.scene.isActive('GameOver') };
         });
-        if (won) break;
+        if (ended.won) break;
+        // Fail loudly if the sweep dies to sus overflow (wall stuns +
+        // unanswered dialogue both feed progressSus) — without this check
+        // a mid-sweep GameOver would stall every remaining steerable wait
+        // and surface only as an opaque 60s suite timeout.
+        expect(ended.lost, 'sweep died to GameOver (sus overflow) before winning').toBe(false);
+
+        // Wait until the hand is steerable before pressing. Stun (1s) and
+        // stash-hide (1s) windows ignore keyboard input entirely — a press
+        // landing inside one is silently eaten, and on the stash column the
+        // hand can chain wall-stun → hide → wall-stun for several seconds.
+        // End-scenes count as "done waiting" so the wait can't stall on a
+        // finished game; the next pass's ended-check resolves them.
+        await page.waitForFunction(() => {
+            const g = (window as GameWindow).__game!;
+            if (g.scene.isActive('Win') || g.scene.isActive('GameOver')) return true;
+            const scene = g.scene.getScene('MainGame') as Phaser.Scene & {
+                handFSM?: { is: (name: string) => boolean };
+            };
+            const fsm = scene.handFSM;
+            if (!fsm) return false;
+            return (['left', 'right', 'up', 'down'] as const).some((d) => fsm.is(d));
+        }, { timeout: 5_000 }).catch(() => {});
 
         const dir = compass[i % compass.length];
         await page.keyboard.down(dir);
@@ -232,4 +255,64 @@ test('4 wrong dialogue answers trigger GameOver', async ({ page }) => {
         () => page.evaluate(() => (window as GameWindow).__game!.scene.isActive('GameOver')),
         { timeout: 10_000 },
     ).toBe(true);
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// 6. Stash — entering the hole's trigger zone hides the hand, then it
+//    auto-resumes its direction of travel
+// ────────────────────────────────────────────────────────────────────────
+
+test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page }) => {
+    await seedSettings(page);
+    await loadAndStart(page);
+
+    // Level-1 stash sits at (470, 280) (config.ts LEVELS). The hand starts
+    // at (640, 410) moving left along y=410 — clear of the trigger. Steer:
+    // wait for the leftward sweep to bring hand.x into a window right of
+    // the stash column (the hand wraps every ~1.7s, so the window always
+    // arrives), then turn Up; the upward path crosses the trigger zone.
+    // Window math: the vertical hand overlaps the zone while turning at
+    // x ∈ [406, 534], and the vertical-safe-zone gate refuses turns below
+    // x=418.5. Catching at x ∈ (480, 530) and turning while still ≥ 430
+    // leaves ≥ 165ms of input-latency budget at 300px/s — wide enough for
+    // headless CDP key dispatch.
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            lastDirection?: string;
+            hand?: { x: number };
+        };
+        return scene.lastDirection === 'left'
+            && (scene.hand?.x ?? 0) > 480 && (scene.hand?.x ?? 0) < 530;
+    }, { timeout: 10_000 });
+
+    await page.keyboard.down('ArrowUp');
+
+    // The hide should fire while traveling up through the zone (zone spans
+    // y 240..320; the hand reaches overlap within ~0.2s of the turn).
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            handFSM?: { is: (name: string) => boolean };
+        };
+        return scene.handFSM?.is('hidden') ?? false;
+    }, { timeout: 5_000 });
+    await page.keyboard.up('ArrowUp');
+
+    // While hidden: hand sprite invisible.
+    const hiddenVisibility = await page.evaluate(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            hand?: { visible: boolean };
+        };
+        return scene.hand?.visible;
+    });
+    expect(hiddenVisibility).toBe(false);
+
+    // Auto-resume after the 1s hide: back in a direction state ('up' — the
+    // hide preserves lastDirection rather than bouncing) and visible again.
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            handFSM?: { is: (name: string) => boolean };
+            hand?: { visible: boolean };
+        };
+        return (scene.handFSM?.is('up') ?? false) && (scene.hand?.visible ?? false);
+    }, { timeout: 4_000 });
 });

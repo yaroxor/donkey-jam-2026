@@ -8,6 +8,7 @@ import debug from 'debug';
 
 export const log = {
     dialogue: debug('joe:dialogue'),
+    hand: debug('joe:hand'),
     loot: debug('joe:loot'),
     music: debug('joe:music'),
     sus: debug('joe:sus'),
