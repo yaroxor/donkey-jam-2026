@@ -255,6 +255,19 @@ test('4 wrong dialogue answers trigger GameOver', async ({ page }) => {
             };
             return !(scene?.dialogueFSM?.is('asking') ?? true);
         }, { timeout: 6_000 });
+
+        // Music follows the sus ladder (SUS_LEVELS): after the i-th wrong
+        // answer the controller is on (or tact-switching to) the next
+        // track — isPlaying reflects the switch target immediately.
+        if (i < 3) {
+            const expectedTrack = ['music2', 'music3', 'music4'][i];
+            await expect.poll(() => page.evaluate((key) => {
+                const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+                    music?: { isPlaying: (k: string) => boolean };
+                };
+                return scene.music?.isPlaying(key) ?? false;
+            }, expectedTrack), { timeout: 3_000 }).toBe(true);
+        }
     }
 
     // After 4 wrongs, GameOver scene should be active.

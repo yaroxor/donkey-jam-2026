@@ -5,7 +5,7 @@ import {
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
     HAND_SPEED,
     STASH_TRIGGER_SIZE,
-    MUSIC_CALM, MUSIC_ALARM,
+    SUS_LEVELS, MUSIC_HALF_TACT_SECONDS,
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
     LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
@@ -565,6 +565,15 @@ export class MainGame extends Scene
         this.scales[this.currentSus].setAlpha(1);
         this.demons[this.currentSus].setAlpha(1);
         this.skels[this.currentSus].setAlpha(1);
+
+        // Sus-coupled music progression: every suspicion level has its
+        // track (SUS_LEVELS); switches are tact-aligned and seek-carrying.
+        // This inline switch is the bridge until setSusLevel(n) lands with
+        // alarm reactions and absorbs all SUS_LEVELS bindings (music +
+        // sprite stages). Music only ever escalates in v1.0 — sus never
+        // decreases until the alarm-reactions settle mechanic ships.
+        this.music.smoothSwitch(SUS_LEVELS[this.currentSus].music, MUSIC_HALF_TACT_SECONDS);
+        log.music(`sus ${this.currentSus} -> ${SUS_LEVELS[this.currentSus].music}`);
         return false;
     }
 
@@ -635,9 +644,10 @@ export class MainGame extends Scene
 
         log.music(`registering music tracks`)
         this.music = new MusicController(this);
-        this.music.register(MUSIC_CALM, { loop: true });
-        this.music.register(MUSIC_ALARM, { loop: true });
-        this.music.play(MUSIC_CALM);
+        for (const level of SUS_LEVELS) {
+            this.music.register(level.music, { loop: true });
+        }
+        this.music.play(SUS_LEVELS[0].music);
 
         // Cleanup on scene stop. Phaser does NOT auto-call a `shutdown()`
         // method on Scene subclasses — cleanup must subscribe to the

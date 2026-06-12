@@ -38,3 +38,7 @@ Importing from sibling scripts: `from synth import ...` (these scripts run from 
 ## Demo
 
 `pluck_groove.py` — 10-second 4-bar groove. Karplus-Strong bass walking A minor pentatonic, additive-sine lead ostinato. Doesn't ship — it's a sanity check that the primitives work and a starting point for any future longer-form audio.
+
+## Placeholder music derivation
+
+`boost_placeholders.sh` (ffmpeg, not the Python stack) derives the sus-track placeholders `placeholder-music3/4.mp3` from the musician's track 2 — bass boost + compression, heavier on 4. Same tempo and length as the source, so the game's tact-aligned music switches stay musical. Regenerate by running it from `tools/sfx/`; the outputs are committed. Real compositions replace them at the same Preloader keys.

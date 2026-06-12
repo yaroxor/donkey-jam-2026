@@ -36,15 +36,16 @@ words = [
   "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra", "downscaled",
   "unclickable", "eyeballed",
   # acronyms / key clusters
-  "aabb", "tbd", "oeu", "asd", "cdp", "heic", "raf",
+  "aabb", "tbd", "oeu", "asd", "cdp", "heic", "raf", "ieee",
   # tokenizer artifacts: hex colors in prose ("0xaa44ff" -> "xaa"), hyphen
   # splits of valid spellings ("pre-empts" -> "empts", "re-entrancy" -> "entrancy")
   "xaa", "empts", "entrancy",
   # possessives codebook tokenizes as distinct words
   "phaser's", "vite's", "preloader's", "settings's", "desdoc's", "repo's",
   "fsm's", "osmose's", "ceil's", "ts's", "jam's", "collider's",
-  # synth / audio
-  "karplus", "adsr", "midi", "bpm", "wav", "ostinato",
+  # synth / audio (incl. ffmpeg filter names used in boost_placeholders.sh)
+  "karplus", "adsr", "midi", "bpm", "wav", "ostinato", "acompressor",
+  "alimiter", "aexciter",
   # people / names
   "yaroxor", "yaroxar", "efimgugnin", "heavygray", "nel", "goetia", "crowley",
   # keyboard layouts

@@ -25,8 +25,14 @@ export class FakeSound {
     // Arrow-function fields bind `this` to the instance, so vi.fn(() => ...)
     // works correctly here. Each mock both records the call AND mutates
     // the fake's state so subsequent assertions on isPlaying / seek work.
-    play = vi.fn((): void => {
+    // play/setSeek model Phaser's REAL seek semantics (BaseSound.play
+    // resets the config — bare play() restarts from 0:00, only a config
+    // seek survives; setSeek on a stopped sound is a documented no-op) so
+    // tests can't pin behavior Phaser doesn't have — the old fakes did,
+    // and hid a switched-track-restarts-from-zero bug for a month.
+    play = vi.fn((config?: { seek?: number }): void => {
         this.isPlaying = true;
+        this.seek = config && typeof config.seek === 'number' ? config.seek : 0;
     });
 
     stop = vi.fn((): void => {
@@ -34,7 +40,9 @@ export class FakeSound {
     });
 
     setSeek = vi.fn((t: number): void => {
-        this.seek = t;
+        if (this.isPlaying) {
+            this.seek = t;
+        }
     });
 
     setVolume = vi.fn((v: number): void => {

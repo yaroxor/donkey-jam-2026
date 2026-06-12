@@ -71,12 +71,28 @@ export const HAND_SHORT_DIM: number = 67;
 // Music tact is ~3s; switches happen on the half-tact for smoothness.
 export const MUSIC_HALF_TACT_SECONDS: number = 1.5;
 
-// Music track keys (asset names) named for what they mean in the game.
-// v1.0 sus-coupled music progression (per the deferred design doc) will
-// expand this from 2 tracks to ~4; these two remain valid as the calm/alarm
-// endpoints of the eventual scale.
-export const MUSIC_CALM = 'music1';   // pre-suspicion / safe vibe
-export const MUSIC_ALARM = 'music2';  // suspicion-aware / tense
+// Suspicion-level lookup table — the multi-binding slot for anything
+// coupled to the suspicion meter (per ARCHITECTURE.md "State modeling").
+// v1.0 binds music only; sprite-stage selection still lives in the
+// progressSus image arrays and migrates here when setSusLevel(n) lands
+// with alarm reactions. Index = current sus (0..3); sus 4 is GameOver and
+// has no row (when alarm reactions ship, the reaction states own music
+// from alarm-fire to settle).
+//
+// Keys music1/music2 are the musician's delivered pieces; music3/music4
+// are bass-boosted placeholder derivations of track 2 (regenerate via
+// tools/sfx/boost_placeholders.sh) until the real compositions land —
+// same tempo and length, so tact-aligned switches stay musical.
+export interface SusLevelCfg {
+    music: string;
+}
+
+export const SUS_LEVELS: SusLevelCfg[] = [
+    { music: 'music1' },  // sus 0 — calm; plays from level start only
+    { music: 'music2' },  // sus 1 — first slip
+    { music: 'music3' },  // sus 2 — tense
+    { music: 'music4' },  // sus 3 — one mistake from busted
+];
 
 // Per-level configuration. v1.0 has one entry; multi-level work (adventure
 // map, DESDOC TODO v2.0) expands this. Other passes add fields as they ship

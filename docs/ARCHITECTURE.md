@@ -20,7 +20,7 @@ Two patterns applied to different shapes of state.
 
 **Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/scenes/dialogue-states.ts` (AskingState + CooldownState) and `src/game/scenes/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState / HiddenState).
 
-**Lookup table** when state is a static configuration mapping — no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(Still proposed; not shipped — see `dev-master-design-20260511-123429.md` for the music-progression usage that would land it.)_
+**Lookup table** when state is a static configuration mapping — no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(Landed 2026-06-12 as a music-only table via the music-progression pass; `setSusLevel(n)` and the remaining bindings — sprite stages, later SFX cues — migrate in with alarm reactions. See `dev-master-design-20260511-123429.md`.)_
 
 **Decision rule.** Ask: "does this state need to _do_ something on entry, on each step, on exit?" If yes → FSM. If it's just "while in this state, show this sprite / play this track" → table.
 
@@ -34,7 +34,7 @@ When a value will be tuned per-level, per-difficulty, per-something, surface it 
 
 Existing example: `LEVELS: LevelConfig[]` (currently one entry `{ id: 1, lootTarget: 5, timerSeconds: 60 }`) + `CURRENT_LEVEL_INDEX`. Originated in `dev-master-design-20260511-155307.md` (loot meter). Cheap substrate now (one entry); the spine that the level-timer pass hung `timerSeconds:` on, that multi-level work will hang more entries on, that per-level music tuning will hang `music:` on.
 
-Planned next instance: `SUS_LEVELS` (see "State modeling" above).
+Second instance: `SUS_LEVELS` (landed 2026-06-12, music column first; the row shape grows as bindings migrate — see "State modeling" above).
 
 Rule: tables are cheap; ad-hoc constants scattered across files are expensive. When in doubt, table.
 

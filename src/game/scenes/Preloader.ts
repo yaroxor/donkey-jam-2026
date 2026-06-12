@@ -28,6 +28,12 @@ export class Preloader extends Scene
 
         this.load.audio('music1', 'music/Slick Hand Joe 1.mp3');
         this.load.audio('music2', 'music/Slick Hand Joe 2.mp3');
+        // Placeholder sus-tracks derived from track 2 (bass boost; see
+        // tools/sfx/boost_placeholders.sh). When the musician delivers the
+        // real tracks 3/4, point these two lines at the new files — the
+        // keys stay, no other code changes.
+        this.load.audio('music3', 'music/placeholder-music3.mp3');
+        this.load.audio('music4', 'music/placeholder-music4.mp3');
         this.load.audio('crack-head', 'music/crack-head.mp3');
         this.load.audio('wall-hit', 'music/wall-hit.wav');
 

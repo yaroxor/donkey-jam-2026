@@ -12,7 +12,6 @@
 // a runtime reference.
 
 import { State } from '../../lib/StateMachine.ts';
-import { MUSIC_CALM, MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS } from '../config.ts';
 import { loadSettings, effectiveVolume } from '../settings.ts';
 import type { MainGame } from './MainGame.ts';
 
@@ -48,8 +47,11 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
     }
 
     execute(scene: MainGame): void {
+        // Music is NOT switched here: it follows the suspicion level only
+        // (progressSus owns the switch; sus never decreases in v1.0, so a
+        // right answer holds the current tension rather than resetting to
+        // calm — the music-progression design's R3 call).
         if (justDown(scene.rightAnswerKey) || justDown(scene.rightAnswerKey2)) {
-            scene.music.smoothSwitch(MUSIC_CALM, MUSIC_HALF_TACT_SECONDS);
             this.stateMachine.transition('cooldown');
         } else if (
             justDown(scene.wrongAnswer1Key) || justDown(scene.wrongAnswer1Key2) ||
@@ -72,11 +74,10 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
         // the scene pauses (paused scenes don't process new audio events,
         // though already-firing sounds keep playing).
         scene.sound.play('crack-head', { volume: effectiveVolume(loadSettings(), 'sfx') });
+        // progressSus owns the sus-coupled music switch (SUS_LEVELS).
         if (scene.progressSus()) {
             return;
         }
-        // smoothSwitch to MUSIC_ALARM is idempotent when already on it.
-        scene.music.smoothSwitch(MUSIC_ALARM, MUSIC_HALF_TACT_SECONDS);
         this.stateMachine.transition('cooldown');
     }
 }
