@@ -123,11 +123,18 @@ test('hitting the top wall triggers stun', async ({ page }) => {
 
     // Travel: hand starts at y=410. Top wall's bottom edge ≈ y=57 (with
     // jitter). Vertical hand half-height = 53, so hand body top reaches
-    // the wall at hand center y ≈ 110. Distance to traverse: 410-110 =
-    // 300px at HAND_SPEED=300px/s = ~1s of upward motion. Use 1.5s to
-    // give margin.
+    // the wall at hand center y ≈ 110. Distance: 410-110 = 300px at
+    // HAND_SPEED=300px/s = ~1s of upward motion. Wait on the STATE, not a
+    // fixed sleep: if the turn lands over the bottom-center stash column,
+    // the vertical body clips the trigger zone and the trip starts with a
+    // 1s hide before resuming up — still well inside the 6s budget.
     await page.keyboard.down('ArrowUp');
-    await page.waitForTimeout(1500);
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            handFSM?: { is: (name: string) => boolean };
+        };
+        return scene.handFSM?.is('stunned') ?? false;
+    }, { timeout: 6_000 });
     await page.keyboard.up('ArrowUp');
 
     const isStunned = await page.evaluate(() => {
@@ -266,36 +273,36 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
     await seedSettings(page);
     await loadAndStart(page);
 
-    // Level-1 stash sits at (470, 280) (config.ts LEVELS). The hand starts
-    // at (640, 410) moving left along y=410 — clear of the trigger. Steer:
-    // wait for the leftward sweep to bring hand.x into a window right of
-    // the stash column (the hand wraps every ~1.7s, so the window always
-    // arrives), then turn Up; the upward path crosses the trigger zone.
-    // Window math: the vertical hand overlaps the zone while turning at
-    // x ∈ [406, 534], and the vertical-safe-zone gate refuses turns below
-    // x=418.5. Catching at x ∈ (480, 530) and turning while still ≥ 430
-    // leaves ≥ 165ms of input-latency budget at 300px/s — wide enough for
-    // headless CDP key dispatch.
+    // Level-1 stash sits at bottom center, (635, 490) (config.ts LEVELS).
+    // The hand starts at (640, 410) moving left along y=410, just clear of
+    // the trigger (zone top 455 vs horizontal body bottom 443.5). Steer:
+    // wait for the sweep to bring hand.x over the stash column (the hand
+    // wraps every ~1.7s, so the window always arrives), then turn Down —
+    // the vertical body (bottom 463) overlaps the zone immediately.
+    // Window math: the vertical hand overlaps the zone for turns at
+    // x ∈ [563.5, 706.5]; catching at x ∈ (600, 690) leaves a wide
+    // input-latency budget at 300px/s, and the whole window sits inside
+    // the vertical-safe-zone gate [418.5, 851.5].
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             lastDirection?: string;
             hand?: { x: number };
         };
         return scene.lastDirection === 'left'
-            && (scene.hand?.x ?? 0) > 480 && (scene.hand?.x ?? 0) < 530;
+            && (scene.hand?.x ?? 0) > 600 && (scene.hand?.x ?? 0) < 690;
     }, { timeout: 10_000 });
 
-    await page.keyboard.down('ArrowUp');
+    await page.keyboard.down('ArrowDown');
 
-    // The hide should fire while traveling up through the zone (zone spans
-    // y 240..320; the hand reaches overlap within ~0.2s of the turn).
+    // The hide fires as soon as the turned (vertical) body overlaps the
+    // zone — effectively right after the turn registers.
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             handFSM?: { is: (name: string) => boolean };
         };
         return scene.handFSM?.is('hidden') ?? false;
     }, { timeout: 5_000 });
-    await page.keyboard.up('ArrowUp');
+    await page.keyboard.up('ArrowDown');
 
     // While hidden: hand sprite invisible.
     const hiddenVisibility = await page.evaluate(() => {
@@ -306,13 +313,15 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
     });
     expect(hiddenVisibility).toBe(false);
 
-    // Auto-resume after the 1s hide: back in a direction state ('up' — the
-    // hide preserves lastDirection rather than bouncing) and visible again.
+    // Auto-resume after the 1s hide: back in a direction state ('down' —
+    // the hide preserves lastDirection rather than bouncing) and visible
+    // again. (~0.3s later the resumed hand reaches the bottom wall and
+    // stuns; the rAF-polled wait catches the 'down' window comfortably.)
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             handFSM?: { is: (name: string) => boolean };
             hand?: { visible: boolean };
         };
-        return (scene.handFSM?.is('up') ?? false) && (scene.hand?.visible ?? false);
+        return (scene.handFSM?.is('down') ?? false) && (scene.hand?.visible ?? false);
     }, { timeout: 4_000 });
 });

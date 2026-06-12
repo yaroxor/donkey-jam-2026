@@ -720,9 +720,9 @@ export class MainGame extends Scene
 
         // STASH spots — cracked-hole tiles the hand auto-hides in (DESDOC
         // "нычка"). Image renders under the hand via display-list order
-        // (created before it). The physics zone covers only the dark hole
-        // CENTER (STASH_TRIGGER_SIZE), not the full crack span. hole.png is
-        // 126x150 native.
+        // (created before it). The physics zone covers only the solid hole
+        // INTERIOR (STASH_TRIGGER_SIZE), not the full crack span. hole.png
+        // is 120x120 native.
         this.stashSpots = LEVELS[CURRENT_LEVEL_INDEX].stashSpots.map((pos) => {
             this.add.image(pos.x, pos.y, 'hole');
             const zone = this.add.zone(pos.x, pos.y, STASH_TRIGGER_SIZE.width, STASH_TRIGGER_SIZE.height);

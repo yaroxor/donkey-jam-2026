@@ -35,7 +35,7 @@ words = [
   "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
   "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra", "downscaled",
   # acronyms / key clusters
-  "aabb", "tbd", "oeu", "asd", "cdp",
+  "aabb", "tbd", "oeu", "asd", "cdp", "heic", "raf",
   # tokenizer artifacts: hex colors in prose ("0xaa44ff" -> "xaa"), hyphen
   # splits of valid spellings ("pre-empts" -> "empts", "re-entrancy" -> "entrancy")
   "xaa", "empts", "entrancy",

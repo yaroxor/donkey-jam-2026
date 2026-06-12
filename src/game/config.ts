@@ -40,20 +40,21 @@ export const LOOT_SIZE: Size = {
     height: 61,
 };
 
-// Stash hole sprite (public/assets/hole.png): 126x150 as shipped — keyed out
-// of the artist's flattened 740x579 drop (checkerboard background removed by
-// luminance) and downscaled; identify-verified.
+// Stash hole sprite (public/assets/hole.png): 120x120 as shipped — trimmed
+// and downscaled from the user's 2500x2500 alpha PNG (v2 art, replaced the
+// keyed HEIC original 2026-06-12); identify-verified.
 export const HOLE_SIZE: Size = {
-    width: 126,
-    height: 150,
+    width: 120,
+    height: 120,
 };
 
-// Stash trigger zone — the dark hole CENTER of the sprite, not the full crack
-// span, so brushing the outer cracks doesn't swallow the hand. Measured on
-// the keyed source: center blob ≈215x280 of 438x520, scaled by 126/438 → ≈62x80.
+// Stash trigger zone — the solid hole INTERIOR of the sprite, not the full
+// crack span, so brushing the outer cracks doesn't swallow the hand.
+// Measured on the source via alpha-threshold + erode: interior blob
+// ≈1601x1455 of 2493x2492 (64% x 58%), scaled to 120px → ≈77x70.
 export const STASH_TRIGGER_SIZE: Size = {
-    width: 62,
-    height: 80,
+    width: 76,
+    height: 70,
 };
 
 // Game-feel tuning.
@@ -91,10 +92,13 @@ export interface LevelConfig {
 }
 
 export const LEVELS: LevelConfig[] = [
-    // Stash at (470, 280): left of the sword block (y≈200 band spans
-    // x 558..712), clear of the hand spawn row (y=410 — spawning onto a
-    // trigger would hide the hand at level start), inside the arcade area.
-    { id: 1, lootTarget: 5, timerSeconds: 60, stashSpots: [{ x: 470, y: 280 }] },
+    // Stash at bottom center (user direction 2026-06-12). Geometry: the
+    // hand spawns at (640, 410) — horizontal body bottom 443.5 — so the
+    // trigger zone's top edge (490 - 70/2 = 455) must stay below that or
+    // the level starts with an instant hide. At y=490 the clearance is
+    // 11.5px, and the 120px sprite's bottom rests at the bottom danger-tape
+    // edge (~550).
+    { id: 1, lootTarget: 5, timerSeconds: 60, stashSpots: [{ x: 635, y: 490 }] },
 ];
 
 // Current level index. Hardcoded for v1.0 single-level; becomes scene state
