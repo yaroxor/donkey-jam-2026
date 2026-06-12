@@ -45,7 +45,8 @@ words = [
   "fsm's", "osmose's", "ceil's", "ts's", "jam's", "collider's",
   # synth / audio (incl. ffmpeg filter names used in boost_placeholders.sh)
   "karplus", "adsr", "midi", "bpm", "wav", "ostinato", "acompressor",
-  "alimiter", "aexciter", "tacts",
+  "alimiter", "aexciter", "tacts", "acrusher", "asoftclip", "loudnorm",
+  "volumedetect", "bitcrush", "lufs", "lra",
   # people / names
   "yaroxor", "yaroxar", "efimgugnin", "heavygray", "nel", "goetia", "crowley",
   # keyboard layouts
