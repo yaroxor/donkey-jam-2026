@@ -8,9 +8,9 @@
 #
 # ADJUSTMENT KNOBS — tweak these and rerun; everything else is plumbing.
 TILT_DEG=-25      # negative = lean left (demon sits screen-right, table is left)
-EYES_WIDTH=380    # eyes overlay width in px after scaling (native 438 keyed)
-EYES_X=130        # eyes top-left X on the rotated-demon canvas
-EYES_Y=130        # eyes top-left Y on the rotated-demon canvas
+EYES_WIDTH=100    # eyes overlay width in px after scaling (native 438 keyed)
+EYES_X=230        # eyes top-left X on the rotated-demon canvas
+EYES_Y=240        # eyes top-left Y on the rotated-demon canvas
 
 set -euo pipefail
 
@@ -32,9 +32,10 @@ convert "$EYES_SRC" -alpha set -fuzz 12% -fill none \
 # 2. Tilt the demon (transparent background; canvas auto-expands).
 convert "$DEMON" -background none -rotate "$TILT_DEG" +repage /tmp/look-over-demon.png
 
-# 3. Slap the eyes on top at the knob offsets.
+# 3. Slap the eyes on top at the knob offsets (mirrored around the
+#    vertical axis — user direction — so they read right-to-left).
 convert /tmp/look-over-demon.png \
-  \( /tmp/look-over-eyes.png -resize "${EYES_WIDTH}x" \) \
+  \( /tmp/look-over-eyes.png -flop -resize "${EYES_WIDTH}x" \) \
   -geometry "+${EYES_X}+${EYES_Y}" -compose over -composite \
   "$OUT"
 
