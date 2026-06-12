@@ -265,7 +265,51 @@ test('4 wrong dialogue answers trigger GameOver', async ({ page }) => {
 });
 
 // ────────────────────────────────────────────────────────────────────────
-// 6. Stash — entering the hole's trigger zone hides the hand, then it
+// 6. Pause menu — RESUME and LEAVE respond to clicks on their labels
+// ────────────────────────────────────────────────────────────────────────
+
+test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => {
+    await seedSettings(page);
+    await loadAndStart(page);
+    const canvas = page.locator('canvas');
+
+    // Open the pause menu via the on-screen pause button (Image at
+    // GAME_WIDTH-50, GAME_HEIGHT-50 = 1230, 670; 59x57 sprite). No scale
+    // manager is configured, so the canvas renders at native 1280x720 and
+    // element-relative click positions map 1:1 to game coordinates.
+    await canvas.click({ position: { x: 1230, y: 670 } });
+    await page.waitForFunction(
+        () => (window as GameWindow).__game!.scene.isActive('Pause'),
+        { timeout: 5_000 },
+    );
+
+    // Click the CENTER of the visible RESUME label, as a player would.
+    // Label text measured in paused.png (threshold + trim): x 550..732,
+    // y 318..349 → center (641, 334). The original hit zones were
+    // hardcoded ~45px below the labels (regression this test pins).
+    await canvas.click({ position: { x: 641, y: 334 } });
+    await page.waitForFunction(() => {
+        const g = (window as GameWindow).__game!;
+        return !g.scene.isActive('Pause') && g.scene.isActive('MainGame');
+    }, { timeout: 5_000 });
+
+    // Re-open pause, then click the center of the visible LEAVE label
+    // (measured: x 569..713, y 416..448 → center 641, 432). Expect
+    // MainMenu.
+    await canvas.click({ position: { x: 1230, y: 670 } });
+    await page.waitForFunction(
+        () => (window as GameWindow).__game!.scene.isActive('Pause'),
+        { timeout: 5_000 },
+    );
+    await canvas.click({ position: { x: 641, y: 432 } });
+    await page.waitForFunction(
+        () => (window as GameWindow).__game!.scene.isActive('MainMenu'),
+        { timeout: 5_000 },
+    );
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// 7. Stash — entering the hole's trigger zone hides the hand, then it
 //    auto-resumes its direction of travel
 // ────────────────────────────────────────────────────────────────────────
 

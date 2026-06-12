@@ -19,13 +19,18 @@ export class PauseScene extends Scene
 
         this.add.image(SCREEN_CENTER.x, SCREEN_CENTER.y, 'paused');
 
-        // Hit-zones aligned to the text positions in paused.png. Approximate;
-        // adjust if the visible label area shifts in a future asset rev.
-        const resumeBtn = this.add.rectangle(SCREEN_CENTER.x, 380, 280, 70, 0x000000, 0);
+        // Hit-zones centered on the MEASURED label positions in paused.png
+        // (threshold + trim, 2026-06-12): RESUME text spans x 550..732,
+        // y 318..349 (center 641, 334); LEAVE spans x 569..713, y 416..448
+        // (center 641, 432). The original zones were eyeballed ~45px below
+        // the labels, leaving the visible text essentially unclickable —
+        // re-measure if the asset's label area ever shifts (the e2e pause
+        // test clicks the label centers and will catch drift).
+        const resumeBtn = this.add.rectangle(SCREEN_CENTER.x, 334, 280, 70, 0x000000, 0);
         resumeBtn.setInteractive();
         resumeBtn.on('pointerdown', () => this.resumeGame());
 
-        const leaveBtn = this.add.rectangle(SCREEN_CENTER.x, 470, 240, 60, 0x000000, 0);
+        const leaveBtn = this.add.rectangle(SCREEN_CENTER.x, 432, 240, 60, 0x000000, 0);
         leaveBtn.setInteractive();
         leaveBtn.on('pointerdown', () => this.leaveToMenu());
 
