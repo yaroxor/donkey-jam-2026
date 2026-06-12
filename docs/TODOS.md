@@ -6,16 +6,16 @@ Open work items for `donkey-jam-2026`. v1.0/v2.0 feature backlog, bugs, deferred
 
 ## v1.0 backlog (from DESDOC)
 
-- оп смотрит на стол при заполнении подозрения
-  - Unblocked: stash prototype shipped 2026-06-11, `MainGame.handIsStashed()` predicate exists. Resume via the alarm-reactions design (`~/.gstack/projects/slick_hand_joe/dev-master-design-20260509-083149.md` — advisory; surface its R1-R5 calls for confirmation first).
+- оп смотрит на стол — **shipped 2026-06-12** (`LookAtTableState` in `dialogue-states.ts`). Sus 4 is no longer an instant GameOver: the demon leans over the table (placeholder composite sprite), the player has a 1.5s window to be stashed when the check fires; caught → GameOver, stashed → the whole sus bundle settles to baseline 1 with a hard music cut to track 2.
+  - **Playtest watch-items:** the 1.5s window vs the 1s hide duration means an early hide pops out before the check — intentional timing tension, may need tuning. A wall stun firing the alarm (stun at sus 3) is a near-certain death chain (1s frozen of the 1.5s window) — by design, verify it feels fair. Storm not in yet, so every alarm is a look; the 70/30 weights roll lands with the storm pass.
 - нычка руки — **prototype shipped 2026-06-11; art v2 + bottom-center placement 2026-06-12.** `HiddenState` in `hand-states.ts`, one stash hole at (635, 490) via `LEVELS[].stashSpots`, hole art from the user's second drop (alpha PNG resized to 120x120, `public/assets/hole.png`). Calls made in the prototype (revisit on playtest):
   - Touch → auto-hide 1s; cost = wasted level-timer time only (no loot/sus penalty). Resume continues the direction of travel (no bounce).
   - Re-trigger: auto-step-out — a zone re-arms only after the hand fully leaves it.
   - `Hidden` ⊥ `Stunned` confirmed: collider and overlap callbacks guard against each other.
   - Trigger zone = the solid hole interior (76x70), not the crack span.
   - **Playtest watch-items:** bottom center sits in the stun corridor — turning down near mid-table hides immediately and the pop-out runs into the bottom wall (hide → stun chain); if that feels punishing, nudge the spot or add a re-arm cooldown. Hide has no SFX/animation yet (sink-in tween + plop sound are open polish). Tile count per level and duration scaling still open.
-  - Додж-ценность (задоджить взгляд) приедет вместе с look-at-table.
-- загрузить вопросами
+  - Додж-ценность (задоджить взгляд) приехала вместе с look-at-table (2026-06-12).
+- загрузить вопросами — the alarm infrastructure is in (reaction states, settle, weights slot); needs `StormState` (3s bubble pile-up over the arcade area), storm-bubble art (in flight from the artist; placeholder until then), and the `ALARM_REACTION_WEIGHTS` roll in `progressSus`.
 - Integrate hand movement animation. The artist's GIF was completed during the jam but never wired into the sprite. Replace the static `'hand'` image with proper Phaser animation frames.
 
 ## v2.0 backlog (from DESDOC)

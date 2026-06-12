@@ -192,7 +192,8 @@ export class HiddenState extends State<HandStateName, HandArgs> {
 }
 
 // Stun penalty: freeze velocity, decrement loot (floor 0), bump suspicion
-// (may overflow → endLevel via progressSus), schedule a 1s bounce timer.
+// (may fire the ALARM via progressSus — the scene keeps running either
+// way), schedule a 1s bounce timer.
 // The collider callback in MainGame.create guards against re-firing while
 // stunned, so we don't get a per-frame re-stun from continued body overlap.
 export class StunnedState extends State<HandStateName, HandArgs> {
@@ -217,14 +218,14 @@ export class StunnedState extends State<HandStateName, HandArgs> {
             scene.knockOutLootCell(scene.collectedLootCount);
         }
 
-        // progressSus increments suspicion and returns true if it overflowed
-        // (sus ≥ 4) and triggered endLevel('GameOver'). In that case the
-        // scene is about to pause; scheduling a timer or spawning a visual
-        // indicator would be wasted work (Phaser pauses the per-scene clock
-        // so neither would fire/render meaningfully). Skip both explicitly.
-        if (scene.progressSus()) {
-            return;
-        }
+        // Suspicion bump. May fire the ALARM (sus reaching 4 transitions
+        // the dialogue FSM into a reaction state) — but the alarm is not a
+        // game-over and the scene keeps running, so the stun plays out
+        // normally either way: indicator + 1s bounce. A stun that fires
+        // the alarm is the classic death chain — a frozen hand can rarely
+        // reach a stash before the look-at-table check — but the player
+        // unfreezes with ~0.5s left and a stash-adjacent hand CAN make it.
+        scene.progressSus();
 
         this.indicator = scene.showStunIndicator(scene.hand.x, scene.hand.y, STUN_DURATION_MS);
 
@@ -234,10 +235,9 @@ export class StunnedState extends State<HandStateName, HandArgs> {
     }
 
     exit(): void {
-        // Idempotent: safe to call when the timer/indicator were never
-        // created (sus-overflow short-circuit path) and safe to call after
-        // the timer already fired (Phaser's TimerEvent.remove handles both,
-        // Container.destroy is single-call-safe).
+        // Idempotent: safe on double exit and safe after the timer already
+        // fired (Phaser's TimerEvent.remove handles both, Container.destroy
+        // is single-call-safe).
         this.timer?.remove();
         this.timer = undefined;
         this.indicator?.destroy();

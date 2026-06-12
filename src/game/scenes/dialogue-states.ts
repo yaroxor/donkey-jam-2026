@@ -15,8 +15,16 @@ import { State } from '../../lib/StateMachine.ts';
 import { loadSettings, effectiveVolume } from '../settings.ts';
 import type { MainGame } from './MainGame.ts';
 
-export type DialogueStateName = 'idle' | 'asking' | 'cooldown';
+export type DialogueStateName = 'idle' | 'asking' | 'cooldown' | 'lookAtTable';
 export type DialogueArgs = [MainGame];
+
+// Look-at-table reaction window: the warning visual (demon leaning over the
+// table) fires on state entry; the player has this long to get the hand
+// into a stash before the check fires. Tune in playtest — long enough that
+// a competent player can reach a stash, short enough to punish carelessness.
+// NOTE the tension with HIDDEN_DURATION_MS (1s, hand-states.ts): a hide
+// started in the first ~0.5s of the window pops back out BEFORE the check.
+const LOOK_REACTION_WINDOW_MS = 1500;
 
 // JustDown fires once per physical press; isDown stays true every frame
 // the key is held. Wrap to skip the undefined check at every call site.
@@ -25,10 +33,20 @@ function justDown(key: Phaser.Input.Keyboard.Key | undefined): boolean {
 }
 
 export class IdleState extends State<DialogueStateName, DialogueArgs> {
+    private timer?: Phaser.Time.TimerEvent;
+
     enter(scene: MainGame): void {
-        scene.time.delayedCall(2000, () => {
+        this.timer = scene.time.delayedCall(2000, () => {
             this.stateMachine.transition('asking');
         });
+    }
+
+    // The alarm (progressSus via a wall stun) can yank the FSM out of this
+    // state from outside — without the cancel, the stale timer would later
+    // fire transition('asking') INTO the running reaction state.
+    exit(): void {
+        this.timer?.remove();
+        this.timer = undefined;
     }
 }
 
@@ -67,14 +85,15 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
     }
 
     private fail(scene: MainGame): void {
-        // Wrong-answer feedback fires on EVERY fail, including the one that
-        // triggers game-over (sus 3 → 4). Players hear punctuation at the
-        // most significant screw-up of the run, not just the early ones.
-        // Order matters: SFX before progressSus so the sound lands BEFORE
-        // the scene pauses (paused scenes don't process new audio events,
-        // though already-firing sounds keep playing).
+        // Wrong-answer feedback fires on EVERY fail, including the one
+        // that fires the ALARM (sus 3 → 4) — that's exactly when "you
+        // screwed up" punctuation matters most (the design's R2 call).
+        // SFX first so the crack lands synchronously with the alarm's
+        // warning visual.
         scene.sound.play('crack-head', { volume: effectiveVolume(loadSettings(), 'sfx') });
-        // progressSus owns the sus-coupled music switch (SUS_LEVELS).
+        // progressSus owns the sus-coupled music switch (SUS_LEVELS) and
+        // the alarm trigger. True = the alarm fired and the dialogue FSM
+        // is already in the reaction state — do NOT transition over it.
         if (scene.progressSus()) {
             return;
         }
@@ -83,9 +102,62 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
 }
 
 export class CooldownState extends State<DialogueStateName, DialogueArgs> {
+    private timer?: Phaser.Time.TimerEvent;
+
     enter(scene: MainGame): void {
-        scene.time.delayedCall(5000, () => {
+        this.timer = scene.time.delayedCall(5000, () => {
             this.stateMachine.transition('asking');
         });
+    }
+
+    // Same stale-timer hazard as IdleState: a stun-triggered alarm during
+    // the cooldown breather transitions away from here externally.
+    exit(): void {
+        this.timer?.remove();
+        this.timer = undefined;
+    }
+}
+
+// Look-at-table alarm reaction (DESDOC "Палево": the demon checks the
+// table). Entered by progressSus() when sus hits 4 — NOT a game-over by
+// itself: the warning visual (demon leaning over the table) fires
+// immediately, the player gets LOOK_REACTION_WINDOW_MS to get the hand
+// stashed, then the check fires instantaneously. Stashed → the whole
+// sus-coupled bundle settles to baseline and dialogue resumes; caught →
+// the run ends. The hand keeps full physics during the window — a wall
+// stun mid-window (1s frozen) is usually fatal, by design.
+export class LookAtTableState extends State<DialogueStateName, DialogueArgs> {
+    private timer?: Phaser.Time.TimerEvent;
+
+    enter(scene: MainGame): void {
+        scene.showLookOver();
+        this.timer = scene.time.delayedCall(LOOK_REACTION_WINDOW_MS, () => {
+            // Same-clock-pass guard: the level timer can expire (and
+            // endLevel) in the SAME frame this window elapses — Phaser
+            // fires all elapsed timers of a pass, and a mid-pass pause
+            // doesn't stop the rest. Without this, a stashed hand would
+            // "survive" into a settle that restarts music over the
+            // GameOver overlay (game-scoped SoundManager).
+            if (scene.ended) {
+                return;
+            }
+            if (scene.handIsStashed()) {
+                scene.settleAlarm();
+                // Per the design: reactions end by transitioning to the
+                // next question, not to a breather.
+                this.stateMachine.transition('asking');
+            } else {
+                // Caught. No exit runs (the scene pauses) — the leaning
+                // demon stays on screen behind the GameOver overlay,
+                // which reads as "caught in the act".
+                scene.endLevel('GameOver');
+            }
+        });
+    }
+
+    exit(scene: MainGame): void {
+        scene.hideLookOver();
+        this.timer?.remove();
+        this.timer = undefined;
     }
 }

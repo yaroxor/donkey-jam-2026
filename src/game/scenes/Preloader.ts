@@ -68,6 +68,9 @@ export class Preloader extends Scene
         this.load.image('demon2', 'demon/2.png');
         this.load.image('demon3', 'demon/3.png');
         this.load.image('demon4', 'demon/4.png');
+        // Look-at-table reaction pose (placeholder composite; regenerate
+        // via tools/art/compose_look_over.sh, artist art replaces in place)
+        this.load.image('look-over', 'demon/look-over.png');
 
         this.load.image('hand', 'hand.png');
         this.load.image('hole', 'hole.png');

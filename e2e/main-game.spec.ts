@@ -207,17 +207,15 @@ test('reaching loot target triggers Win scene', async ({ page }) => {
 });
 
 // ────────────────────────────────────────────────────────────────────────
-// 5. GameOver — 4 wrong dialogue answers trigger sus-overflow GameOver
+// 5+6. Alarm (look-at-table) — 4 wrong answers fire the alarm; the check
+//      catches an unstashed hand and spares a hidden one
 // ────────────────────────────────────────────────────────────────────────
 
-test('4 wrong dialogue answers trigger GameOver', async ({ page }) => {
-    await seedSettings(page);
-    await loadAndStart(page);
-
-    // Wait for the dialogue FSM to enter 'asking' (after the 2s idle), then
-    // press a wrong-answer key. Repeat 4 times: progressSus goes 0→1→2→3→4
-    // and the 4th wrong overflows to GameOver via endLevel('GameOver').
-    for (let i = 0; i < 4; i++) {
+// Drive `count` wrong answers through the dialogue loop, asserting the
+// sus-coupled music ladder along the way. The 4th wrong fires the ALARM
+// (lookAtTable reaction), not an immediate GameOver.
+async function driveWrongAnswers(page: Page, count: number): Promise<void> {
+    for (let i = 0; i < count; i++) {
         await page.waitForFunction(() => {
             const scene = (window as GameWindow).__game?.scene.getScene('MainGame') as Phaser.Scene & {
                 dialogueFSM?: { is: (name: string) => boolean };
@@ -243,13 +241,12 @@ test('4 wrong dialogue answers trigger GameOver', async ({ page }) => {
 
         await page.keyboard.press(wrongKey);
 
-        // Wait for AskingState to exit (it transitions to cooldown on
-        // wrong-answer fail, OR the 4th wrong triggers GameOver and the
-        // scene pauses entirely — both leave 'asking').
+        // Wait for AskingState to exit (cooldown on a normal wrong-answer
+        // fail; the 4th wrong fires the alarm and lands in lookAtTable —
+        // both leave 'asking').
         await page.waitForFunction(() => {
             const game = (window as GameWindow).__game;
             if (!game) return false;
-            if (game.scene.isActive('GameOver')) return true; // 4th wrong: early exit
             const scene = game.scene.getScene('MainGame') as Phaser.Scene & {
                 dialogueFSM?: { is: (name: string) => boolean };
             };
@@ -269,16 +266,88 @@ test('4 wrong dialogue answers trigger GameOver', async ({ page }) => {
             }, expectedTrack), { timeout: 3_000 }).toBe(true);
         }
     }
+}
 
-    // After 4 wrongs, GameOver scene should be active.
+test('4 wrong answers fire the alarm; an unstashed hand is caught', async ({ page }) => {
+    await seedSettings(page);
+    await loadAndStart(page);
+    await driveWrongAnswers(page, 4);
+
+    // The 4th wrong fires the ALARM: the dialogue FSM enters the
+    // look-at-table reaction and the warning visual shows — the run is
+    // NOT over yet.
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            dialogueFSM?: { is: (name: string) => boolean };
+            lookOverSprite?: { visible: boolean };
+        };
+        return (scene.dialogueFSM?.is('lookAtTable') ?? false)
+            && (scene.lookOverSprite?.visible ?? false);
+    }, { timeout: 5_000 });
+
+    // The hand is roaming, not stashed → the check (1.5s later) catches
+    // it and ends the run.
     await expect.poll(
         () => page.evaluate(() => (window as GameWindow).__game!.scene.isActive('GameOver')),
         { timeout: 10_000 },
     ).toBe(true);
 });
 
+test('alarm survived by hiding in the stash: sus settles to baseline', async ({ page }) => {
+    await seedSettings(page);
+    await loadAndStart(page);
+    await driveWrongAnswers(page, 4);
+
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            dialogueFSM?: { is: (name: string) => boolean };
+        };
+        return scene.dialogueFSM?.is('lookAtTable') ?? false;
+    }, { timeout: 5_000 });
+
+    // Hide mid-window so the 1s hidden span covers the check at 1.5s.
+    // The hand FSM is nudged directly (steering-into-the-stash mechanics
+    // are covered by the stash scenario; this test owns the CHECK logic).
+    await page.waitForTimeout(600);
+    await page.evaluate(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            handFSM?: { transition: (name: string) => void };
+        };
+        scene.handFSM?.transition('hidden');
+    });
+
+    // Check passes → the whole sus-coupled bundle settles and dialogue
+    // resumes with the next question.
+    await page.waitForFunction(() => {
+        const g = (window as GameWindow).__game!;
+        if (!g.scene.isActive('MainGame')) return false;
+        const scene = g.scene.getScene('MainGame') as Phaser.Scene & {
+            dialogueFSM?: { is: (name: string) => boolean };
+        };
+        return scene.dialogueFSM?.is('asking') ?? false;
+    }, { timeout: 5_000 });
+
+    const settled = await page.evaluate(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            currentSus?: number;
+            music?: { isPlaying: (k: string) => boolean };
+            lookOverSprite?: { visible: boolean };
+        };
+        return {
+            sus: scene.currentSus,
+            baselineMusic: scene.music?.isPlaying('music2') ?? false,
+            lookVisible: scene.lookOverSprite?.visible,
+            gameOver: (window as GameWindow).__game!.scene.isActive('GameOver'),
+        };
+    });
+    expect(settled.sus).toBe(1);
+    expect(settled.baselineMusic).toBe(true);
+    expect(settled.lookVisible).toBe(false);
+    expect(settled.gameOver).toBe(false);
+});
+
 // ────────────────────────────────────────────────────────────────────────
-// 6. Pause menu — RESUME and LEAVE respond to clicks on their labels
+// 7. Pause menu — RESUME and LEAVE respond to clicks on their labels
 // ────────────────────────────────────────────────────────────────────────
 
 test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => {
@@ -322,7 +391,7 @@ test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => 
 });
 
 // ────────────────────────────────────────────────────────────────────────
-// 7. Stash — entering the hole's trigger zone hides the hand, then it
+// 8. Stash — entering the hole's trigger zone hides the hand, then it
 //    auto-resumes its direction of travel
 // ────────────────────────────────────────────────────────────────────────
 
@@ -384,7 +453,7 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
 });
 
 // ────────────────────────────────────────────────────────────────────────
-// 8. Button probe — every interactive responds at its VISUAL center.
+// 9. Button probe — every interactive responds at its VISUAL center.
 //    Pins the repo convention (default center origin, positioned at the
 //    visual center) against regressions and against asset/coordinate
 //    drift. Extend this when adding a button.

@@ -14,7 +14,7 @@ TILT_DEG=-25      # negative = lean left (demon sits screen-right, table is left
 EYES_TILT_DEG=-25 # eyes overlay rotation; matches the demon lean by default
 EYES_WIDTH=100    # eyes overlay width in px after scaling (native 438 keyed)
 EYES_X=95         # eyes top-left X on the rotated-demon canvas
-EYES_Y=225        # eyes top-left Y on the rotated-demon canvas
+EYES_Y=200        # eyes top-left Y on the rotated-demon canvas
 
 set -euo pipefail
 

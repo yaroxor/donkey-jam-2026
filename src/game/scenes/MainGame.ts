@@ -5,7 +5,7 @@ import {
     ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
     HAND_SPEED,
     STASH_TRIGGER_SIZE,
-    SUS_LEVELS, MUSIC_HALF_TACT_SECONDS,
+    SUS_LEVELS, SUS_BASELINE, MUSIC_HALF_TACT_SECONDS,
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
     LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
@@ -23,7 +23,7 @@ import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
 import { log } from '../debug.ts';
 import { shuffle } from '../../lib/utils.ts';
 import {
-    IdleState, AskingState, CooldownState,
+    IdleState, AskingState, CooldownState, LookAtTableState,
     type DialogueStateName, type DialogueArgs,
 } from './dialogue-states.ts';
 
@@ -119,11 +119,21 @@ export class MainGame extends Scene
 
     dialogueFSM: StateMachine<DialogueStateName, DialogueArgs>;
     handFSM: StateMachine<HandStateName, HandArgs>;
+    // Staged-reveal timers from showAskingUI (bubbles, question, answers).
+    // Captured so hideAskingUI can cancel them: an alarm fired by a wall
+    // stun can force-exit AskingState DURING the 0-900ms staging window,
+    // and uncancelled stage callbacks would paint dialogue UI into the
+    // reaction state (the alarm design's R4 caveat, now reachable).
+    askingStagingTimers: Phaser.Time.TimerEvent[];
 
     scales: Phaser.GameObjects.Image[];
     demons: Phaser.GameObjects.Image[];
     skels: Phaser.GameObjects.Image[];
     currentSus: number;
+    // Look-at-table reaction visual: the demon leaning over the table
+    // (placeholder composite, tools/art/compose_look_over.sh). Hidden
+    // except while LookAtTableState runs.
+    lookOverSprite: Phaser.GameObjects.Image;
 
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handVis: Phaser.GameObjects.Graphics;
@@ -481,17 +491,18 @@ export class MainGame extends Scene
         const questions: Array<string> = Object.keys(QAndA);
         const question: string = questions[Math.floor(Math.random()*questions.length)];
 
-        this.time.delayedCall(0, () => {
+        this.askingStagingTimers = [];
+        this.askingStagingTimers.push(this.time.delayedCall(0, () => {
             this.bubbleEnemy.setAlpha(1);
-        })
-        this.time.delayedCall(300, () => {
+        }))
+        this.askingStagingTimers.push(this.time.delayedCall(300, () => {
             const questionImage = this.add.image((GAME_WIDTH - 200), 430, question);
             questionImage.setDepth(1);
             this.emojisImages.add(questionImage);
-        })
-        this.time.delayedCall(600, () => {
+        }))
+        this.askingStagingTimers.push(this.time.delayedCall(600, () => {
             this.bubblePlayer.setAlpha(1);
-        })
+        }))
 
         const question2 = question.replace(/Demon$/, '');
         const answer: string = QAndA[question];
@@ -507,7 +518,7 @@ export class MainGame extends Scene
 
         let delay = 700
         for (let i = 0; i < 3; i++) {
-            this.time.delayedCall(delay, () => {
+            this.askingStagingTimers.push(this.time.delayedCall(delay, () => {
                 this.answerConstructor(answerPositions[i], this.answerKeysLetters[i], answers[i]);
                 if (i === answers.length - 1) {
                     // Last answer rendered: now bind keys and signal ready.
@@ -516,7 +527,7 @@ export class MainGame extends Scene
                     this.bindAnswerKeys(rightLetter);
                     onReady();
                 }
-            });
+            }));
             if (i == rightNumber) {
                 rightLetter = this.answerKeysLetters[i];
             }
@@ -547,38 +558,85 @@ export class MainGame extends Scene
         }
     }
 
-    // Returns true if game-over was triggered (caller should stop further work).
+    // Advance suspicion by one. Returns true when the ALARM fired (sus
+    // reached 4) — the caller's dialogue flow has been hijacked (the
+    // dialogue FSM is now in a reaction state) and it must stop without
+    // transitioning anywhere itself. Reaching full sus is NOT a game-over
+    // anymore (DESDOC "Палево"): the reaction's check decides the run.
+    // The alarm trigger deliberately lives HERE, not in a setSusLevel-like
+    // setter — settle paths that re-apply level visuals must never re-roll
+    // the alarm (the design's one-way-ratchet placement).
     progressSus(): boolean
     {
-        this.scales[this.currentSus].setAlpha(0);
-        this.demons[this.currentSus].setAlpha(0);
-        this.skels[this.currentSus].setAlpha(0);
+        // Already mid-reaction (a wall stun during the look window lands
+        // here): sus is pegged at full — re-triggering would re-enter the
+        // reaction state and RESTART its window (the FSM has no same-state
+        // guard), gifting the player extra reaction time per crash.
+        if (this.dialogueFSM.is('lookAtTable')) {
+            return true;
+        }
 
         this.currentSus += 1;
         log.sus(`progressSus: currentSus = ${this.currentSus}`)
 
         if (this.currentSus >= 4) {
-            this.endLevel('GameOver');
+            // Stage-3 visuals stay lit and music4 keeps playing — the
+            // reaction state owns the screen from here until settle (or
+            // endLevel on a failed check). Storm joins with its art pass;
+            // until then every alarm is a look-at-table.
+            log.sus(`ALARM -> lookAtTable`);
+            this.dialogueFSM.transition('lookAtTable');
             return true;
         }
 
-        this.scales[this.currentSus].setAlpha(1);
-        this.demons[this.currentSus].setAlpha(1);
-        this.skels[this.currentSus].setAlpha(1);
+        this.applySusStage(this.currentSus);
 
         // Sus-coupled music progression: every suspicion level has its
         // track (SUS_LEVELS); switches are tact-aligned and seek-carrying.
-        // This inline switch is the bridge until setSusLevel(n) lands with
-        // alarm reactions and absorbs all SUS_LEVELS bindings (music +
-        // sprite stages). Music only ever escalates in v1.0 — sus never
-        // decreases until the alarm-reactions settle mechanic ships.
+        // Music escalates with sus and settles only via settleAlarm().
         this.music.smoothSwitch(SUS_LEVELS[this.currentSus].music, MUSIC_HALF_TACT_SECONDS);
         log.music(`sus ${this.currentSus} -> ${SUS_LEVELS[this.currentSus].music}`);
         return false;
     }
 
+    // Light exactly one stage of the three sus-coupled sprite stacks.
+    private applySusStage(level: number): void {
+        this.scales.forEach((s, i) => s.setAlpha(i === level ? 1 : 0));
+        this.demons.forEach((d, i) => d.setAlpha(i === level ? 1 : 0));
+        this.skels.forEach((s, i) => s.setAlpha(i === level ? 1 : 0));
+    }
+
+    // LookAtTableState visuals: the demon leaves his seat (stage sprite
+    // off) and leans over the table.
+    showLookOver(): void {
+        this.demons.forEach(d => d.setAlpha(0));
+        this.lookOverSprite.setVisible(true);
+    }
+
+    hideLookOver(): void {
+        this.lookOverSprite.setVisible(false);
+        // Demon stage sprite comes back via settleAlarm's applySusStage —
+        // the only survive path out of the reaction.
+    }
+
+    // Post-alarm settle: the WHOLE sus-coupled bundle drops together to
+    // the baseline (counter, all three sprite stacks, music). Music is a
+    // single hard cut to the baseline track — the big-release moment —
+    // not a tact-aligned smooth switch.
+    settleAlarm(): void {
+        this.currentSus = SUS_BASELINE;
+        this.applySusStage(SUS_BASELINE);
+        this.music.play(SUS_LEVELS[SUS_BASELINE].music);
+        log.sus(`alarm settled: sus = ${SUS_BASELINE}`);
+    }
+
     hideAskingUI() {
         log.dialogue(`hideAskingUI fired at ${this.time.now}`)
+        // Cancel any still-pending staged-reveal callbacks (see the
+        // askingStagingTimers field comment) — idempotent, remove() is
+        // safe on already-fired timers.
+        this.askingStagingTimers?.forEach(t => t.remove());
+        this.askingStagingTimers = [];
         this.bubblePlayer.setAlpha(0);
         this.bubbleEnemy.setAlpha(0);
         this.emojisImages.clear(false, true);
@@ -620,6 +678,7 @@ export class MainGame extends Scene
                 idle: new IdleState(),
                 asking: new AskingState(),
                 cooldown: new CooldownState(),
+                lookAtTable: new LookAtTableState(),
             },
             [this],
         );
@@ -708,6 +767,16 @@ export class MainGame extends Scene
             this.add.image(200, 400, 'skel4'),
         ];
         this.skels.slice(1).forEach(s => s.setAlpha(0));
+
+        // Look-at-table warning visual — the demon leaning over the table
+        // from his seat side. look-over.png is 749x795 native; scaled and
+        // positioned so the lean covers the arcade area's right half
+        // without covering the suspicion meter (top-right HUD) — verified
+        // by e2e screenshot. Depth above table/hand/loot, below HUD (2).
+        this.lookOverSprite = this.add.image(780, 400, 'look-over')
+            .setScale(0.75)
+            .setDepth(2)
+            .setVisible(false);
 
         // ARCADE
 
@@ -891,16 +960,20 @@ export class MainGame extends Scene
     }
 
     // Single exit point for "the level has ended" transitions — either via
-    // a loss path (sus full, block crash, timer expiry) or the win path
-    // (loot target hit). Pause the scene, stop all music (scene.pause alone
-    // doesn't stop sound because the SoundManager is game-scoped, not
-    // scene-scoped — handled here via this.music.stopAll), then launch the
-    // appropriate overlay.
+    // a loss path (caught by the look-at-table check, timer expiry) or the
+    // win path (loot target hit). Pause the scene, stop all music
+    // (scene.pause alone doesn't stop sound because the SoundManager is
+    // game-scoped, not scene-scoped — handled here via this.music.stopAll),
+    // then launch the appropriate overlay.
+    //
+    // Public: LookAtTableState's failed check calls it (the design's R5 —
+    // the second game-over callsite arrived, and exposing the single exit
+    // point beats extracting a wrapper).
     //
     // pauseGame (the player-triggered ESC pause) intentionally does NOT route
     // through here — it preserves music for continuity when the player
     // resumes mid-game.
-    private endLevel(target: 'GameOver' | 'Win'): void {
+    endLevel(target: 'GameOver' | 'Win'): void {
         // Idempotency guard. Without this, a near-simultaneous Win-from-
         // pickup + GameOver-from-timer (or any double-trigger) would launch
         // both overlays on top of each other. The `ended` flag also gates
@@ -935,10 +1008,11 @@ export class MainGame extends Scene
         }
 
         this.dialogueFSM.step();
-        // dialogueFSM.step() can route through AskingState.fail → progressSus
-        // → endLevel('GameOver'), which sets `this.ended = true`. Re-check
-        // the guard before driving the hand FSM so it can't transition or
-        // mutate state on an about-to-pause scene the same frame.
+        // Purely defensive re-check: since the alarm pass, no synchronous
+        // path inside dialogueFSM.step() reaches endLevel anymore (sus 4
+        // fires the alarm; the look check's endLevel runs from the clock
+        // pass before update()). Kept because it is cheap and a future
+        // dialogue state may reintroduce a same-frame end path.
         if (this.ended) {
             return;
         }

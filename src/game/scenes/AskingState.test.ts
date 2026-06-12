@@ -15,9 +15,10 @@ import { makeFakeScene, type FakeScene } from '../../test/phaser-stubs.ts';
 //   - exit() before onReady is safe (no timer, no crash)
 //   - exit() always clears the dialogue UI via hideAskingUI
 //
-// Out of scope: AskingState.execute() (input-polling path — unchanged by
-// the refactor) and the private fail() helper (called from the timeout's
-// fired callback; behavior unchanged).
+// Out of scope: AskingState.execute() (input-polling path; touches the
+// runtime Phaser global) and the private fail() helper — its alarm-path
+// behavior (4th wrong fires lookAtTable instead of game-over) is covered
+// by the e2e alarm scenarios and dialogue-states.test.ts.
 //
 // Mock surface beyond phaser-stubs: scene.showAskingUI + scene.hideAskingUI
 // (project-specific MainGame methods, stubbed locally below).

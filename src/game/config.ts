@@ -73,11 +73,12 @@ export const MUSIC_HALF_TACT_SECONDS: number = 1.5;
 
 // Suspicion-level lookup table — the multi-binding slot for anything
 // coupled to the suspicion meter (per ARCHITECTURE.md "State modeling").
-// v1.0 binds music only; sprite-stage selection still lives in the
-// progressSus image arrays and migrates here when setSusLevel(n) lands
-// with alarm reactions. Index = current sus (0..3); sus 4 is GameOver and
-// has no row (when alarm reactions ship, the reaction states own music
-// from alarm-fire to settle).
+// Carries music; sprite stages bind via MainGame.applySusStage(level)
+// (escalation and settle want different music transitions, so a single
+// setSusLevel(n) setter was rejected as-built). Index = current sus
+// (0..3); sus 4 is the ALARM and has no row — the reaction state owns
+// the screen from alarm-fire to settle, and the sus-3 visuals/track
+// hold underneath until the composer's reaction tracks land.
 //
 // Keys music1/music2 are the musician's delivered pieces; music3/music4
 // are bass-boosted placeholder derivations of track 2 (regenerate via
@@ -89,10 +90,16 @@ export interface SusLevelCfg {
 
 export const SUS_LEVELS: SusLevelCfg[] = [
     { music: 'music1' },  // sus 0 — calm; plays from level start only
-    { music: 'music2' },  // sus 1 — first slip
+    { music: 'music2' },  // sus 1 — first slip; also the post-alarm baseline
     { music: 'music3' },  // sus 2 — tense
     { music: 'music4' },  // sus 3 — one mistake from busted
 ];
+
+// Post-alarm settle level (DESDOC: "После 1го палева возвращается не до
+// идеального состояния" — surviving an alarm drops the whole sus-coupled
+// bundle to this level, not to zero). Alarm-reactions design decision:
+// baseline 1 of 4.
+export const SUS_BASELINE = 1;
 
 // Per-level configuration. v1.0 has one entry; multi-level work (adventure
 // map, DESDOC TODO v2.0) expands this. Other passes add fields as they ship
@@ -102,8 +109,9 @@ export interface LevelConfig {
     lootTarget: number;
     timerSeconds: number;
     // Stash hole centers. Entering a hole's trigger zone auto-hides the hand
-    // for ~1s (HiddenState) — dodge value arrives with the look-at-table
-    // mechanic; until then the cost is wasted level-timer time.
+    // for ~1s (HiddenState) — being hidden when the look-at-table check
+    // fires is what survives an alarm; an accidental step just wastes
+    // level-timer time.
     stashSpots: Pos[];
 }
 

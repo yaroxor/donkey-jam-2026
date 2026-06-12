@@ -31,11 +31,11 @@ words = [
   # project / gamedev jargon
   "gstack", "desdoc", "gamedev", "sfx", "skel", "skels", "sus", "hitbox",
   "hitboxes", "playtest", "playtests", "playthrough", "respawn", "respawns",
-  "stash", "stun", "permastun", "looped", "gameplay", "speedrun", "cooldown",
+  "stash", "stashed", "unstashed", "stun", "permastun", "looped", "gameplay", "speedrun", "cooldown",
   "crossfade", "substate", "substates", "interactives", "hotspot", "keepout",
   "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
   "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra", "downscaled",
-  "unclickable", "eyeballed",
+  "unclickable", "eyeballed", "callsite",
   # acronyms / key clusters
   "aabb", "tbd", "oeu", "asd", "cdp", "heic", "raf", "ieee",
   # tokenizer artifacts: hex colors in prose ("0xaa44ff" -> "xaa"), hyphen
@@ -54,7 +54,8 @@ words = [
   "dvorak", "colemak", "qwerty", "jcuken",
   # Russian slang / words the ru dictionary lacks. Only forms that appear in
   # gate-checked files (TODOS, ARCHITECTURE, code) belong here -- DESDOC-only
-  # slang (булетхел, сабвейсерв, палево, лут) needs no entry, DESDOC is ignored.
+  # slang (булетхел, сабвейсерв, лут) needs no entry, DESDOC is ignored.
+  # (палево graduated INTO code comments with the alarm pass.)
   "нычка", "задоджить", "проебать", "хитбокс", "хитбоксов", "орк", "хп", "врез",
-  "додж",
+  "додж", "палево", "палева",
 ]

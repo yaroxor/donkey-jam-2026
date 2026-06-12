@@ -16,8 +16,8 @@ import { makeFakeScene, type FakeScene, type FakeTimerEvent } from '../../test/p
 //   - LeftState/RightState.execute() handles wrap + vertical-safe-zone gate
 //   - UpState/DownState.execute() handles unconditional horizontal turn
 //   - StunnedState.enter(): velocity zeroed, loot decrement floors at 0,
-//     suspicion bump may short-circuit (sus overflow), 1s timer scheduled
-//     to OPPOSITE[lastDirection]
+//     suspicion bump (the stun plays out even when it fires the alarm),
+//     1s timer scheduled to OPPOSITE[lastDirection]
 //   - StunnedState.exit(): timer cancellation, idempotent
 //   - HiddenState (stash hide): freeze + vanish, NO stun-style penalties,
 //     1s timer resumes lastDirection (same, not opposite); exit restores
@@ -425,8 +425,8 @@ describe('StunnedState.enter — loot decrement floors at 0', () => {
     });
 });
 
-describe('StunnedState.enter — suspicion bump + game-over short-circuit', () => {
-    it('schedules the 1s timer and spawns the visual indicator when progressSus returns false', () => {
+describe('StunnedState.enter — suspicion bump', () => {
+    it('schedules the 1s timer and spawns the visual indicator', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(false) });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -442,7 +442,10 @@ describe('StunnedState.enter — suspicion bump + game-over short-circuit', () =
         expect(scene.showStunIndicator).toHaveBeenCalledWith(scene.hand.x, scene.hand.y, 1000);
     });
 
-    it('does NOT schedule the timer OR spawn the indicator when progressSus returns true', () => {
+    it('STILL schedules the timer and indicator when progressSus fires the alarm', () => {
+        // The alarm is not a game-over: the scene keeps running and the
+        // stun must play out normally (the old behavior skipped both when
+        // sus overflow meant an immediate endLevel — that path is gone).
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(true) });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -450,8 +453,8 @@ describe('StunnedState.enter — suspicion bump + game-over short-circuit', () =
         fsm.step();
 
         expect(scene.progressSus).toHaveBeenCalledTimes(1);
-        expect(scene.time.delayedCall).not.toHaveBeenCalled();
-        expect(scene.showStunIndicator).not.toHaveBeenCalled();
+        expect(scene.time.delayedCall).toHaveBeenCalledTimes(1);
+        expect(scene.showStunIndicator).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -600,12 +603,13 @@ describe('StunnedState.exit', () => {
         expect(indicator.destroy).toHaveBeenCalledTimes(1);
     });
 
-    it('is idempotent when no timer or indicator were created (sus-overflow path)', () => {
+    it('is idempotent on double exit', () => {
         const stunned = new StunnedState();
-        const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(true) });
+        const scene = makeFakeMainGame();
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
         fsm.step();
 
+        stunned.exit();
         expect(() => stunned.exit()).not.toThrow();
     });
 });
