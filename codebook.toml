@@ -33,15 +33,15 @@ words = [
   "stash", "stun", "permastun", "looped", "gameplay", "speedrun", "cooldown",
   "crossfade", "substate", "substates", "interactives", "hotspot", "keepout",
   "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
-  "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra",
+  "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra", "downscaled",
   # acronyms / key clusters
-  "aabb", "tbd", "oeu", "asd",
+  "aabb", "tbd", "oeu", "asd", "cdp",
   # tokenizer artifacts: hex colors in prose ("0xaa44ff" -> "xaa"), hyphen
   # splits of valid spellings ("pre-empts" -> "empts", "re-entrancy" -> "entrancy")
   "xaa", "empts", "entrancy",
   # possessives codebook tokenizes as distinct words
   "phaser's", "vite's", "preloader's", "settings's", "desdoc's", "repo's",
-  "fsm's", "osmose's", "ceil's", "ts's", "jam's",
+  "fsm's", "osmose's", "ceil's", "ts's", "jam's", "collider's",
   # synth / audio
   "karplus", "adsr", "midi", "bpm", "wav", "ostinato",
   # people / names
@@ -52,4 +52,5 @@ words = [
   # gate-checked files (TODOS, ARCHITECTURE, code) belong here -- DESDOC-only
   # slang (булетхел, сабвейсерв, палево, лут) needs no entry, DESDOC is ignored.
   "нычка", "задоджить", "проебать", "хитбокс", "хитбоксов", "орк", "хп", "врез",
+  "додж",
 ]
