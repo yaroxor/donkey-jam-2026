@@ -32,12 +32,14 @@ export class MainMenu extends Scene
         this.infoScreen.setDepth(2);
         this.infoScreen.setAlpha(0);
 
-        // 300x91
-        this.startButton = this.add.image((GAME_WIDTH - 300 - 72), (GAME_HEIGHT - 91 - 70), 'start1');
-        this.startButton.setOrigin(0);
+        // start1 sprite is 300x91. All interactives use the default center
+        // origin and are positioned at their visual center (repo convention;
+        // hit areas follow origin correctly — probe-verified). Center =
+        // jam-era top-left (GAME_WIDTH-300-72, GAME_HEIGHT-91-70) + half
+        // size, so the visual position is unchanged.
+        this.startButton = this.add.image((GAME_WIDTH - 72 - 300 / 2), (GAME_HEIGHT - 70 - 91 / 2), 'start1');
         this.startButton.setInteractive();
-        this.startButtonHovered = this.add.image((GAME_WIDTH - 300 - 72), (GAME_HEIGHT - 91 - 70), 'start-hovered')
-        this.startButtonHovered.setOrigin(0);
+        this.startButtonHovered = this.add.image((GAME_WIDTH - 72 - 300 / 2), (GAME_HEIGHT - 70 - 91 / 2), 'start-hovered')
         this.startButtonHovered.setAlpha(0);
         this.startButton.on('pointerover', () => {
             this.startButtonHovered.setAlpha(1);
@@ -50,12 +52,10 @@ export class MainMenu extends Scene
             this.startButtonHovered.setAlpha(0);
         })
 
-        // 152x67
-        this.infoButton = this.add.image((GAME_WIDTH - 300 - 70), (GAME_HEIGHT - 67 - 10), 'info1');
-        this.infoButton.setOrigin(0);
+        // info1 sprite is 152x67; center origin, positioned at visual center.
+        this.infoButton = this.add.image((GAME_WIDTH - 300 - 70 + 152 / 2), (GAME_HEIGHT - 10 - 67 / 2), 'info1');
         this.infoButton.setInteractive();
-        this.infoButtonHovered = this.add.image((GAME_WIDTH - 300 - 70), (GAME_HEIGHT - 67 - 10), 'info-hovered');
-        this.infoButtonHovered.setOrigin(0);
+        this.infoButtonHovered = this.add.image((GAME_WIDTH - 300 - 70 + 152 / 2), (GAME_HEIGHT - 10 - 67 / 2), 'info-hovered');
         this.infoButtonHovered.setAlpha(0);
         this.infoButton.on('pointerover', () => {
             this.infoButtonHovered.setAlpha(1);
@@ -68,12 +68,10 @@ export class MainMenu extends Scene
             this.infoButtonHovered.setAlpha(0);
         })
 
-        // 152x67
-        this.optionsButton = this.add.image((GAME_WIDTH - 152 - 70), (GAME_HEIGHT - 67 - 10), 'options1');
-        this.optionsButton.setOrigin(0);
+        // options1 sprite is 152x67; center origin, positioned at visual center.
+        this.optionsButton = this.add.image((GAME_WIDTH - 70 - 152 / 2), (GAME_HEIGHT - 10 - 67 / 2), 'options1');
         this.optionsButton.setInteractive();
-        this.optionsButtonHovered = this.add.image((GAME_WIDTH - 152 - 70), (GAME_HEIGHT - 67 - 10), 'options-hovered')
-        this.optionsButtonHovered.setOrigin(0);
+        this.optionsButtonHovered = this.add.image((GAME_WIDTH - 70 - 152 / 2), (GAME_HEIGHT - 10 - 67 / 2), 'options-hovered')
         this.optionsButtonHovered.setAlpha(0);
         this.optionsButton.on('pointerover', () => {
             this.optionsButtonHovered.setAlpha(1);

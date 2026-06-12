@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// End-to-end smoke + 5 core scenarios for slick_hand_joe.
+// End-to-end smoke + scenario tests for slick_hand_joe.
 //
 // What these test that vitest can't: scene-lifecycle ordering (init →
 // create → update), real Phaser keyboard input wiring, real arcade-physics
@@ -368,4 +368,80 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
         };
         return (scene.handFSM?.is('down') ?? false) && (scene.hand?.visible ?? false);
     }, { timeout: 4_000 });
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// 8. Button probe — every interactive responds at its VISUAL center.
+//    Pins the repo convention (default center origin, positioned at the
+//    visual center) against regressions and against asset/coordinate
+//    drift. Extend this when adding a button.
+// ────────────────────────────────────────────────────────────────────────
+
+test('buttons respond at their visual centers', async ({ page }) => {
+    await seedSettings(page);
+    await page.goto('/');
+    await page.waitForFunction(() => {
+        return (window as GameWindow).__game?.scene.isActive('MainMenu') ?? false;
+    }, { timeout: 15_000 });
+    const canvas = page.locator('canvas');
+    const settings = () => page.evaluate(
+        () => JSON.parse(localStorage.getItem('slick_hand_joe:settings') ?? '{}') as Record<string, unknown>,
+    );
+
+    // MainMenu OPTIONS (152x67 sprite centered at 1134, 676.5) → Settings.
+    await canvas.click({ position: { x: 1134, y: 677 } });
+    await page.waitForFunction(
+        () => (window as GameWindow).__game!.scene.isActive('Settings'),
+        { timeout: 5_000 },
+    );
+
+    // Settings music '+' (40x40 rect centered at 880, 180): seeded volume
+    // is 0 (headless audio), one click steps it to 0.1 and saves.
+    await canvas.click({ position: { x: 880, y: 180 } });
+    await expect.poll(async () => (await settings()).musicVolume).toBeCloseTo(0.1);
+
+    // Settings BACK (180x60 rect centered at 640, 580) → MainMenu.
+    await canvas.click({ position: { x: 640, y: 580 } });
+    await page.waitForFunction(
+        () => (window as GameWindow).__game!.scene.isActive('MainMenu'),
+        { timeout: 5_000 },
+    );
+
+    // MainMenu INFO (152x67 sprite centered at 986, 676.5) → info screen
+    // shows (alpha 1); ESC hides it again (isDown poll in update()).
+    await canvas.click({ position: { x: 986, y: 677 } });
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainMenu') as Phaser.Scene & {
+            infoScreen?: { alpha: number };
+        };
+        return scene.infoScreen?.alpha === 1;
+    }, { timeout: 5_000 });
+    await page.keyboard.down('Escape');
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainMenu') as Phaser.Scene & {
+            infoScreen?: { alpha: number };
+        };
+        return scene.infoScreen?.alpha === 0;
+    }, { timeout: 5_000 });
+    await page.keyboard.up('Escape');
+
+    // MainMenu START (300x91 sprite centered at 1058, 604.5) → MainGame.
+    await canvas.click({ position: { x: 1058, y: 605 } });
+    await page.waitForFunction(() => {
+        const g = (window as GameWindow).__game;
+        if (!g?.scene.isActive('MainGame')) return false;
+        const scene = g.scene.getScene('MainGame') as Phaser.Scene & { handFSM?: unknown };
+        return scene.handFSM !== undefined;
+    }, { timeout: 10_000 });
+
+    // MainGame HUD: mute (text emoji centered at 1150, 670) flips the
+    // persisted muted flag; pause (59x57 sprite centered at 1230, 670)
+    // opens the Pause overlay.
+    await canvas.click({ position: { x: 1150, y: 670 } });
+    await expect.poll(async () => (await settings()).muted).toBe(true);
+    await canvas.click({ position: { x: 1230, y: 670 } });
+    await page.waitForFunction(
+        () => (window as GameWindow).__game!.scene.isActive('Pause'),
+        { timeout: 5_000 },
+    );
 });

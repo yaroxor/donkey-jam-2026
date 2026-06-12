@@ -135,18 +135,13 @@ export class Settings extends Scene
     }
 
     private addAdjustButton(centerX: number, centerY: number, label: string, onClick: () => void): void {
-        // Phaser geometry shapes (Rectangle, Circle, ...) have a default
-        // setInteractive() hit area of geom = (0, 0, w, h) which sits in
-        // LOCAL coords without subtracting origin. The simplest way to
-        // make the hit area match the visual is to use setOrigin(0) on
-        // the rectangle, so local (0, 0) IS the visual top-left and the
-        // default hit area covers the visual exactly. We compute the
-        // top-left position from the caller's intended center; call sites
-        // still pass visual-center coords.
-        const x = centerX - ADJ_BUTTON_SIZE / 2;
-        const y = centerY - ADJ_BUTTON_SIZE / 2;
-        const rect = this.add.rectangle(x, y, ADJ_BUTTON_SIZE, ADJ_BUTTON_SIZE, BUTTON_FILL)
-            .setOrigin(0);
+        // Default center origin, positioned at the visual center — the
+        // repo-wide pattern for interactives. Phaser hit-tests the default
+        // hit area through the origin correctly (probe-verified on 3.90;
+        // the earlier setOrigin(0) + top-left workaround here was based on
+        // an offset gotcha that did not reproduce). The e2e button probe
+        // clicks these at their centers.
+        const rect = this.add.rectangle(centerX, centerY, ADJ_BUTTON_SIZE, ADJ_BUTTON_SIZE, BUTTON_FILL);
         rect.setStrokeStyle(2, BUTTON_STROKE);
         rect.setInteractive();
         rect.on('pointerover', () => rect.setFillStyle(BUTTON_FILL_HOVER));
@@ -158,12 +153,7 @@ export class Settings extends Scene
     private addBackButton(): void {
         const centerX = SCREEN_CENTER.x;
         const centerY = Y_BACK;
-        // Same pattern as addAdjustButton: top-left-anchored Rectangle so
-        // default hit area matches visual.
-        const x = centerX - BACK_BUTTON_WIDTH / 2;
-        const y = centerY - BACK_BUTTON_HEIGHT / 2;
-        const rect = this.add.rectangle(x, y, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, BUTTON_FILL)
-            .setOrigin(0);
+        const rect = this.add.rectangle(centerX, centerY, BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT, BUTTON_FILL);
         rect.setStrokeStyle(2, BUTTON_STROKE);
         rect.setInteractive();
         rect.on('pointerover', () => rect.setFillStyle(BUTTON_FILL_HOVER));
