@@ -24,6 +24,7 @@ words = [
   "chromium", "forgejo", "trufflehog", "cocogitto", "codebook", "justfile",
   "prettierignore", "gitignore", "lockfile", "lockfiles", "scipy", "numpy",
   "venv", "pyproject", "localstorage", "favicon", "preconnect", "magick", "sut",
+  "floodfill", "googly",
   # phaser / web API event names and idioms
   "pointerdown", "pointerover", "pointerout", "pageerror", "tweens", "yoyo",
   "esc", "preloader", "gameover", "lifecycle", "keycode", "keycodes",
