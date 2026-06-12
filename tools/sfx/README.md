@@ -41,4 +41,4 @@ Importing from sibling scripts: `from synth import ...` (these scripts run from 
 
 ## Placeholder music derivation
 
-`boost_placeholders.sh` (ffmpeg, not the Python stack) derives the sus-track placeholders `placeholder-music3/4.mp3` from the musician's track 2 — bass boost + compression, heavier on 4. Same tempo and length as the source, so the game's tact-aligned music switches stay musical. Regenerate by running it from `tools/sfx/`; the outputs are committed. Real compositions replace them at the same Preloader keys.
+`boost_placeholders.sh` (ffmpeg, not the Python stack) derives the sus-track placeholders `placeholder-music3/4.mp3` from the musician's track 2 — soft-clip drive + presence on 3, bitcrush/tremolo garble on 4, both loudness-normalized ABOVE the source so the sus ladder escalates in level (v1's bass-boost recipe came out quieter and muffled). Same tempo and length as the source, so the game's tact-aligned music switches stay musical. Regenerate by running it from `tools/sfx/`; the outputs are committed. Real compositions replace them at the same Preloader keys.
