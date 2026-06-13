@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
-    IdleState, CooldownState, LookAtTableState,
+    IdleState, CooldownState, LookAtTableState, StormState,
     type DialogueStateName, type DialogueArgs,
 } from './dialogue-states.ts';
 import { StateMachine, type State } from '../../lib/StateMachine.ts';
@@ -25,6 +25,8 @@ import { makeFakeScene, type FakeScene } from '../../test/phaser-stubs.ts';
 interface FakeDialogueScene extends FakeScene {
     showLookOver: ReturnType<typeof vi.fn>;
     hideLookOver: ReturnType<typeof vi.fn>;
+    showStorm: ReturnType<typeof vi.fn>;
+    hideStorm: ReturnType<typeof vi.fn>;
     settleAlarm: ReturnType<typeof vi.fn>;
     releaseHiddenHand: ReturnType<typeof vi.fn>;
     endLevel: ReturnType<typeof vi.fn>;
@@ -36,6 +38,8 @@ function makeFakeDialogueScene(overrides: Partial<FakeDialogueScene> = {}): Fake
         ...makeFakeScene(),
         showLookOver: vi.fn(),
         hideLookOver: vi.fn(),
+        showStorm: vi.fn(),
+        hideStorm: vi.fn(),
         settleAlarm: vi.fn(),
         releaseHiddenHand: vi.fn(),
         endLevel: vi.fn(),
@@ -66,6 +70,7 @@ function makeFSM(
         asking:      realStates.asking      ?? makeStubState(),
         cooldown:    realStates.cooldown    ?? makeStubState(),
         lookAtTable: realStates.lookAtTable ?? makeStubState(),
+        storm:       realStates.storm       ?? makeStubState(),
     };
     return new StateMachine<DialogueStateName, DialogueArgs>(initial, states, [scene]);
 }
@@ -225,5 +230,81 @@ describe('LookAtTableState.exit', () => {
 
         look.exit(asMainGame(scene));
         expect(() => look.exit(asMainGame(scene))).not.toThrow();
+    });
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// StormState — the question-storm alarm reaction
+// ────────────────────────────────────────────────────────────────────────
+
+describe('StormState.enter', () => {
+    it('shows the storm and schedules the 3s duration', () => {
+        const storm = new StormState();
+        const scene = makeFakeDialogueScene();
+        const fsm = makeFSM('storm', { storm }, asMainGame(scene));
+
+        fsm.step();
+
+        expect(scene.showStorm).toHaveBeenCalledTimes(1);
+        expect(scene.time.delayedCall).toHaveBeenCalledTimes(1);
+        expect(scene.time.timers[0].delay).toBe(3000);
+        // No check, no game over on entry.
+        expect(scene.endLevel).not.toHaveBeenCalled();
+    });
+});
+
+describe('StormState end', () => {
+    it('on timer fire: settles and resumes asking (no check, never game over)', () => {
+        const storm = new StormState();
+        const scene = makeFakeDialogueScene();
+        const fsm = makeFSM('storm', { storm }, asMainGame(scene));
+        fsm.step();
+
+        scene.time.timers[0].fire();
+
+        expect(scene.settleAlarm).toHaveBeenCalledTimes(1);
+        expect(scene.endLevel).not.toHaveBeenCalled();
+        expect(fsm.is('asking')).toBe(true);
+        // Exit ran via the transition: bubbles cleaned up.
+        expect(scene.hideStorm).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing when the level already ended in the same clock pass', () => {
+        const storm = new StormState();
+        const scene = makeFakeDialogueScene();
+        (scene as unknown as { ended: boolean }).ended = true;
+        const fsm = makeFSM('storm', { storm }, asMainGame(scene));
+        fsm.step();
+
+        scene.time.timers[0].fire();
+
+        expect(scene.settleAlarm).not.toHaveBeenCalled();
+        expect(fsm.is('storm')).toBe(true);
+    });
+});
+
+describe('StormState.exit', () => {
+    it('hides the storm and cancels a pending timer on early external exit', () => {
+        const storm = new StormState();
+        const scene = makeFakeDialogueScene();
+        const fsm = makeFSM('storm', { storm }, asMainGame(scene));
+        fsm.step();
+
+        fsm.transition('cooldown'); // hypothetical external exit
+        scene.time.timers[0].fire(); // consumed by remove() — no-op
+
+        expect(scene.hideStorm).toHaveBeenCalledTimes(1);
+        expect(scene.time.timers[0].remove).toHaveBeenCalled();
+        expect(scene.settleAlarm).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent on double exit', () => {
+        const storm = new StormState();
+        const scene = makeFakeDialogueScene();
+        const fsm = makeFSM('storm', { storm }, asMainGame(scene));
+        fsm.step();
+
+        storm.exit(asMainGame(scene));
+        expect(() => storm.exit(asMainGame(scene))).not.toThrow();
     });
 });

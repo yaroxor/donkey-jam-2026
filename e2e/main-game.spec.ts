@@ -66,6 +66,18 @@ async function loadAndStart(page: Page): Promise<void> {
     }, { timeout: 10_000 });
 }
 
+// Pin which reaction the next alarm fires (DEV override; the shipped weights
+// are 100% storm, so the look-at-table tests must force their path). Set
+// before the alarm rolls (i.e. before the 4th wrong answer).
+async function forceReaction(page: Page, reaction: 'lookAtTable' | 'storm'): Promise<void> {
+    await page.evaluate((r) => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            devForceReaction?: string;
+        };
+        scene.devForceReaction = r;
+    }, reaction);
+}
+
 // ────────────────────────────────────────────────────────────────────────
 // 1. Smoke — page loads, MainGame creates, runs without JS errors
 // ────────────────────────────────────────────────────────────────────────
@@ -271,6 +283,7 @@ async function driveWrongAnswers(page: Page, count: number): Promise<void> {
 test('4 wrong answers fire the alarm; an unstashed hand is caught', async ({ page }) => {
     await seedSettings(page);
     await loadAndStart(page);
+    await forceReaction(page, 'lookAtTable');
     await driveWrongAnswers(page, 4);
 
     // The 4th wrong fires the ALARM: the dialogue FSM enters the
@@ -296,6 +309,7 @@ test('4 wrong answers fire the alarm; an unstashed hand is caught', async ({ pag
 test('alarm survived by hiding in the stash: sus settles to baseline', async ({ page }) => {
     await seedSettings(page);
     await loadAndStart(page);
+    await forceReaction(page, 'lookAtTable');
     await driveWrongAnswers(page, 4);
 
     await page.waitForFunction(() => {
@@ -351,6 +365,51 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
     // The held hand was released on survive — back to moving, not stuck hidden.
     expect(settled.handHidden).toBe(false);
     expect(settled.gameOver).toBe(false);
+});
+
+test('storm alarm: bubbles bury the table, then it settles (no game over)', async ({ page }) => {
+    await seedSettings(page);
+    await loadAndStart(page);
+    await forceReaction(page, 'storm');
+    await driveWrongAnswers(page, 4);
+
+    // The 4th wrong fires the STORM: dialogue FSM enters storm and bubbles
+    // pile over the arcade. No check — the run is not at risk.
+    await page.waitForFunction(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            dialogueFSM?: { is: (name: string) => boolean };
+            stormBubbles?: { alpha: number }[];
+        };
+        const inStorm = scene.dialogueFSM?.is('storm') ?? false;
+        const anyBubbleShown = (scene.stormBubbles ?? []).some((b) => b.alpha > 0);
+        return inStorm && anyBubbleShown;
+    }, { timeout: 5_000 });
+
+    // After the 3s storm: settle to baseline, bubbles cleared, dialogue
+    // resumes, run still alive.
+    await page.waitForFunction(() => {
+        const g = (window as GameWindow).__game!;
+        if (!g.scene.isActive('MainGame')) return false;
+        const scene = g.scene.getScene('MainGame') as Phaser.Scene & {
+            dialogueFSM?: { is: (name: string) => boolean };
+        };
+        return scene.dialogueFSM?.is('asking') ?? false;
+    }, { timeout: 8_000 });
+
+    const after = await page.evaluate(() => {
+        const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
+            currentSus?: number;
+            stormBubbles?: unknown[];
+        };
+        return {
+            sus: scene.currentSus,
+            bubbleCount: (scene.stormBubbles ?? []).length,
+            gameOver: (window as GameWindow).__game!.scene.isActive('GameOver'),
+        };
+    });
+    expect(after.sus).toBe(1);
+    expect(after.bubbleCount).toBe(0); // cleared on hideStorm
+    expect(after.gameOver).toBe(false);
 });
 
 // ────────────────────────────────────────────────────────────────────────

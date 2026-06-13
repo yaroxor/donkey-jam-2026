@@ -15,8 +15,13 @@ import { State } from '../../lib/StateMachine.ts';
 import { loadSettings, effectiveVolume } from '../settings.ts';
 import type { MainGame } from './MainGame.ts';
 
-export type DialogueStateName = 'idle' | 'asking' | 'cooldown' | 'lookAtTable';
+export type DialogueStateName = 'idle' | 'asking' | 'cooldown' | 'lookAtTable' | 'storm';
 export type DialogueArgs = [MainGame];
+
+// Question-storm duration (DESDOC "загрузить вопросами"). Bubbles bury the
+// arcade for this long — no check, no fail, just lost time + blocked
+// visibility (the hand keeps moving; you navigate from memory). Tunable.
+const STORM_DURATION_MS = 3000;
 
 // Look-at-table reaction window: the warning visual (demon leaning over the
 // table + a red draining bar and "hide!" caption) fires on state entry; the
@@ -166,6 +171,36 @@ export class LookAtTableState extends State<DialogueStateName, DialogueArgs> {
 
     exit(scene: MainGame): void {
         scene.hideLookOver();
+        this.timer?.remove();
+        this.timer = undefined;
+    }
+}
+
+// Question-storm alarm reaction (DESDOC "загрузить вопросами"): the demon
+// buries the table in question bubbles for STORM_DURATION_MS. Unlike
+// look-at-table there is no check and no fail — the hand keeps moving with
+// full physics (a wall crash still stuns, blind, behind the bubbles), the
+// cost is lost level-timer time and lost visibility. Always settles to
+// baseline and resumes asking when the storm ends.
+export class StormState extends State<DialogueStateName, DialogueArgs> {
+    private timer?: Phaser.Time.TimerEvent;
+
+    enter(scene: MainGame): void {
+        scene.showStorm();
+        this.timer = scene.time.delayedCall(STORM_DURATION_MS, () => {
+            // Same same-clock-pass guard as look-at-table: a level-timer
+            // expiry in this frame already ended the level; don't settle
+            // (and restart music) over the GameOver overlay.
+            if (scene.ended) {
+                return;
+            }
+            scene.settleAlarm();
+            this.stateMachine.transition('asking');
+        });
+    }
+
+    exit(scene: MainGame): void {
+        scene.hideStorm();
         this.timer?.remove();
         this.timer = undefined;
     }

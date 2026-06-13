@@ -6,6 +6,7 @@ import {
     HAND_SPEED,
     STASH_TRIGGER_SIZE,
     SUS_LEVELS, SUS_BASELINE, MUSIC_HALF_TACT_SECONDS,
+    ALARM_REACTION_WEIGHTS, rollAlarmReaction, type AlarmReaction,
     MENU_CURSOR,
     LEVELS, CURRENT_LEVEL_INDEX,
     LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
@@ -23,7 +24,7 @@ import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
 import { log } from '../debug.ts';
 import { shuffle } from '../../lib/utils.ts';
 import {
-    IdleState, AskingState, CooldownState, LookAtTableState,
+    IdleState, AskingState, CooldownState, LookAtTableState, StormState,
     type DialogueStateName, type DialogueArgs,
 } from './dialogue-states.ts';
 
@@ -156,6 +157,10 @@ export class MainGame extends Scene
     // created/destroyed alongside the look-over sprite.
     lookBar?: Phaser.GameObjects.Rectangle;
     lookCaption?: Phaser.GameObjects.Text;
+    // Question-storm visuals: bubble sprites piled over the arcade + their
+    // staggered reveal timers. Created in showStorm, torn down in hideStorm.
+    stormBubbles: Phaser.GameObjects.Image[];
+    stormTimers: Phaser.Time.TimerEvent[];
 
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handVis: Phaser.GameObjects.Graphics;
@@ -203,7 +208,15 @@ export class MainGame extends Scene
     devKeyQuestions?: Phaser.Input.Keyboard.Key;
     devKeyLoot?: Phaser.Input.Keyboard.Key;
     devKeyLookOver?: Phaser.Input.Keyboard.Key;
+    devKeyForceReaction?: Phaser.Input.Keyboard.Key;
     devReadout?: Phaser.GameObjects.Text;
+    // DEV override for the alarm roll: when set (key 4 cycles
+    // null -> lookAtTable -> storm -> null), the next alarm uses this
+    // reaction instead of the weighted roll. Sticky across restarts so
+    // playtesting one reaction survives a death. Consumed only under
+    // import.meta.env.DEV. Also how the e2e exercises each reaction while
+    // the shipped weights are 100% storm.
+    devForceReaction?: AlarmReaction;
     // True after endLevel() fires once. Guards update() so the same frame
     // can't keep mutating hand direction / scheduling loot respawns / re-
     // reading the cancelled timer after the level is logically over, and
@@ -613,11 +626,11 @@ export class MainGame extends Scene
     // the alarm (the design's one-way-ratchet placement).
     progressSus(): boolean
     {
-        // Already mid-reaction (a wall stun during the look window lands
-        // here): sus is pegged at full — re-triggering would re-enter the
-        // reaction state and RESTART its window (the FSM has no same-state
-        // guard), gifting the player extra reaction time per crash.
-        if (this.dialogueFSM.is('lookAtTable')) {
+        // Already mid-reaction (a wall stun during a reaction lands here):
+        // sus is pegged at full — re-triggering would re-enter the reaction
+        // state and RESTART it (the FSM has no same-state guard), gifting
+        // the player extra reaction time / a fresh storm per crash.
+        if (this.dialogueFSM.is('lookAtTable') || this.dialogueFSM.is('storm')) {
             return true;
         }
 
@@ -627,10 +640,14 @@ export class MainGame extends Scene
         if (this.currentSus >= 4) {
             // Stage-3 visuals stay lit and music4 keeps playing — the
             // reaction state owns the screen from here until settle (or
-            // endLevel on a failed check). Storm joins with its art pass;
-            // until then every alarm is a look-at-table.
-            log.sus(`ALARM -> lookAtTable`);
-            this.dialogueFSM.transition('lookAtTable');
+            // endLevel on a failed check). Roll which reaction fires; the
+            // DEV force-reaction override (key 4) wins when set.
+            const reaction: AlarmReaction =
+                import.meta.env.DEV && this.devForceReaction
+                    ? this.devForceReaction
+                    : rollAlarmReaction(ALARM_REACTION_WEIGHTS, Math.random());
+            log.sus(`ALARM -> ${reaction}`);
+            this.dialogueFSM.transition(reaction);
             return true;
         }
 
@@ -699,6 +716,52 @@ export class MainGame extends Scene
         this.applySusStage(this.currentSus);
     }
 
+    // StormState visuals: bury the arcade area in question bubbles, piled on
+    // one-by-one (staggered reveal) for the "загрузить вопросами" feel. The
+    // bubbles are confined to ARCADE_AREA_LAYOUT so they never cover the HUD
+    // (loot meter / sus meter / timer all sit outside it). Placeholder art:
+    // the existing bubble-demon sprite (241x248); dedicated storm-bubble art
+    // swaps in at the same key. The demon stays in his seat (sus-3 stage),
+    // interrogating.
+    showStorm(): void {
+        this.stormBubbles = [];
+        this.stormTimers = [];
+
+        // 3x3 grid (with jitter) across the arcade — heavy overlap obscures
+        // the hand. Revealed in shuffled order over ~600ms (pile-up feel).
+        const COLS = 3, ROWS = 3;
+        const a = ARCADE_AREA_LAYOUT;
+        const specs: { x: number; y: number }[] = [];
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                specs.push({
+                    x: a.x + a.width * ((c + 0.5) / COLS) + (Math.random() - 0.5) * 40,
+                    y: a.y + a.height * ((r + 0.5) / ROWS) + (Math.random() - 0.5) * 40,
+                });
+            }
+        }
+        shuffle(specs); // in-place Fisher-Yates — randomize the reveal order
+
+        specs.forEach((s, i) => {
+            const b = this.add.image(s.x, s.y, 'bubble-demon')
+                .setScale(0.9 + Math.random() * 0.2)
+                .setAngle((Math.random() - 0.5) * 24)
+                .setDepth(3)
+                .setAlpha(0);
+            this.stormBubbles.push(b);
+            // Pile-up stagger: ~67ms apart -> 9 bubbles land over ~600ms.
+            this.stormTimers.push(this.time.delayedCall(i * 67, () => b.setAlpha(1)));
+        });
+    }
+
+    hideStorm(): void {
+        // Instant clear (first cut; fade-out is polish per the design).
+        this.stormTimers.forEach(t => t.remove());
+        this.stormTimers = [];
+        this.stormBubbles.forEach(b => b.destroy());
+        this.stormBubbles = [];
+    }
+
     // ── DEV playtest toggles ────────────────────────────────────────────
     // Wired only under import.meta.env.DEV (create()); these methods are
     // dead code in production builds.
@@ -754,11 +817,25 @@ export class MainGame extends Scene
         this.devRefreshReadout();
     }
 
+    // Cycle the forced alarm reaction: roll -> lookAtTable -> storm -> roll.
+    // While set, the next alarm uses it instead of the weighted roll — lets
+    // a playtester pin either reaction regardless of ALARM_REACTION_WEIGHTS
+    // (currently 100% storm).
+    private devCycleForceReaction(): void {
+        this.devForceReaction =
+            this.devForceReaction === undefined ? 'lookAtTable'
+            : this.devForceReaction === 'lookAtTable' ? 'storm'
+            : undefined;
+        log.sus(`DEV force-reaction = ${this.devForceReaction ?? 'roll'}`);
+        this.devRefreshReadout();
+    }
+
     private devRefreshReadout(): void {
         this.devReadout?.setText(
             `DEV  [1] questions ${this.devSuspendDialogue ? 'SUSPENDED' : 'live'}   ` +
             `[2] loot ${this.devSuspendLoot ? 'SUSPENDED' : 'live'}   ` +
-            `[3] look-over ${this.devLookOverHeld ? 'HELD' : 'off'}`,
+            `[3] look-over ${this.devLookOverHeld ? 'HELD' : 'off'}   ` +
+            `[4] alarm=${this.devForceReaction ?? 'roll'}`,
         );
     }
 
@@ -801,9 +878,13 @@ export class MainGame extends Scene
         this.collectedLootCount = 0;
 
         this.dialogueTimers = [];
+        this.stormBubbles = [];
+        this.stormTimers = [];
         this.devSuspendDialogue = false;
         this.devSuspendLoot = false;
         this.devLookOverHeld = false;
+        // devForceReaction is deliberately NOT reset here — it stays sticky
+        // across restarts so a playtest of one reaction survives a death.
 
         // Compute effective loot target for this level. The dev-only override
         // (loot tuner row in Settings) is double-gated: must be a DEV build
@@ -827,6 +908,7 @@ export class MainGame extends Scene
                 asking: new AskingState(),
                 cooldown: new CooldownState(),
                 lookAtTable: new LookAtTableState(),
+                storm: new StormState(),
             },
             [this],
         );
@@ -1085,7 +1167,8 @@ export class MainGame extends Scene
         // DEV playtest controls. Vite statically drops this whole block from
         // production builds, so the toggle keys + readout exist only in
         // `bun run dev`. Keys 1/2/3 toggle question-suspend, loot-suspend,
-        // and look-over-hold (the last is the layout-inspection macro). The
+        // and look-over-hold (the last is the layout-inspection macro); key
+        // 4 cycles the forced alarm reaction (roll/lookAtTable/storm). The
         // readout (bottom-left) shows live toggle state since in-game timings
         // are too fast to eyeball.
         if (import.meta.env.DEV && this.input.keyboard) {
@@ -1093,6 +1176,7 @@ export class MainGame extends Scene
             this.devKeyQuestions = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
             this.devKeyLoot = kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
             this.devKeyLookOver = kb.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+            this.devKeyForceReaction = kb.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
             this.devReadout = this.add.text(10, GAME_HEIGHT - 30, '', {
                 fontFamily: 'monospace',
                 fontSize: '16px',
@@ -1191,6 +1275,7 @@ export class MainGame extends Scene
             if (this.devKeyQuestions && Phaser.Input.Keyboard.JustDown(this.devKeyQuestions)) this.devToggleDialogue();
             if (this.devKeyLoot && Phaser.Input.Keyboard.JustDown(this.devKeyLoot)) this.devToggleLoot();
             if (this.devKeyLookOver && Phaser.Input.Keyboard.JustDown(this.devKeyLookOver)) this.devToggleLookOver();
+            if (this.devKeyForceReaction && Phaser.Input.Keyboard.JustDown(this.devKeyForceReaction)) this.devCycleForceReaction();
         }
 
         // DEV "suspend questions" freezes the dialogue loop (its advance

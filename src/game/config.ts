@@ -101,6 +101,26 @@ export const SUS_LEVELS: SusLevelCfg[] = [
 // baseline 1 of 4.
 export const SUS_BASELINE = 1;
 
+// Alarm reaction roll. Reaching full sus (4) fires one of two reactions:
+// look-at-table (a stash check) or storm (загрузить вопросами — bubbles
+// bury the table, no check, just lost time + blocked visibility).
+// Currently 100% storm for storm-mechanic playtest; production target is
+// { lookAtTable: 0.70, storm: 0.30 } (a one-line flip once storm feels
+// right). The DEV force-reaction toggle (key 4) overrides the roll.
+export type AlarmReaction = 'lookAtTable' | 'storm';
+export const ALARM_REACTION_WEIGHTS: Record<AlarmReaction, number> = {
+    lookAtTable: 0,
+    storm: 1,
+};
+
+// Weighted pick. `rand` is a 0..1 roll (injected so this stays pure and
+// unit-testable); MainGame passes Math.random(). Falls to storm when the
+// weights sum to 0 (a bad config — better a harmless reaction than a throw).
+export function rollAlarmReaction(weights: Record<AlarmReaction, number>, rand: number): AlarmReaction {
+    const total = weights.lookAtTable + weights.storm;
+    return rand * total < weights.lookAtTable ? 'lookAtTable' : 'storm';
+}
+
 // Per-level configuration. v1.0 has one entry; multi-level work (adventure
 // map, DESDOC TODO v2.0) expands this. Other passes add fields as they ship
 // (level-timer pass adds `timer:`, etc.).
