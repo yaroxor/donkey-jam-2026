@@ -19,12 +19,13 @@ export type DialogueStateName = 'idle' | 'asking' | 'cooldown' | 'lookAtTable';
 export type DialogueArgs = [MainGame];
 
 // Look-at-table reaction window: the warning visual (demon leaning over the
-// table) fires on state entry; the player has this long to get the hand
-// into a stash before the check fires. Tune in playtest — long enough that
-// a competent player can reach a stash, short enough to punish carelessness.
+// table + a red draining bar and "hide!" caption) fires on state entry; the
+// player has this long to get the hand into a stash before the check fires.
+// Tune in playtest — long enough that a competent player can reach a stash,
+// short enough to punish carelessness.
 // NOTE the tension with HIDDEN_DURATION_MS (1s, hand-states.ts): a hide
-// started in the first ~0.5s of the window pops back out BEFORE the check.
-const LOOK_REACTION_WINDOW_MS = 1500;
+// started in the first ~1s of the window pops back out BEFORE the check.
+const LOOK_REACTION_WINDOW_MS = 2000;
 
 // JustDown fires once per physical press; isDown stays true every frame
 // the key is held. Wrap to skip the undefined check at every call site.
@@ -133,7 +134,7 @@ export class LookAtTableState extends State<DialogueStateName, DialogueArgs> {
     private timer?: Phaser.Time.TimerEvent;
 
     enter(scene: MainGame): void {
-        scene.showLookOver();
+        scene.showLookOver(LOOK_REACTION_WINDOW_MS);
         this.timer = scene.time.delayedCall(LOOK_REACTION_WINDOW_MS, () => {
             // Same-clock-pass guard: the level timer can expire (and
             // endLevel) in the SAME frame this window elapses — Phaser

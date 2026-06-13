@@ -132,7 +132,7 @@ describe('CooldownState timer hygiene', () => {
 // ────────────────────────────────────────────────────────────────────────
 
 describe('LookAtTableState.enter', () => {
-    it('shows the warning visual and schedules the 1.5s reaction window', () => {
+    it('shows the warning visual and schedules the 2s reaction window', () => {
         const look = new LookAtTableState();
         const scene = makeFakeDialogueScene();
         const fsm = makeFSM('lookAtTable', { lookAtTable: look }, asMainGame(scene));
@@ -141,7 +141,7 @@ describe('LookAtTableState.enter', () => {
 
         expect(scene.showLookOver).toHaveBeenCalledTimes(1);
         expect(scene.time.delayedCall).toHaveBeenCalledTimes(1);
-        expect(scene.time.timers[0].delay).toBe(1500);
+        expect(scene.time.timers[0].delay).toBe(2000);
         expect(scene.endLevel).not.toHaveBeenCalled();
     });
 });

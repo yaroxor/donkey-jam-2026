@@ -42,6 +42,19 @@ const hackLetterCodes: Record<string, number> = {
     'F': 85, // U
 };
 
+// Look-at-table reaction indicator: a red draining bar under the demon +
+// a "hide!" caption under the bar. The bar mirrors the stun indicator's
+// drain (scaleX 1->0 from center) but red and larger, draining over the
+// reaction window. Positions are hand-tuning knobs — tweak and reload,
+// same workflow as the look-over sprite (DEV: hold it with key 3 to study
+// the layout statically).
+const LOOK_BAR_POS: Pos = { x: 1080, y: 470 };
+const LOOK_BAR_WIDTH = 220;
+const LOOK_BAR_HEIGHT = 16;
+const LOOK_BAR_COLOR = 0xff2200;
+const LOOK_CAPTION_POS: Pos = { x: 1080, y: 512 };
+const LOOK_CAPTION_TEXT = 'hide!';
+
 // Visual warning underlay for a danger hitbox. Walks the rectangle's perimeter
 // in segments and perturbs each point outward by a few px, drawn as one closed
 // polygon — looks like torn warning tape. Outward-only so the visible shape
@@ -139,6 +152,10 @@ export class MainGame extends Scene
     // (placeholder composite, tools/art/compose_look_over.sh). Hidden
     // except while LookAtTableState runs.
     lookOverSprite: Phaser.GameObjects.Image;
+    // Reaction-window indicator: red draining bar + "hide!" caption,
+    // created/destroyed alongside the look-over sprite.
+    lookBar?: Phaser.GameObjects.Rectangle;
+    lookCaption?: Phaser.GameObjects.Text;
 
     hand: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     handVis: Phaser.GameObjects.Graphics;
@@ -178,7 +195,7 @@ export class MainGame extends Scene
     // Vite strips all of this from production). Three toggles: suspend the
     // dialogue/question loop, suspend loot spawning, and hold the
     // look-over reaction sprite on screen for layout inspection without
-    // the 1.5s reaction-window clock. See the dev block in create() and
+    // the 2s reaction-window clock. See the dev block in create() and
     // the devToggle* methods.
     devSuspendDialogue: boolean;
     devSuspendLoot: boolean;
@@ -635,14 +652,46 @@ export class MainGame extends Scene
     }
 
     // LookAtTableState visuals: the demon leaves his seat (stage sprite
-    // off) and leans over the table.
-    showLookOver(): void {
+    // off) and leans over the table, with a red draining bar + "hide!"
+    // caption under it. durationMs drives the bar drain; omit it (the DEV
+    // look-over hold) to get a static full bar for layout study.
+    showLookOver(durationMs?: number): void {
         this.demons.forEach(d => d.setAlpha(0));
         this.lookOverSprite.setVisible(true);
+
+        this.lookBar = this.add
+            .rectangle(LOOK_BAR_POS.x, LOOK_BAR_POS.y, LOOK_BAR_WIDTH, LOOK_BAR_HEIGHT, LOOK_BAR_COLOR)
+            .setOrigin(0.5)
+            .setDepth(3);
+        this.lookCaption = this.add
+            .text(LOOK_CAPTION_POS.x, LOOK_CAPTION_POS.y, LOOK_CAPTION_TEXT, {
+                fontFamily: 'Architects Daughter',
+                fontSize: '40px',
+                color: '#ff2200',
+                stroke: '#000000',
+                strokeThickness: 5,
+            })
+            .setOrigin(0.5)
+            .setDepth(3);
+
+        if (durationMs !== undefined) {
+            // Drain like the stun bar: scaleX 1->0 from center, linear so
+            // "time remaining" reads uniformly.
+            this.tweens.add({
+                targets: this.lookBar,
+                scaleX: 0,
+                duration: durationMs,
+                ease: 'Linear',
+            });
+        }
     }
 
     hideLookOver(): void {
         this.lookOverSprite.setVisible(false);
+        this.lookBar?.destroy();
+        this.lookBar = undefined;
+        this.lookCaption?.destroy();
+        this.lookCaption = undefined;
         // Restore the demon stage sprite for the current sus. Redundant on
         // the real survive path (settleAlarm already repainted) but it is
         // what brings the demon back for the DEV look-over-hold toggle,
@@ -872,7 +921,7 @@ export class MainGame extends Scene
         // positioned so the lean covers the arcade area's right half
         // without covering the suspicion meter (top-right HUD) — verified
         // by e2e screenshot. Depth above table/hand/loot, below HUD (2).
-        this.lookOverSprite = this.add.image(780, 400, 'look-over')
+        this.lookOverSprite = this.add.image(1100, 200, 'look-over')
             .setScale(0.75)
             .setDepth(2)
             .setVisible(false);

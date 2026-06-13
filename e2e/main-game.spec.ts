@@ -305,10 +305,11 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
         return scene.dialogueFSM?.is('lookAtTable') ?? false;
     }, { timeout: 5_000 });
 
-    // Hide mid-window so the 1s hidden span covers the check at 1.5s.
+    // Hide near mid-window so the 1s hidden span straddles the check at
+    // the 2s window end (start ~1.45s → hidden ~1.45-2.45s, covers 2.0s).
     // The hand FSM is nudged directly (steering-into-the-stash mechanics
     // are covered by the stash scenario; this test owns the CHECK logic).
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1450);
     await page.evaluate(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             handFSM?: { transition: (name: string) => void };
