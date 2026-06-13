@@ -177,8 +177,8 @@ export const LOOT_METER_STROKE_COLOR: number = 0x44323f; // matches HUD palette
 // Hotspot (5, 4) is the pointing fingertip (hand points up-and-left, so
 // the tip sits in the upper-LEFT of the silhouette). Derived by scaling
 // the proven 110px hotspot (18, 15) by 32/110 -> (5.2, 4.4); confirmed
-// by measurement to fall inside the 32px content box (full-alpha bbox
-// top-left (3, 2), solid-threshold bbox top-left (6, 5)).
+// by measurement to fall inside the 32px silhouette (its full-alpha
+// top-left is (3, 2), its solid-threshold top-left (6, 5)).
 //
 // History: on the 110px art, hotspot (55, 15) was the canvas top-center,
 // ~40px RIGHT of the fingertip -- clicks landed ~one button-width left of
