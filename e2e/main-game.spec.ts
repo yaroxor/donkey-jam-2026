@@ -2,15 +2,15 @@ import { test, expect, type Page } from '@playwright/test';
 
 // End-to-end smoke + scenario tests for slick_hand_joe.
 //
-// What these test that vitest can't: scene-lifecycle ordering (init →
-// create → update), real Phaser keyboard input wiring, real arcade-physics
-// collider firing, scene-to-scene transitions (MainGame ↔ Win/GameOver).
+// What these test that vitest can't: scene-lifecycle ordering (init ->
+// create -> update), real Phaser keyboard input wiring, real arcade-physics
+// collider firing, scene-to-scene transitions (MainGame <-> Win/GameOver).
 // The motivating bug: handFSM.step() called in create() before cursors
-// initialized — passed unit tests, blew up on first browser load.
+// initialized -- passed unit tests, blew up on first browser load.
 // Playwright is the natural backstop for that class of bug.
 //
 // Tests inspect game state via the `window.__game` escape hatch (exposed
-// in src/main.ts). They avoid canvas-pixel comparison — too flaky for a
+// in src/main.ts). They avoid canvas-pixel comparison -- too flaky for a
 // canvas game where animations shift positions each frame.
 
 // Cast helper so test bodies don't repeat `as unknown as { ... }`.
@@ -78,9 +78,9 @@ async function forceReaction(page: Page, reaction: 'lookAtTable' | 'storm'): Pro
     }, reaction);
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// 1. Smoke — page loads, MainGame creates, runs without JS errors
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// 1. Smoke -- page loads, MainGame creates, runs without JS errors
+// ------------------------------------------------------------------------
 
 test('MainGame creates and runs without JS errors', async ({ page }) => {
     const errors: Error[] = [];
@@ -89,7 +89,7 @@ test('MainGame creates and runs without JS errors', async ({ page }) => {
     await seedSettings(page);
     await loadAndStart(page);
 
-    // Let the scene run a few seconds — collider polling, FSM stepping,
+    // Let the scene run a few seconds -- collider polling, FSM stepping,
     // timer text refresh all fire every frame. Any of them throwing
     // would surface via the pageerror listener.
     await page.waitForTimeout(2000);
@@ -97,9 +97,9 @@ test('MainGame creates and runs without JS errors', async ({ page }) => {
     expect(errors, errors.map((e) => e.message).join('\n')).toEqual([]);
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 2. Hand movement — arrow keys change the hand's direction
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// 2. Hand movement -- arrow keys change the hand's direction
+// ------------------------------------------------------------------------
 
 test('arrow keys change hand direction', async ({ page }) => {
     await seedSettings(page);
@@ -113,7 +113,7 @@ test('arrow keys change hand direction', async ({ page }) => {
     expect(initialDir).toBe('left');
 
     // Hand spawn x = SCREEN_CENTER.x = 640, solidly inside the vertical-safe
-    // zone (418.5 to 851.5), so L→U is allowed.
+    // zone (418.5 to 851.5), so L->U is allowed.
     await page.keyboard.down('ArrowUp');
     await page.waitForTimeout(200); // a few frames for transition + a touch of vertical motion
     await page.keyboard.up('ArrowUp');
@@ -125,21 +125,21 @@ test('arrow keys change hand direction', async ({ page }) => {
     expect(newDir).toBe('up');
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 3. Stun — driving the hand into a wall triggers StunnedState
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// 3. Stun -- driving the hand into a wall triggers StunnedState
+// ------------------------------------------------------------------------
 
 test('hitting the top wall triggers stun', async ({ page }) => {
     await seedSettings(page);
     await loadAndStart(page);
 
-    // Travel: hand starts at y=410. Top wall's bottom edge ≈ y=57 (with
+    // Travel: hand starts at y=410. Top wall's bottom edge ~ y=57 (with
     // jitter). Vertical hand half-height = 53, so hand body top reaches
-    // the wall at hand center y ≈ 110. Distance: 410-110 = 300px at
+    // the wall at hand center y ~ 110. Distance: 410-110 = 300px at
     // HAND_SPEED=300px/s = ~1s of upward motion. Wait on the STATE, not a
     // fixed sleep: if the turn lands over the bottom-center stash column,
     // the vertical body clips the trigger zone and the trip starts with a
-    // 1s hide before resuming up — still well inside the 6s budget.
+    // 1s hide before resuming up -- still well inside the 6s budget.
     await page.keyboard.down('ArrowUp');
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
@@ -158,9 +158,9 @@ test('hitting the top wall triggers stun', async ({ page }) => {
     expect(isStunned).toBe(true);
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 4. Win — sweep until pickup with lootTargetOverride=1 launches Win scene
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// 4. Win -- sweep until pickup with lootTargetOverride=1 launches Win scene
+// ------------------------------------------------------------------------
 
 test('reaching loot target triggers Win scene', async ({ page }) => {
     // DEV-only override drops the win threshold to 1 loot pickup. Long
@@ -171,8 +171,8 @@ test('reaching loot target triggers Win scene', async ({ page }) => {
     // Loot spawns at random y in the arcade (~85..465). Hand at y=410 only
     // intersects the loot row range without moving. Sweep around the
     // compass to cover most of the arcade. Order matters: the hand FSM
-    // only allows perpendicular transitions (L↔R via U/D and vice versa),
-    // so the sequence is clockwise: Up → Right → Down → Left.
+    // only allows perpendicular transitions (L<->R via U/D and vice versa),
+    // so the sequence is clockwise: Up -> Right -> Down -> Left.
     const compass: ('ArrowUp' | 'ArrowRight' | 'ArrowDown' | 'ArrowLeft')[] = [
         'ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft',
     ];
@@ -184,15 +184,15 @@ test('reaching loot target triggers Win scene', async ({ page }) => {
         });
         if (ended.won) break;
         // Fail loudly if the sweep dies to sus overflow (wall stuns +
-        // unanswered dialogue both feed progressSus) — without this check
+        // unanswered dialogue both feed progressSus) -- without this check
         // a mid-sweep GameOver would stall every remaining steerable wait
         // and surface only as an opaque 60s suite timeout.
         expect(ended.lost, 'sweep died to GameOver (sus overflow) before winning').toBe(false);
 
         // Wait until the hand is steerable before pressing. Stun (1s) and
-        // stash-hide (1s) windows ignore keyboard input entirely — a press
+        // stash-hide (1s) windows ignore keyboard input entirely -- a press
         // landing inside one is silently eaten, and on the stash column the
-        // hand can chain wall-stun → hide → wall-stun for several seconds.
+        // hand can chain wall-stun -> hide -> wall-stun for several seconds.
         // End-scenes count as "done waiting" so the wait can't stall on a
         // finished game; the next pass's ended-check resolves them.
         await page.waitForFunction(() => {
@@ -218,10 +218,10 @@ test('reaching loot target triggers Win scene', async ({ page }) => {
     ).toBe(true);
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 5+6. Alarm (look-at-table) — 4 wrong answers fire the alarm; the check
+// ------------------------------------------------------------------------
+// 5+6. Alarm (look-at-table) -- 4 wrong answers fire the alarm; the check
 //      catches an unstashed hand and spares a hidden one
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
 // Drive `count` wrong answers through the dialogue loop, asserting the
 // sus-coupled music ladder along the way. The 4th wrong fires the ALARM
@@ -254,7 +254,7 @@ async function driveWrongAnswers(page: Page, count: number): Promise<void> {
         await page.keyboard.press(wrongKey);
 
         // Wait for AskingState to exit (cooldown on a normal wrong-answer
-        // fail; the 4th wrong fires the alarm and lands in lookAtTable —
+        // fail; the 4th wrong fires the alarm and lands in lookAtTable --
         // both leave 'asking').
         await page.waitForFunction(() => {
             const game = (window as GameWindow).__game;
@@ -267,7 +267,7 @@ async function driveWrongAnswers(page: Page, count: number): Promise<void> {
 
         // Music follows the sus ladder (SUS_LEVELS): after the i-th wrong
         // answer the controller is on (or tact-switching to) the next
-        // track — isPlaying reflects the switch target immediately.
+        // track -- isPlaying reflects the switch target immediately.
         if (i < 3) {
             const expectedTrack = ['music2', 'music3', 'music4'][i];
             await expect.poll(() => page.evaluate((key) => {
@@ -287,7 +287,7 @@ test('4 wrong answers fire the alarm; an unstashed hand is caught', async ({ pag
     await driveWrongAnswers(page, 4);
 
     // The 4th wrong fires the ALARM: the dialogue FSM enters the
-    // look-at-table reaction and the warning visual shows — the run is
+    // look-at-table reaction and the warning visual shows -- the run is
     // NOT over yet.
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
@@ -298,7 +298,7 @@ test('4 wrong answers fire the alarm; an unstashed hand is caught', async ({ pag
             && (scene.lookOverSprite?.visible ?? false);
     }, { timeout: 5_000 });
 
-    // The hand is roaming, not stashed → the check (2s later) catches
+    // The hand is roaming, not stashed -> the check (2s later) catches
     // it and ends the run.
     await expect.poll(
         () => page.evaluate(() => (window as GameWindow).__game!.scene.isActive('GameOver')),
@@ -320,7 +320,7 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
     }, { timeout: 5_000 });
 
     // Hide EARLY (~0.5s into the 2s window). The hide's 1s auto-pop would
-    // fire at ~1.5s — before the 2.0s check — but the reaction suppresses
+    // fire at ~1.5s -- before the 2.0s check -- but the reaction suppresses
     // it, so the hand holds in the stash through the check. (This is the
     // exact fairness bug the hold fixes: pre-hold this hide popped out and
     // got caught.) The hand FSM is nudged directly; steering-into-the-stash
@@ -333,7 +333,7 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
         scene.handFSM?.transition('hidden');
     });
 
-    // Check passes → the whole sus-coupled bundle settles and dialogue
+    // Check passes -> the whole sus-coupled bundle settles and dialogue
     // resumes with the next question.
     await page.waitForFunction(() => {
         const g = (window as GameWindow).__game!;
@@ -362,7 +362,7 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
     expect(settled.sus).toBe(1);
     expect(settled.baselineMusic).toBe(true);
     expect(settled.lookVisible).toBe(false);
-    // The held hand was released on survive — back to moving, not stuck hidden.
+    // The held hand was released on survive -- back to moving, not stuck hidden.
     expect(settled.handHidden).toBe(false);
     expect(settled.gameOver).toBe(false);
 });
@@ -374,7 +374,7 @@ test('storm alarm: bubbles bury the table, then it settles (no game over)', asyn
     await driveWrongAnswers(page, 4);
 
     // The 4th wrong fires the STORM: dialogue FSM enters storm and bubbles
-    // pile over the arcade. No check — the run is not at risk.
+    // pile over the arcade. No check -- the run is not at risk.
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             dialogueFSM?: { is: (name: string) => boolean };
@@ -412,9 +412,9 @@ test('storm alarm: bubbles bury the table, then it settles (no game over)', asyn
     expect(after.gameOver).toBe(false);
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 7. Pause menu — RESUME and LEAVE respond to clicks on their labels
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// 7. Pause menu -- RESUME and LEAVE respond to clicks on their labels
+// ------------------------------------------------------------------------
 
 test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => {
     await seedSettings(page);
@@ -433,7 +433,7 @@ test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => 
 
     // Click the CENTER of the visible RESUME label, as a player would.
     // Label text measured in paused.png (threshold + trim): x 550..732,
-    // y 318..349 → center (641, 334). The original hit zones were
+    // y 318..349 -> center (641, 334). The original hit zones were
     // hardcoded ~45px below the labels (regression this test pins).
     await canvas.click({ position: { x: 641, y: 334 } });
     await page.waitForFunction(() => {
@@ -442,7 +442,7 @@ test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => 
     }, { timeout: 5_000 });
 
     // Re-open pause, then click the center of the visible LEAVE label
-    // (measured: x 569..713, y 416..448 → center 641, 432). Expect
+    // (measured: x 569..713, y 416..448 -> center 641, 432). Expect
     // MainMenu.
     await canvas.click({ position: { x: 1230, y: 670 } });
     await page.waitForFunction(
@@ -456,10 +456,10 @@ test('pause menu RESUME and LEAVE respond to label clicks', async ({ page }) => 
     );
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 8. Stash — entering the hole's trigger zone hides the hand, then it
+// ------------------------------------------------------------------------
+// 8. Stash -- entering the hole's trigger zone hides the hand, then it
 //    auto-resumes its direction of travel
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
 test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page }) => {
     await seedSettings(page);
@@ -469,10 +469,10 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
     // The hand starts at (640, 410) moving left along y=410, just clear of
     // the trigger (zone top 455 vs horizontal body bottom 443.5). Steer:
     // wait for the sweep to bring hand.x over the stash column (the hand
-    // wraps every ~1.7s, so the window always arrives), then turn Down —
+    // wraps every ~1.7s, so the window always arrives), then turn Down --
     // the vertical body (bottom 463) overlaps the zone immediately.
     // Window math: the vertical hand overlaps the zone for turns at
-    // x ∈ [563.5, 706.5]; catching at x ∈ (600, 690) leaves a wide
+    // x in [563.5, 706.5]; catching at x in (600, 690) leaves a wide
     // input-latency budget at 300px/s, and the whole window sits inside
     // the vertical-safe-zone gate [418.5, 851.5].
     await page.waitForFunction(() => {
@@ -487,7 +487,7 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
     await page.keyboard.down('ArrowDown');
 
     // The hide fires as soon as the turned (vertical) body overlaps the
-    // zone — effectively right after the turn registers.
+    // zone -- effectively right after the turn registers.
     await page.waitForFunction(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             handFSM?: { is: (name: string) => boolean };
@@ -505,7 +505,7 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
     });
     expect(hiddenVisibility).toBe(false);
 
-    // Auto-resume after the 1s hide: back in a direction state ('down' —
+    // Auto-resume after the 1s hide: back in a direction state ('down' --
     // the hide preserves lastDirection rather than bouncing) and visible
     // again. (~0.3s later the resumed hand reaches the bottom wall and
     // stuns; the rAF-polled wait catches the 'down' window comfortably.)
@@ -518,12 +518,12 @@ test('stepping on a stash hole hides the hand, then auto-resumes', async ({ page
     }, { timeout: 4_000 });
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// 9. Button probe — every interactive responds at its VISUAL center.
+// ------------------------------------------------------------------------
+// 9. Button probe -- every interactive responds at its VISUAL center.
 //    Pins the repo convention (default center origin, positioned at the
 //    visual center) against regressions and against asset/coordinate
 //    drift. Extend this when adding a button.
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
 test('buttons respond at their visual centers', async ({ page }) => {
     await seedSettings(page);
@@ -536,7 +536,7 @@ test('buttons respond at their visual centers', async ({ page }) => {
         () => JSON.parse(localStorage.getItem('slick_hand_joe:settings') ?? '{}') as Record<string, unknown>,
     );
 
-    // MainMenu OPTIONS (152x67 sprite centered at 1134, 676.5) → Settings.
+    // MainMenu OPTIONS (152x67 sprite centered at 1134, 676.5) -> Settings.
     await canvas.click({ position: { x: 1134, y: 677 } });
     await page.waitForFunction(
         () => (window as GameWindow).__game!.scene.isActive('Settings'),
@@ -548,14 +548,14 @@ test('buttons respond at their visual centers', async ({ page }) => {
     await canvas.click({ position: { x: 880, y: 180 } });
     await expect.poll(async () => (await settings()).musicVolume).toBeCloseTo(0.1);
 
-    // Settings BACK (180x60 rect centered at 640, 580) → MainMenu.
+    // Settings BACK (180x60 rect centered at 640, 580) -> MainMenu.
     await canvas.click({ position: { x: 640, y: 580 } });
     await page.waitForFunction(
         () => (window as GameWindow).__game!.scene.isActive('MainMenu'),
         { timeout: 5_000 },
     );
 
-    // MainMenu INFO (152x67 sprite centered at 986, 676.5) → info screen
+    // MainMenu INFO (152x67 sprite centered at 986, 676.5) -> info screen
     // shows (alpha 1); ESC hides it again (isDown poll in update()).
     await canvas.click({ position: { x: 986, y: 677 } });
     await page.waitForFunction(() => {
@@ -573,7 +573,7 @@ test('buttons respond at their visual centers', async ({ page }) => {
     }, { timeout: 5_000 });
     await page.keyboard.up('Escape');
 
-    // MainMenu START (300x91 sprite centered at 1058, 604.5) → MainGame.
+    // MainMenu START (300x91 sprite centered at 1058, 604.5) -> MainGame.
     await canvas.click({ position: { x: 1058, y: 605 } });
     await page.waitForFunction(() => {
         const g = (window as GameWindow).__game;

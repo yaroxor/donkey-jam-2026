@@ -1,12 +1,12 @@
 // Game settings: persisted via localStorage under a single namespaced key.
 //
-// Schema is intentionally flat — adding a new field means appending to the
+// Schema is intentionally flat -- adding a new field means appending to the
 // interface + DEFAULTS, and loadSettings's spread-merge handles old saves
 // gracefully (missing fields get DEFAULTS values).
 //
 // All settings live here; the Settings scene mutates and saves them, and
 // gameplay code reads them lazily per-scene (no central cache, no Boot
-// trigger needed — localStorage reads are cheap and synchronous).
+// trigger needed -- localStorage reads are cheap and synchronous).
 
 export interface GameSettings {
     musicVolume: number;              // 0.0 to 1.0
@@ -50,7 +50,7 @@ export function saveSettings(s: GameSettings): void {
 }
 
 // Compute the effective volume for an audio channel, accounting for mute.
-// When muted, returns 0 regardless of slider value — the per-channel volumes
+// When muted, returns 0 regardless of slider value -- the per-channel volumes
 // stay tuned in the player's preference; mute just overrides at the
 // application layer. Music and SFX call sites both read through this so
 // the mute logic lives in one place.

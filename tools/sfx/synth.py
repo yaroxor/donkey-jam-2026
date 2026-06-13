@@ -20,7 +20,7 @@ SR = 44100  # 44.1 kHz sample rate
 
 
 def midi_freq(n: int) -> float:
-    """MIDI note number → Hz. A4 (note 69) = 440."""
+    """MIDI note number -> Hz. A4 (note 69) = 440."""
     return 440.0 * 2 ** ((n - 69) / 12)
 
 
@@ -28,7 +28,7 @@ def adsr(n: int, a: float = 0.01, d: float = 0.05, s: float = 0.6, r: float = 0.
     """Attack/Decay/Sustain/Release envelope, n samples long.
 
     a, d, r in seconds. s is the sustain level (0..1) held between decay and
-    release. Tail-trims to n samples if a+d+r exceeds dur — useful for very
+    release. Tail-trims to n samples if a+d+r exceeds dur -- useful for very
     short impacts where the envelope itself is shorter than ADSR would imply.
     """
     a_n = int(a * SR)

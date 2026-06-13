@@ -7,15 +7,15 @@
 //
 // State graph:
 //
-//   Left ⇄ Right (via Up/Down — direct L↔R reversal not allowed; must turn
+//   Left <-> Right (via Up/Down -- direct L<->R reversal not allowed; must turn
 //                  vertical first; matches the pre-FSM input model)
-//   Up   ⇄ Down (via Left/Right — same)
-//   Any direction → Stunned on hand-vs-block collision (collider callback
+//   Up   <-> Down (via Left/Right -- same)
+//   Any direction -> Stunned on hand-vs-block collision (collider callback
 //                                                       in MainGame.create)
-//   Stunned → OPPOSITE[lastDirection] after a 1s timer (bounce-off-wall)
-//   Any direction → Hidden on stash-zone overlap (overlap callback in
+//   Stunned -> OPPOSITE[lastDirection] after a 1s timer (bounce-off-wall)
+//   Any direction -> Hidden on stash-zone overlap (overlap callback in
 //                                                 MainGame.create)
-//   Hidden → lastDirection after a 1s timer (pop out, resume travel)
+//   Hidden -> lastDirection after a 1s timer (pop out, resume travel)
 //
 // Direction state .enter() applies setSize/angle/flipX/velocity for that
 // orientation AND mirrors the current direction onto scene.lastDirection
@@ -33,13 +33,13 @@ export type HandArgs = [MainGame];
 // Stun duration in ms. Used by both the StunnedState timer (controls when
 // the bounce-back fires) AND the duration-bar visual indicator (controls
 // how long the bar takes to drain). Single source of truth so they stay
-// in lockstep — a dial of the punishment length is one number.
+// in lockstep -- a dial of the punishment length is one number.
 const STUN_DURATION_MS = 1000;
 
 // Pre-computed wrap + vertical-safe-zone thresholds. The wrap fires when
 // the hand's CENTER crosses the arcade edge (half the horizontal hand has
-// stuck out). The vertical-safe-zone gates L/R → U/D turns so the
-// (narrower) vertical body doesn't end up partly off-table — vertical
+// stuck out). The vertical-safe-zone gates L/R -> U/D turns so the
+// (narrower) vertical body doesn't end up partly off-table -- vertical
 // motion has no wrap, so an off-table vertical hand would roam behind
 // the table indefinitely.
 const ARCADE_LEFT_X = ARCADE_AREA_LAYOUT.x;
@@ -61,7 +61,7 @@ const OPPOSITE: Record<HandStateName, HandStateName> = {
 };
 
 // Apply horizontal-orientation visuals + velocity. Shared between Left and
-// Right enter handlers — same body shape, same angle, sign-on-velocity
+// Right enter handlers -- same body shape, same angle, sign-on-velocity
 // differs, plus the flipX flag for sprite mirroring.
 function applyHorizontal(scene: MainGame, going: 'left' | 'right'): void {
     scene.hand.setSize(HAND_LONG_DIM, HAND_SHORT_DIM);
@@ -85,7 +85,7 @@ function applyVertical(scene: MainGame, going: 'up' | 'down'): void {
 
 // Symmetric horizontal states. Wrap when center crosses arcade edge; allow
 // turn to vertical only when the hand center is far enough inside the
-// table that the (narrower) vertical body fits fully — see VERTICAL_SAFE
+// table that the (narrower) vertical body fits fully -- see VERTICAL_SAFE
 // constants above.
 export class LeftState extends State<HandStateName, HandArgs> {
     enter(scene: MainGame): void {
@@ -122,7 +122,7 @@ export class RightState extends State<HandStateName, HandArgs> {
 }
 
 // Vertical states have no wrap (vertical walls aren't pass-through) and no
-// safe-zone gate on L/R transitions — horizontal hand becoming wider than
+// safe-zone gate on L/R transitions -- horizontal hand becoming wider than
 // vertical doesn't strand it because L/R then wraps normally if needed.
 export class UpState extends State<HandStateName, HandArgs> {
     enter(scene: MainGame): void {
@@ -151,21 +151,21 @@ export class DownState extends State<HandStateName, HandArgs> {
 }
 
 // Hide duration in ms (DESDOC "нычка": "при касании прячешься на секунду").
-// Scaling per level is an open playtest question — promote to a LEVELS
+// Scaling per level is an open playtest question -- promote to a LEVELS
 // column if levels want different durations.
 const HIDDEN_DURATION_MS = 1000;
 
 // Stash hide: freeze + vanish into the hole, then resume the direction of
-// travel — NOT the stun bounce. Nothing was hit; the hand sinks in and pops
+// travel -- NOT the stun bounce. Nothing was hit; the hand sinks in and pops
 // out still going the way it was going (lastDirection, which Hidden never
 // writes). Triggered by the stash-zone overlap callback in MainGame.create;
 // that callback also owns the re-arm rule (a zone re-arms only once the
 // hand has fully LEFT it, so popping out inside the zone can't chain into
-// an immediate re-hide). Cost model per DESDOC: wasted level-timer time —
+// an immediate re-hide). Cost model per DESDOC: wasted level-timer time --
 // no loot decrement, no suspicion bump, deliberately unlike Stunned.
 //
 // Duration is conditional: 1s normally (an accidental step costs ~1s), but
-// while the look-at-table reaction ("hide!") is running the hide HOLDS —
+// while the look-at-table reaction ("hide!") is running the hide HOLDS --
 // the auto-pop is suppressed so a hand that reaches the stash stays hidden
 // through the demon's check instead of popping out early and getting
 // caught. LookAtTableState releases the hand (MainGame.releaseHiddenHand)
@@ -197,7 +197,7 @@ export class HiddenState extends State<HandStateName, HandArgs> {
         // Idempotent, mirroring StunnedState.exit: remove() is safe after
         // fire, setVisible(true) is safe when already visible. Restoring
         // visibility here (not in the timer) covers exits that bypass the
-        // timer — e.g. a future external transition.
+        // timer -- e.g. a future external transition.
         scene.hand.setVisible(true);
         scene.handVis.setVisible(true);
         this.timer?.remove();
@@ -206,7 +206,7 @@ export class HiddenState extends State<HandStateName, HandArgs> {
 }
 
 // Stun penalty: freeze velocity, decrement loot (floor 0), bump suspicion
-// (may fire the ALARM via progressSus — the scene keeps running either
+// (may fire the ALARM via progressSus -- the scene keeps running either
 // way), schedule a 1s bounce timer.
 // The collider callback in MainGame.create guards against re-firing while
 // stunned, so we don't get a per-frame re-stun from continued body overlap.
@@ -233,11 +233,11 @@ export class StunnedState extends State<HandStateName, HandArgs> {
         }
 
         // Suspicion bump. May fire the ALARM (sus reaching 4 transitions
-        // the dialogue FSM into a reaction state) — but the alarm is not a
+        // the dialogue FSM into a reaction state) -- but the alarm is not a
         // game-over and the scene keeps running, so the stun plays out
         // normally either way: indicator + 1s bounce. A stun that fires
-        // the alarm is the classic death chain — a frozen hand can rarely
-        // reach a stash before the look-at-table check — but the player
+        // the alarm is the classic death chain -- a frozen hand can rarely
+        // reach a stash before the look-at-table check -- but the player
         // unfreezes with ~0.5s left and a stash-adjacent hand CAN make it.
         scene.progressSus();
 

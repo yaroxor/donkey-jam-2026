@@ -1,4 +1,4 @@
-// Finite state machine — pattern from Osmose's "Phaser Tutorial Series: FSM"
+// Finite state machine -- pattern from Osmose's "Phaser Tutorial Series: FSM"
 // (2019, https://github.com/Osmose). See dialogue-states.ts and hand-states.ts
 // for concrete State<Names, Args> subclasses.
 

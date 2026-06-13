@@ -3,7 +3,7 @@ import { Scene } from 'phaser';
 import { SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
 
 // Overlay scene launched on top of (and pausing) MainGame when the player
-// hits the loot target. Like GameOver, the camera is transparent — the
+// hits the loot target. Like GameOver, the camera is transparent -- the
 // frozen MainGame frame shows through, so the player sees their winning
 // state preserved behind the win text. Click anywhere or press Space to
 // restart.
@@ -15,8 +15,8 @@ import { SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
 //
 // Future scope (not in this commit): scoreboard, time-to-completion,
 // loot-rarity summary, transition-to-next-level button. The reason Win is
-// a separate scene from GameOver — even though they share the same restart
-// flow today — is that these future enrichments are win-specific and
+// a separate scene from GameOver -- even though they share the same restart
+// flow today -- is that these future enrichments are win-specific and
 // shouldn't crowd into the loss path.
 export class Win extends Scene
 {

@@ -5,7 +5,7 @@ type GameSound = Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
 // Tolerance for "the swap timer fired on the half-tact boundary". A normal
 // fire lands within a frame (~17ms) plus small audio-vs-game clock skew;
 // anything further means the boundary went stale (the per-scene clock pauses
-// with the scene while the game-scoped sound keeps playing — ESC pause).
+// with the scene while the game-scoped sound keeps playing -- ESC pause).
 // 100ms of slip is inaudible at 1.5s half-tacts; a mid-tact swap is not.
 const BOUNDARY_TOLERANCE_MS = 100;
 
@@ -15,7 +15,7 @@ const BOUNDARY_TOLERANCE_MS = 100;
 // invariant doesn't depend on remembering each track at every call site.
 export class MusicController {
     private tracks: Record<string, GameSound> = {};
-    // The switch TARGET — what the game wants playing. isPlaying() reads
+    // The switch TARGET -- what the game wants playing. isPlaying() reads
     // this (intent), which the e2e music assertions rely on.
     private current: string | null = null;
     // What is actually sounding right now. Lags `current` by up to one
@@ -52,14 +52,14 @@ export class MusicController {
     // Wait until the next beat boundary, then swap tracks with playback time
     // carried over so the swap is seamless. Until the boundary the audible
     // track keeps playing. Single-flight: a newer target supersedes a
-    // pending swap outright — one audible transition to the latest target
+    // pending swap outright -- one audible transition to the latest target
     // instead of two back-to-back swaps.
     smoothSwitch(toKey: string, beatPeriodSec: number): void {
         this.assertExists(toKey);
         if (this.current === toKey || this.current === null) return;
         this.cancelPendingSwitch();
         this.current = toKey;
-        // Superseded back to the track that is still audibly playing —
+        // Superseded back to the track that is still audibly playing --
         // nothing to swap (e.g. A audible, pending swap to B cancelled,
         // target is A again).
         if (this.audibleKey === toKey) return;
@@ -76,8 +76,8 @@ export class MusicController {
             // pauses with the scene (ESC pause) while the game-scoped sound
             // keeps advancing, so this timer can fire mid-tact after a
             // resume. Reschedule onto the next true boundary instead of
-            // swapping off-beat. Drift ≈ period counts as on-boundary (a
-            // hair early — audio clock vs game clock skew).
+            // swapping off-beat. Drift ~ period counts as on-boundary (a
+            // hair early -- audio clock vs game clock skew).
             const driftMs = (from.seek % beatPeriodSec) * 1000;
             const offBoundary = driftMs > BOUNDARY_TOLERANCE_MS
                 && driftMs < beatPeriodSec * 1000 - BOUNDARY_TOLERANCE_MS;
@@ -92,7 +92,7 @@ export class MusicController {
             }
             // The carried seek must ride the play() config: Phaser ignores
             // setSeek on a STOPPED sound, and a bare play() resets seek to
-            // 0 — the old setSeek-then-play pattern silently restarted
+            // 0 -- the old setSeek-then-play pattern silently restarted
             // every switched-to track from 0:00.
             this.tracks[toKey].play({ seek: playbackTime });
             this.audibleKey = toKey;
@@ -100,11 +100,11 @@ export class MusicController {
     }
 
     // Call on scene shutdown / level end. Iterates every registered track
-    // regardless of which one we think is current — robust to lost state.
+    // regardless of which one we think is current -- robust to lost state.
     stopAll(): void {
         // Defuse any pending swap FIRST: endLevel can stopAll() in the same
         // clock pass in which an already-elapsed swap timer is queued to
-        // fire — without the cancel, the swap would resurrect (and loop)
+        // fire -- without the cancel, the swap would resurrect (and loop)
         // music over the Win/GameOver screen.
         this.cancelPendingSwitch();
         for (const t of Object.values(this.tracks)) {
@@ -120,7 +120,7 @@ export class MusicController {
     }
 
     // Apply a volume multiplier (0.0 to 1.0) to every registered track.
-    // Phaser's Sound.setVolume works regardless of play state — it stores
+    // Phaser's Sound.setVolume works regardless of play state -- it stores
     // the value, and playback respects it whether the track is already
     // playing or not yet started. The Settings scene calls this on every
     // volume adjustment so the change is audible immediately.

@@ -26,7 +26,7 @@ dist-ssr
 .gstack/
 
 # Python tooling (tools/sfx has its own .gitignore for git, but root-level
-# tools — eslint's includeIgnoreFile, codebook — only read THIS file, and
+# tools -- eslint's includeIgnoreFile, codebook -- only read THIS file, and
 # traversing a venv crashes/slows them)
 tools/sfx/.venv/
 __pycache__/

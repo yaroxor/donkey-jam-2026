@@ -6,10 +6,10 @@
 #
 # Run from tools/art/:  ./compose_look_over.sh
 # Works under ImageMagick v6 (container: convert + 'matte' primitive) and
-# v7 (macOS host: magick + 'alpha') — v7 renamed the floodfill draw
+# v7 (macOS host: magick + 'alpha') -- v7 renamed the floodfill draw
 # primitive and deprecated the convert entry point.
 #
-# ADJUSTMENT KNOBS — tweak these and rerun; everything else is plumbing.
+# ADJUSTMENT KNOBS -- tweak these and rerun; everything else is plumbing.
 TILT_DEG=-25      # negative = lean left (demon sits screen-right, table is left)
 EYES_TILT_DEG=-25 # eyes overlay rotation; matches the demon lean by default
 EYES_WIDTH=100    # eyes overlay width in px after scaling (native 438 keyed)
@@ -43,7 +43,7 @@ OUT="../../public/assets/demon/look-over.png"
 "$IM" "$DEMON" -background none -rotate "$TILT_DEG" +repage /tmp/look-over-demon.png
 
 # 3. Slap the eyes on top at the knob offsets (mirrored around the
-#    vertical axis and tilted with the demon — user direction).
+#    vertical axis and tilted with the demon -- user direction).
 "$IM" /tmp/look-over-demon.png \
   \( /tmp/look-over-eyes.png -flop -resize "${EYES_WIDTH}x" \
      -background none -rotate "$EYES_TILT_DEG" +repage \) \

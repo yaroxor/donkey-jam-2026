@@ -1,10 +1,10 @@
-"""10-second generative groove — demo of the synth primitives.
+"""10-second generative groove -- demo of the synth primitives.
 
 Renders to ./pluck_groove.wav (gitignored). Bass: Karplus-Strong plucked,
 A minor pentatonic walking line. Lead: additive sine ostinato over 4 bars
 at 95 bpm. See README.md for the synthesis approach.
 
-Doesn't go in the game — it's a sanity check that the primitives work and
+Doesn't go in the game -- it's a sanity check that the primitives work and
 a starting point for any future longer-form audio.
 """
 import numpy as np

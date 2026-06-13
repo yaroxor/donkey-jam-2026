@@ -74,7 +74,7 @@ describe('loadSettings', () => {
     });
 
     it('spread-merges partial saves so missing fields take DEFAULTS values', () => {
-        // Simulates an old save predating a newer field — the back-compat
+        // Simulates an old save predating a newer field -- the back-compat
         // contract is that adding a field to the interface + DEFAULTS is
         // safe; old saves keep working.
         const ls = stubLocalStorage();
@@ -140,7 +140,7 @@ describe('saveSettings', () => {
 
     it('silently swallows storage errors so the game keeps running', () => {
         // Quota exceeded, private mode, etc. The session works in-memory
-        // and the next load() falls back to defaults — no crash.
+        // and the next load() falls back to defaults -- no crash.
         vi.stubGlobal('localStorage', {
             getItem: vi.fn(),
             setItem: vi.fn((): void => {

@@ -127,7 +127,7 @@ describe('StateMachine', () => {
 
     it('attaches stateMachine reference to every state at construction', () => {
         // States need access to this.stateMachine in their enter/execute/exit
-        // bodies (to call transition() from within a state — the dialogue
+        // bodies (to call transition() from within a state -- the dialogue
         // FSM's IdleState does this via a delayedCall).
         const { idle, active, fsm } = makeFsm();
 

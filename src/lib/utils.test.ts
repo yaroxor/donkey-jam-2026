@@ -3,7 +3,7 @@ import { shuffle } from './utils.ts';
 
 // Regression contract for the Fisher-Yates shuffle. Locks the *properties*
 // of a correct shuffle (same length, same multiset, in-place, no return),
-// not specific orderings — those depend on Math.random and aren't testable
+// not specific orderings -- those depend on Math.random and aren't testable
 // without seeding.
 
 describe('shuffle', () => {

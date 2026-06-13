@@ -1,5 +1,5 @@
 // Phaser test stubs. Minimal stand-ins for the Phaser API surface our code
-// touches — enough to test MusicController, dialogue FSM states, and other
+// touches -- enough to test MusicController, dialogue FSM states, and other
 // Phaser-coupled modules without spinning up a real Phaser game.
 //
 // Pattern: each test constructs a FakeScene via `makeFakeScene()`, passes
@@ -8,14 +8,14 @@
 //
 // For timers, the fake captures every `delayedCall(ms, cb)` into
 // `scene.time.timers` so tests can manually call `timer.fire()` to advance
-// "time" — no real wait, no scheduling, deterministic.
+// "time" -- no real wait, no scheduling, deterministic.
 
 import { vi } from 'vitest';
 import type { Scene } from 'phaser';
 
-// ────────────────────────────────────────────────────────────────────────
-// FakeSound — stands in for Phaser.Sound.WebAudioSound / HTML5AudioSound
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// FakeSound -- stands in for Phaser.Sound.WebAudioSound / HTML5AudioSound
+// ------------------------------------------------------------------------
 
 export class FakeSound {
     seek = 0;
@@ -26,9 +26,9 @@ export class FakeSound {
     // works correctly here. Each mock both records the call AND mutates
     // the fake's state so subsequent assertions on isPlaying / seek work.
     // play/setSeek model Phaser's REAL seek semantics (BaseSound.play
-    // resets the config — bare play() restarts from 0:00, only a config
+    // resets the config -- bare play() restarts from 0:00, only a config
     // seek survives; setSeek on a stopped sound is a documented no-op) so
-    // tests can't pin behavior Phaser doesn't have — the old fakes did,
+    // tests can't pin behavior Phaser doesn't have -- the old fakes did,
     // and hid a switched-track-restarts-from-zero bug for a month.
     play = vi.fn((config?: { seek?: number }): void => {
         this.isPlaying = true;
@@ -52,9 +52,9 @@ export class FakeSound {
     constructor(public readonly key: string) {}
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// FakeTimerEvent — stands in for Phaser.Time.TimerEvent
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// FakeTimerEvent -- stands in for Phaser.Time.TimerEvent
+// ------------------------------------------------------------------------
 
 export interface FakeTimerEvent {
     /** Delay in ms, as passed to delayedCall. */
@@ -86,9 +86,9 @@ function makeTimer(delay: number, callback: () => void): FakeTimerEvent {
     return ev;
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// FakeScene — the subset of Phaser.Scene our code touches
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// FakeScene -- the subset of Phaser.Scene our code touches
+// ------------------------------------------------------------------------
 
 export interface FakeScene {
     time: {
@@ -138,7 +138,7 @@ export function makeFakeScene(): FakeScene {
 /**
  * Cast a FakeScene to Phaser.Scene for passing into production code that
  * expects the real type. The fake satisfies only the subset of Scene that
- * the SUT actually uses — TypeScript can't verify this, so the cast is a
+ * the SUT actually uses -- TypeScript can't verify this, so the cast is a
  * promise to the type system that's checked at runtime by the SUT itself.
  */
 export function asScene(s: FakeScene): Scene {

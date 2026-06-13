@@ -16,7 +16,7 @@ import { makeFakeScene, type FakeScene } from '../../test/phaser-stubs.ts';
 //   - exit() always clears the dialogue UI via hideAskingUI
 //
 // Out of scope: AskingState.execute() (input-polling path; touches the
-// runtime Phaser global) and the private fail() helper — its alarm-path
+// runtime Phaser global) and the private fail() helper -- its alarm-path
 // behavior (4th wrong fires lookAtTable instead of game-over) is covered
 // by the e2e alarm scenarios and dialogue-states.test.ts.
 //
@@ -40,7 +40,7 @@ function asMainGame(s: FakeMainGame): MainGame {
     return s as unknown as MainGame;
 }
 
-describe('AskingState — showAskingUI(onReady) callback contract', () => {
+describe('AskingState -- showAskingUI(onReady) callback contract', () => {
     it('enter() passes an onReady callback to scene.showAskingUI', () => {
         const asking = new AskingState();
         const scene = makeFakeMainGame();
@@ -93,7 +93,7 @@ describe('AskingState — showAskingUI(onReady) callback contract', () => {
         const asking = new AskingState();
         const scene = makeFakeMainGame();
         asking.enter(asMainGame(scene));
-        // Deliberately do NOT invoke onReady — the timer was never scheduled.
+        // Deliberately do NOT invoke onReady -- the timer was never scheduled.
 
         expect(() => asking.exit(asMainGame(scene))).not.toThrow();
         expect(scene.time.timers).toHaveLength(0);

@@ -10,12 +10,12 @@ import { makeFakeScene, type FakeScene } from '../../test/phaser-stubs.ts';
 // Regression contract for the dialogue FSM's timer-owning states.
 //
 //   - IdleState / CooldownState: their advance timers are cancelled on
-//     exit — the alarm (progressSus via a wall stun) can yank the FSM out
+//     exit -- the alarm (progressSus via a wall stun) can yank the FSM out
 //     of either state from OUTSIDE, and a stale timer would later fire
 //     transition('asking') INTO the running reaction state.
 //   - LookAtTableState (the look-at-table alarm reaction): warning visual
-//     on enter, reaction-window timer, stashed → settle + next question,
-//     not stashed → endLevel('GameOver'); exit hides the visual and
+//     on enter, reaction-window timer, stashed -> settle + next question,
+//     not stashed -> endLevel('GameOver'); exit hides the visual and
 //     cancels the window.
 //
 // AskingState's ready-callback contract lives in AskingState.test.ts;
@@ -75,9 +75,9 @@ function makeFSM(
     return new StateMachine<DialogueStateName, DialogueArgs>(initial, states, [scene]);
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// IdleState / CooldownState — advance timers die on exit
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// IdleState / CooldownState -- advance timers die on exit
+// ------------------------------------------------------------------------
 
 describe('IdleState timer hygiene', () => {
     it('schedules the 2s advance to asking', () => {
@@ -134,9 +134,9 @@ describe('CooldownState timer hygiene', () => {
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// LookAtTableState — the look-at-table alarm reaction
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// LookAtTableState -- the look-at-table alarm reaction
+// ------------------------------------------------------------------------
 
 describe('LookAtTableState.enter', () => {
     it('shows the warning visual and schedules the 2s reaction window', () => {
@@ -156,7 +156,7 @@ describe('LookAtTableState.enter', () => {
 describe('LookAtTableState check', () => {
     it('does nothing when the level already ended in the same clock pass', () => {
         // The level timer can expire (endLevel -> ended=true) in the SAME
-        // Phaser clock pass this window elapses in — the check must not
+        // Phaser clock pass this window elapses in -- the check must not
         // run a settle (music restart over the GameOver overlay) then.
         const look = new LookAtTableState();
         const scene = makeFakeDialogueScene({ handIsStashed: vi.fn().mockReturnValue(true) });
@@ -199,7 +199,7 @@ describe('LookAtTableState check', () => {
         expect(scene.endLevel).toHaveBeenCalledWith('GameOver');
         expect(scene.settleAlarm).not.toHaveBeenCalled();
         expect(scene.releaseHiddenHand).not.toHaveBeenCalled();
-        // No transition on the caught path — the scene pauses; the leaning
+        // No transition on the caught path -- the scene pauses; the leaning
         // demon stays visible behind the GameOver overlay.
         expect(fsm.is('lookAtTable')).toBe(true);
         expect(scene.hideLookOver).not.toHaveBeenCalled();
@@ -214,7 +214,7 @@ describe('LookAtTableState.exit', () => {
         fsm.step();
 
         fsm.transition('cooldown'); // hypothetical external exit
-        scene.time.timers[0].fire(); // consumed by remove() — must be a no-op
+        scene.time.timers[0].fire(); // consumed by remove() -- must be a no-op
 
         expect(scene.hideLookOver).toHaveBeenCalledTimes(1);
         expect(scene.time.timers[0].remove).toHaveBeenCalled();
@@ -233,9 +233,9 @@ describe('LookAtTableState.exit', () => {
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// StormState — the question-storm alarm reaction
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// StormState -- the question-storm alarm reaction
+// ------------------------------------------------------------------------
 
 describe('StormState.enter', () => {
     it('shows the storm and schedules the 3s duration', () => {
@@ -291,7 +291,7 @@ describe('StormState.exit', () => {
         fsm.step();
 
         fsm.transition('cooldown'); // hypothetical external exit
-        scene.time.timers[0].fire(); // consumed by remove() — no-op
+        scene.time.timers[0].fire(); // consumed by remove() -- no-op
 
         expect(scene.hideStorm).toHaveBeenCalledTimes(1);
         expect(scene.time.timers[0].remove).toHaveBeenCalled();

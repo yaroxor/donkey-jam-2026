@@ -24,12 +24,12 @@ import { makeFakeScene, type FakeScene, type FakeTimerEvent } from '../../test/p
 //     visibility, idempotent
 //
 // Phaser-coupled paths (collider callback, handFSM wiring in MainGame
-// update/init/create) are DEFERRED per CLAUDE.md project policy — they
+// update/init/create) are DEFERRED per CLAUDE.md project policy -- they
 // require a real-scene playthrough to verify.
 
-// ────────────────────────────────────────────────────────────────────────
-// FakeMainGame — extends FakeScene with the surfaces hand-states touches
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// FakeMainGame -- extends FakeScene with the surfaces hand-states touches
+// ------------------------------------------------------------------------
 
 interface FakeCursor {
     isDown: boolean;
@@ -59,7 +59,7 @@ interface FakeMainGame extends FakeScene {
     redrawHandVis: ReturnType<typeof vi.fn>;
     // Optional: HiddenState reads this to decide whether to hold through an
     // active look-at-table reaction. Left undefined by default so the
-    // ordinary-hide tests pop normally (scene.dialogueFSM?.is(...) → falsy).
+    // ordinary-hide tests pop normally (scene.dialogueFSM?.is(...) -> falsy).
     dialogueFSM?: { is: (name: string) => boolean };
 }
 
@@ -132,9 +132,9 @@ const ARCADE_RIGHT = 885;
 const SAFE_MIN_X = 418.5;
 const SAFE_MAX_X = 851.5;
 
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 // LeftState
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
 describe('LeftState.enter', () => {
     it('applies horizontal size, angle 0, no flip, left velocity, and mirrors lastDirection', () => {
@@ -154,7 +154,7 @@ describe('LeftState.enter', () => {
     });
 });
 
-describe('LeftState.execute — wrap', () => {
+describe('LeftState.execute -- wrap', () => {
     it('wraps to the right arcade edge when center crosses the left edge', () => {
         const left = new LeftState();
         const scene = makeFakeMainGame({ hand: { ...makeFakeMainGame().hand, x: ARCADE_LEFT - 1 } });
@@ -174,7 +174,7 @@ describe('LeftState.execute — wrap', () => {
     });
 });
 
-describe('LeftState.execute — vertical-turn safe-zone gate', () => {
+describe('LeftState.execute -- vertical-turn safe-zone gate', () => {
     it('transitions to up when in safe zone and up is held', () => {
         const left = new LeftState();
         const scene = makeFakeMainGame({
@@ -212,9 +212,9 @@ describe('LeftState.execute — vertical-turn safe-zone gate', () => {
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// RightState — mirror tests
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// RightState -- mirror tests
+// ------------------------------------------------------------------------
 
 describe('RightState.enter', () => {
     it('applies horizontal size, angle 0, flip true, right velocity, mirrors lastDirection', () => {
@@ -232,7 +232,7 @@ describe('RightState.enter', () => {
     });
 });
 
-describe('RightState.execute — wrap', () => {
+describe('RightState.execute -- wrap', () => {
     it('wraps to the left arcade edge when center crosses the right edge', () => {
         const right = new RightState();
         const scene = makeFakeMainGame({ hand: { ...makeFakeMainGame().hand, x: ARCADE_RIGHT + 1 } });
@@ -243,7 +243,7 @@ describe('RightState.execute — wrap', () => {
     });
 });
 
-describe('RightState.execute — safe-zone gate', () => {
+describe('RightState.execute -- safe-zone gate', () => {
     it('does NOT transition to vertical when outside safe zone', () => {
         const right = new RightState();
         const scene = makeFakeMainGame({
@@ -281,9 +281,9 @@ describe('RightState.execute — safe-zone gate', () => {
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 // UpState
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
 describe('UpState.enter', () => {
     it('applies vertical size, angle 90, no flip, up velocity, mirrors lastDirection', () => {
@@ -302,11 +302,11 @@ describe('UpState.enter', () => {
     });
 });
 
-describe('UpState.execute — horizontal transition is unconditional', () => {
+describe('UpState.execute -- horizontal transition is unconditional', () => {
     it('transitions to left when left is held (no safe-zone gate)', () => {
         const up = new UpState();
         const scene = makeFakeMainGame({
-            hand: { ...makeFakeMainGame().hand, x: SAFE_MIN_X - 5 }, // unsafe zone for L→V; allowed for V→L
+            hand: { ...makeFakeMainGame().hand, x: SAFE_MIN_X - 5 }, // unsafe zone for L->V; allowed for V->L
             cursors: { left: { isDown: true }, right: { isDown: false }, up: { isDown: false }, down: { isDown: false } },
         });
         const fsm = makeFSM('up', { up }, asMainGame(scene));
@@ -327,9 +327,9 @@ describe('UpState.execute — horizontal transition is unconditional', () => {
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
-// DownState — mirror
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
+// DownState -- mirror
+// ------------------------------------------------------------------------
 
 describe('DownState.enter', () => {
     it('applies vertical size, angle 270, down velocity, mirrors lastDirection', () => {
@@ -346,7 +346,7 @@ describe('DownState.enter', () => {
     });
 });
 
-describe('DownState.execute — horizontal transition is unconditional', () => {
+describe('DownState.execute -- horizontal transition is unconditional', () => {
     it('transitions to left when left is held', () => {
         const down = new DownState();
         const scene = makeFakeMainGame({
@@ -370,11 +370,11 @@ describe('DownState.execute — horizontal transition is unconditional', () => {
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 // StunnedState
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
-describe('StunnedState.enter — velocity zeroed', () => {
+describe('StunnedState.enter -- velocity zeroed', () => {
     it('sets both velocity axes to 0', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame();
@@ -387,7 +387,7 @@ describe('StunnedState.enter — velocity zeroed', () => {
     });
 });
 
-describe('StunnedState.enter — wall-hit SFX', () => {
+describe('StunnedState.enter -- wall-hit SFX', () => {
     it('plays the wall-hit sound effect', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame();
@@ -400,7 +400,7 @@ describe('StunnedState.enter — wall-hit SFX', () => {
     });
 });
 
-describe('StunnedState.enter — loot decrement floors at 0', () => {
+describe('StunnedState.enter -- loot decrement floors at 0', () => {
     it('decrements collectedLootCount, refreshes meter, and triggers knockout animation when count > 0', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ collectedLootCount: 3 });
@@ -410,7 +410,7 @@ describe('StunnedState.enter — loot decrement floors at 0', () => {
 
         expect(scene.collectedLootCount).toBe(2);
         expect(scene.updateLootMeter).toHaveBeenCalledTimes(1);
-        // Knockout fires for the cell that just emptied — index =
+        // Knockout fires for the cell that just emptied -- index =
         // post-decrement count.
         expect(scene.knockOutLootCell).toHaveBeenCalledTimes(1);
         expect(scene.knockOutLootCell).toHaveBeenCalledWith(2);
@@ -429,7 +429,7 @@ describe('StunnedState.enter — loot decrement floors at 0', () => {
     });
 });
 
-describe('StunnedState.enter — suspicion bump', () => {
+describe('StunnedState.enter -- suspicion bump', () => {
     it('schedules the 1s timer and spawns the visual indicator', () => {
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(false) });
@@ -449,7 +449,7 @@ describe('StunnedState.enter — suspicion bump', () => {
     it('STILL schedules the timer and indicator when progressSus fires the alarm', () => {
         // The alarm is not a game-over: the scene keeps running and the
         // stun must play out normally (the old behavior skipped both when
-        // sus overflow meant an immediate endLevel — that path is gone).
+        // sus overflow meant an immediate endLevel -- that path is gone).
         const stunned = new StunnedState();
         const scene = makeFakeMainGame({ progressSus: vi.fn().mockReturnValue(true) });
         const fsm = makeFSM('stunned', { stunned }, asMainGame(scene));
@@ -462,7 +462,7 @@ describe('StunnedState.enter — suspicion bump', () => {
     });
 });
 
-describe('StunnedState.enter — bounce direction on timer fire', () => {
+describe('StunnedState.enter -- bounce direction on timer fire', () => {
     function setupBounce(lastDirection: HandStateName): {
         scene: FakeMainGame;
         fsm: StateMachine<HandStateName, HandArgs>;
@@ -475,36 +475,36 @@ describe('StunnedState.enter — bounce direction on timer fire', () => {
         return { scene, fsm, timer: scene.time.timers[0] };
     }
 
-    it('left → right on bounce', () => {
+    it('left -> right on bounce', () => {
         const { fsm, timer } = setupBounce('left');
         timer.fire();
         expect(fsm.is('right')).toBe(true);
     });
 
-    it('right → left on bounce', () => {
+    it('right -> left on bounce', () => {
         const { fsm, timer } = setupBounce('right');
         timer.fire();
         expect(fsm.is('left')).toBe(true);
     });
 
-    it('up → down on bounce', () => {
+    it('up -> down on bounce', () => {
         const { fsm, timer } = setupBounce('up');
         timer.fire();
         expect(fsm.is('down')).toBe(true);
     });
 
-    it('down → up on bounce', () => {
+    it('down -> up on bounce', () => {
         const { fsm, timer } = setupBounce('down');
         timer.fire();
         expect(fsm.is('up')).toBe(true);
     });
 });
 
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 // HiddenState (stash hide)
-// ────────────────────────────────────────────────────────────────────────
+// ------------------------------------------------------------------------
 
-describe('HiddenState.enter — freeze and vanish', () => {
+describe('HiddenState.enter -- freeze and vanish', () => {
     it('zeroes both velocity axes and hides the hand sprite + hitbox vis', () => {
         const hidden = new HiddenState();
         const scene = makeFakeMainGame();
@@ -532,7 +532,7 @@ describe('HiddenState.enter — freeze and vanish', () => {
     });
 });
 
-describe('HiddenState — resume direction on timer fire', () => {
+describe('HiddenState -- resume direction on timer fire', () => {
     function setupHide(lastDirection: HandStateName): {
         scene: FakeMainGame;
         fsm: StateMachine<HandStateName, HandArgs>;
@@ -552,7 +552,7 @@ describe('HiddenState — resume direction on timer fire', () => {
     });
 
     // Unlike the stun bounce (OPPOSITE), the hide resumes the SAME
-    // direction — the hand pops out still traveling the way it was going.
+    // direction -- the hand pops out still traveling the way it was going.
     it('left resumes left (not the stun bounce)', () => {
         const { fsm, timer } = setupHide('left');
         timer.fire();
@@ -566,7 +566,7 @@ describe('HiddenState — resume direction on timer fire', () => {
     });
 });
 
-describe('HiddenState — holds through an active look-at-table reaction', () => {
+describe('HiddenState -- holds through an active look-at-table reaction', () => {
     it('does NOT auto-pop when the timer fires while lookAtTable is active', () => {
         const hidden = new HiddenState();
         const scene = makeFakeMainGame({
@@ -578,7 +578,7 @@ describe('HiddenState — holds through an active look-at-table reaction', () =>
 
         scene.time.timers[0].fire();
 
-        // Still hidden — the reaction holds it; LookAtTableState releases it
+        // Still hidden -- the reaction holds it; LookAtTableState releases it
         // on a passed check (covered in dialogue-states.test.ts).
         expect(fsm.is('hidden')).toBe(true);
         expect(fsm.is('left')).toBe(false);

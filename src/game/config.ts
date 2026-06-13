@@ -40,7 +40,7 @@ export const LOOT_SIZE: Size = {
     height: 61,
 };
 
-// Stash hole sprite (public/assets/hole.png): 120x120 as shipped — trimmed
+// Stash hole sprite (public/assets/hole.png): 120x120 as shipped -- trimmed
 // and downscaled from the user's 2500x2500 alpha PNG (v2 art, replaced the
 // keyed HEIC original 2026-06-12); identify-verified.
 export const HOLE_SIZE: Size = {
@@ -48,10 +48,10 @@ export const HOLE_SIZE: Size = {
     height: 120,
 };
 
-// Stash trigger zone — the solid hole INTERIOR of the sprite, not the full
+// Stash trigger zone -- the solid hole INTERIOR of the sprite, not the full
 // crack span, so brushing the outer cracks doesn't swallow the hand.
 // Measured on the source via alpha-threshold + erode: interior blob
-// ≈1601x1455 of 2493x2492 (64% x 58%), scaled to 120px → ≈77x70.
+// ~1601x1455 of 2493x2492 (64% x 58%), scaled to 120px -> ~77x70.
 export const STASH_TRIGGER_SIZE: Size = {
     width: 76,
     height: 70,
@@ -62,47 +62,47 @@ export const HAND_SPEED: number = 300; // px/s
 
 // Hand sprite dimensions. The asset is 106x67 (long axis along the extended
 // finger). The body swaps width/height when the hand rotates: horizontal
-// (L/R) → HAND_LONG_DIM × HAND_SHORT_DIM, vertical (U/D) → swapped. Shared
+// (L/R) -> HAND_LONG_DIM x HAND_SHORT_DIM, vertical (U/D) -> swapped. Shared
 // between MainGame (setSize / wrap math) and hand-states.ts (per-direction
-// enter handlers). Single source of truth — a hand-asset swap only needs
+// enter handlers). Single source of truth -- a hand-asset swap only needs
 // to update these two numbers.
 export const HAND_LONG_DIM: number = 106;
 export const HAND_SHORT_DIM: number = 67;
 // Music tact is ~3s; switches happen on the half-tact for smoothness.
 export const MUSIC_HALF_TACT_SECONDS: number = 1.5;
 
-// Suspicion-level lookup table — the multi-binding slot for anything
+// Suspicion-level lookup table -- the multi-binding slot for anything
 // coupled to the suspicion meter (per ARCHITECTURE.md "State modeling").
 // Carries music; sprite stages bind via MainGame.applySusStage(level)
 // (escalation and settle want different music transitions, so a single
 // setSusLevel(n) setter was rejected as-built). Index = current sus
-// (0..3); sus 4 is the ALARM and has no row — the reaction state owns
+// (0..3); sus 4 is the ALARM and has no row -- the reaction state owns
 // the screen from alarm-fire to settle, and the sus-3 visuals/track
 // hold underneath until the composer's reaction tracks land.
 //
 // Keys music1/music2 are the musician's delivered pieces; music3/music4
 // are bass-boosted placeholder derivations of track 2 (regenerate via
-// tools/sfx/boost_placeholders.sh) until the real compositions land —
+// tools/sfx/boost_placeholders.sh) until the real compositions land --
 // same tempo and length, so tact-aligned switches stay musical.
 export interface SusLevelCfg {
     music: string;
 }
 
 export const SUS_LEVELS: SusLevelCfg[] = [
-    { music: 'music1' },  // sus 0 — calm; plays from level start only
-    { music: 'music2' },  // sus 1 — first slip; also the post-alarm baseline
-    { music: 'music3' },  // sus 2 — tense
-    { music: 'music4' },  // sus 3 — one mistake from busted
+    { music: 'music1' },  // sus 0 -- calm; plays from level start only
+    { music: 'music2' },  // sus 1 -- first slip; also the post-alarm baseline
+    { music: 'music3' },  // sus 2 -- tense
+    { music: 'music4' },  // sus 3 -- one mistake from busted
 ];
 
 // Post-alarm settle level (DESDOC: "После 1го палева возвращается не до
-// идеального состояния" — surviving an alarm drops the whole sus-coupled
+// идеального состояния" -- surviving an alarm drops the whole sus-coupled
 // bundle to this level, not to zero). Alarm-reactions design decision:
 // baseline 1 of 4.
 export const SUS_BASELINE = 1;
 
 // Alarm reaction roll. Reaching full sus (4) fires one of two reactions:
-// look-at-table (a stash check) or storm (загрузить вопросами — bubbles
+// look-at-table (a stash check) or storm (загрузить вопросами -- bubbles
 // bury the table, no check, just lost time + blocked visibility).
 // Currently 100% storm for storm-mechanic playtest; production target is
 // { lookAtTable: 0.70, storm: 0.30 } (a one-line flip once storm feels
@@ -115,7 +115,7 @@ export const ALARM_REACTION_WEIGHTS: Record<AlarmReaction, number> = {
 
 // Weighted pick. `rand` is a 0..1 roll (injected so this stays pure and
 // unit-testable); MainGame passes Math.random(). Falls to storm when the
-// weights sum to 0 (a bad config — better a harmless reaction than a throw).
+// weights sum to 0 (a bad config -- better a harmless reaction than a throw).
 export function rollAlarmReaction(weights: Record<AlarmReaction, number>, rand: number): AlarmReaction {
     const total = weights.lookAtTable + weights.storm;
     return rand * total < weights.lookAtTable ? 'lookAtTable' : 'storm';
@@ -129,7 +129,7 @@ export interface LevelConfig {
     lootTarget: number;
     timerSeconds: number;
     // Stash hole centers. Entering a hole's trigger zone auto-hides the hand
-    // for ~1s (HiddenState) — being hidden when the look-at-table check
+    // for ~1s (HiddenState) -- being hidden when the look-at-table check
     // fires is what survives an alarm; an accidental step just wastes
     // level-timer time.
     stashSpots: Pos[];
@@ -137,7 +137,7 @@ export interface LevelConfig {
 
 export const LEVELS: LevelConfig[] = [
     // Stash at bottom center (user direction 2026-06-12). Geometry: the
-    // hand spawns at (640, 410) — horizontal body bottom 443.5 — so the
+    // hand spawns at (640, 410) -- horizontal body bottom 443.5 -- so the
     // trigger zone's top edge (490 - 70/2 = 455) must stay below that or
     // the level starts with an instant hide. At y=490 the clearance is
     // 11.5px, and the 120px sprite's bottom rests at the bottom danger-tape
@@ -187,10 +187,10 @@ export const LOOT_METER_STROKE_COLOR: number = 0x44323f; // matches HUD palette
 // buttons. (18, 15) fixed it on the old art; (5, 4) is its 32px scale.
 export const MENU_CURSOR = 'url(assets/menuUI/cursor.png) 5 4, pointer';
 
-// ── MainGame scene layout ───────────────────────────────────────────────
+// -- MainGame scene layout -----------------------------------------------
 // Positional constants extracted from MainGame.create() / showAskingUI
 // (2026-06-13, once storm + stash claimed their screen space). Pure layout
-// — values are byte-identical to the former inline literals. Game-feel
+// -- values are byte-identical to the former inline literals. Game-feel
 // scalars (HAND_SPEED, MUSIC_HALF_TACT_SECONDS) and single-use timings stay
 // inline at their call sites. Hand wrap/safe-zone thresholds already derive
 // from ARCADE_AREA_LAYOUT in hand-states.ts, so they aren't repeated here.
@@ -213,12 +213,12 @@ export const ANSWER_POSITIONS: Pos[] = [
     { x: 220, y: 460 },
 ];
 
-// Hand spawn — screen center, nudged down so it starts on the table rather
+// Hand spawn -- screen center, nudged down so it starts on the table rather
 // than inside the top wall.
 export const HAND_SPAWN: Pos = { x: SCREEN_CENTER.x, y: SCREEN_CENTER.y + 50 };
 
 // Walls + sword obstacle (arcade boundaries the hand stuns on). Rectangles
-// are center + size. The sword sprite is 60x161 native, rotated 90deg →
+// are center + size. The sword sprite is 60x161 native, rotated 90deg ->
 // 161x60 in world.
 export const TOP_WALL: GameObjLayout = { x: SCREEN_CENTER.x, y: 1, width: 600, height: 100 };
 export const BOTTOM_WALL: GameObjLayout = { x: SCREEN_CENTER.x, y: GAME_HEIGHT - 120, width: 600, height: 100 };

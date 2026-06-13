@@ -10,7 +10,7 @@ import { makeFakeScene, asScene, FakeSound } from '../test/phaser-stubs.ts';
 //     already-populated SoundManager from a prior scene)
 //   - play() enforces the invariant: stops every other track before playing
 //   - smoothSwitch() schedules a half-tact-aligned swap, carries playback
-//     seek across the boundary (via the play() config — Phaser ignores
+//     seek across the boundary (via the play() config -- Phaser ignores
 //     setSeek on stopped sounds), re-aligns after pause-induced drift, and
 //     handles rapid re-entrancy single-flight (latest target supersedes)
 //   - stopAll() / isPlaying() / unregistered-key error path
@@ -47,7 +47,7 @@ describe('MusicController.register', () => {
     it('reuses an existing sound from the SoundManager (scene-restart idempotency)', () => {
         // Pre-populate the SoundManager as if a prior scene already created
         // this track. The SoundManager is game-scoped in production, so a
-        // fresh scene's register() should NOT re-add — it should reuse.
+        // fresh scene's register() should NOT re-add -- it should reuse.
         const { scene, mc } = setup();
         const preexisting = new FakeSound('calm');
         scene.sound.sounds.set('calm', preexisting);
@@ -134,7 +134,7 @@ describe('MusicController.smoothSwitch', () => {
     });
 
     it('schedules the swap at the next half-tact boundary, carrying seek across', () => {
-        // fromTrack at seek=0.5 (mid half-tact of 1.5s) → swap should fire
+        // fromTrack at seek=0.5 (mid half-tact of 1.5s) -> swap should fire
         // (1.5 - 0.5) * 1000 = 1000ms later.
         const { scene, mc } = setup();
         mc.register('calm');
@@ -171,7 +171,7 @@ describe('MusicController.smoothSwitch', () => {
         const timer = scene.time.timers[0];
         timer.fire();
 
-        // calm was the "from" track — it gets stopped at fire time too (the
+        // calm was the "from" track -- it gets stopped at fire time too (the
         // closure loops every registered track except `toKey`).
         expect(calm.stop).toHaveBeenCalledTimes(1);
         expect(tense.stop).toHaveBeenCalledTimes(1);
@@ -200,10 +200,10 @@ describe('MusicController.smoothSwitch', () => {
     });
 
     it('a newer different-target switch supersedes the pending one (single-flight)', () => {
-        // play('calm') → smoothSwitch('alarm') → smoothSwitch('tense').
+        // play('calm') -> smoothSwitch('alarm') -> smoothSwitch('tense').
         // The second call cancels the first timer; one audible transition,
         // straight to the latest target, boundary computed from the track
-        // that is actually sounding (calm) — not from the stopped alarm.
+        // that is actually sounding (calm) -- not from the stopped alarm.
         const { scene, mc } = setup();
         mc.register('calm');
         mc.register('alarm');
@@ -218,9 +218,9 @@ describe('MusicController.smoothSwitch', () => {
         expect(scene.time.delayedCall).toHaveBeenCalledTimes(2);
         // First timer was cancelled by the supersede.
         expect(scene.time.timers[0].remove).toHaveBeenCalled();
-        // Both schedules read the audible track's seek (0.5 of 1.5 → 1000ms);
+        // Both schedules read the audible track's seek (0.5 of 1.5 -> 1000ms);
         // the old code computed the second delay from the stopped alarm
-        // track (seek 0 → a full off-boundary 1500ms).
+        // track (seek 0 -> a full off-boundary 1500ms).
         expect(scene.time.timers[1].delay).toBe(1000);
 
         scene.time.timers[0].fire(); // no-op: consumed by remove()
@@ -237,7 +237,7 @@ describe('MusicController.smoothSwitch', () => {
 
     it('superseding back to the audible track cancels the pending swap without scheduling', () => {
         // A audible, pending swap to B, then target back to A: nothing to
-        // swap — A is already sounding. The pending B swap must die.
+        // swap -- A is already sounding. The pending B swap must die.
         const { scene, mc } = setup();
         mc.register('calm');
         mc.register('alarm');
@@ -258,7 +258,7 @@ describe('MusicController.smoothSwitch', () => {
 
     it('re-aligns to the next boundary instead of swapping when the timer fired mid-tact', () => {
         // ESC pause freezes the scene clock while the game-scoped sound
-        // keeps playing — the timer then fires at a stale boundary. Model:
+        // keeps playing -- the timer then fires at a stale boundary. Model:
         // advance the audible track's seek past the boundary before firing.
         const { scene, mc } = setup();
         mc.register('calm');
@@ -271,13 +271,13 @@ describe('MusicController.smoothSwitch', () => {
         expect(scene.time.timers[0].delay).toBe(1000);
 
         // Simulate a ~0.9s pause: at fire time the seek sits mid-tact.
-        calm.seek = 2.4; // 2.4 % 1.5 = 0.9 → 900ms drift, off-boundary
+        calm.seek = 2.4; // 2.4 % 1.5 = 0.9 -> 900ms drift, off-boundary
         scene.time.timers[0].fire();
 
         const alarm = scene.sound.sounds.get('alarm')!;
         expect(alarm.play).not.toHaveBeenCalled();
         // Rescheduled onto the next true boundary: (1.5 - 0.9) * 1000
-        // (float-tolerant — IEEE 754 gives 600.0000000000001).
+        // (float-tolerant -- IEEE 754 gives 600.0000000000001).
         expect(scene.time.delayedCall).toHaveBeenCalledTimes(2);
         expect(scene.time.timers[1].delay).toBeCloseTo(600, 6);
 

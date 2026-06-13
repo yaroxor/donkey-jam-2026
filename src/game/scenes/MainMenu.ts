@@ -34,7 +34,7 @@ export class MainMenu extends Scene
 
         // start1 sprite is 300x91. All interactives use the default center
         // origin and are positioned at their visual center (repo convention;
-        // hit areas follow origin correctly — probe-verified). Center =
+        // hit areas follow origin correctly -- probe-verified). Center =
         // jam-era top-left (GAME_WIDTH-300-72, GAME_HEIGHT-91-70) + half
         // size, so the visual position is unchanged.
         this.startButton = this.add.image((GAME_WIDTH - 72 - 300 / 2), (GAME_HEIGHT - 70 - 91 / 2), 'start1');

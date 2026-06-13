@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Project policy: vitest covers pure-TS surfaces (utils, StateMachine,
 // settings, hand-states, dialogue-states). Phaser-coupled paths (scene
 // lifecycle, collider callbacks, input wiring) are intentionally deferred
-// from vitest — they need a real browser to exercise. This config runs
+// from vitest -- they need a real browser to exercise. This config runs
 // those tests against the Vite dev server (see the webServer note below
 // for why dev, not a built artifact).
 //
@@ -16,7 +16,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
     testDir: './e2e',
-    timeout: 60_000,            // 60s per test — game flows are slower than DOM tests
+    timeout: 60_000,            // 60s per test -- game flows are slower than DOM tests
     expect: { timeout: 5_000 },
     fullyParallel: false,       // game tests share localStorage / window state
     workers: 1,                 // serial; running parallel Phaser instances thrashes the system
@@ -31,7 +31,7 @@ export default defineConfig({
     },
     projects: [
         {
-            // Chromium only — Phaser canvas rendering is the same across
+            // Chromium only -- Phaser canvas rendering is the same across
             // engines, and CI/local cost matters more than browser coverage
             // for a hobby game.
             name: 'chromium',
@@ -39,7 +39,7 @@ export default defineConfig({
         },
     ],
     webServer: {
-        // Use the dev server so `import.meta.env.DEV` is true — that
+        // Use the dev server so `import.meta.env.DEV` is true -- that
         // unlocks the loot-target / timer override settings tests rely on
         // for deterministic pacing. Production-build correctness is
         // already validated by the regular `bun run build` step in CI.

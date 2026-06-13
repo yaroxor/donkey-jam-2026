@@ -3,7 +3,7 @@ import { Scene } from 'phaser';
 import { SCREEN_CENTER, MENU_CURSOR } from '../config.ts';
 
 // Overlay scene launched on top of (and pausing) MainGame. Camera is
-// transparent — MainGame's frozen frame shows through any transparent
+// transparent -- MainGame's frozen frame shows through any transparent
 // areas in paused.png. The asset has two visible options ("RESUME" and
 // "LEAVE"); each gets an invisible interactive rectangle on top.
 export class PauseScene extends Scene
@@ -23,7 +23,7 @@ export class PauseScene extends Scene
         // (threshold + trim, 2026-06-12): RESUME text spans x 550..732,
         // y 318..349 (center 641, 334); LEAVE spans x 569..713, y 416..448
         // (center 641, 432). The original zones were eyeballed ~45px below
-        // the labels, leaving the visible text essentially unclickable —
+        // the labels, leaving the visible text essentially unclickable --
         // re-measure if the asset's label area ever shifts (the e2e pause
         // test clicks the label centers and will catch drift).
         const resumeBtn = this.add.rectangle(SCREEN_CENTER.x, 334, 280, 70, 0x000000, 0);
@@ -49,7 +49,7 @@ export class PauseScene extends Scene
     {
         // MainGame is paused beneath us; explicitly stop it so it doesn't
         // linger in memory. Its SHUTDOWN-event cleanup (subscribed in
-        // MainGame.create) stops the music here — this path bypasses
+        // MainGame.create) stops the music here -- this path bypasses
         // endLevel, which is the only other music-stopping exit.
         this.scene.stop('MainGame');
         this.scene.start('MainMenu');

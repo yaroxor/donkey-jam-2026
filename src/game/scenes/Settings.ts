@@ -5,7 +5,7 @@ import { loadSettings, saveSettings, type GameSettings } from '../settings.ts';
 
 // Settings menu scene. Three rows (music volume, SFX volume, loot target
 // tuner) plus a back button. Loot row only renders in DEV builds via
-// import.meta.env.DEV — Vite strips it from production bundles entirely.
+// import.meta.env.DEV -- Vite strips it from production bundles entirely.
 //
 // Each row uses +/- buttons rather than sliders: Phaser has no built-in
 // slider primitive, +/- click-handlers match the click-driven UX of
@@ -16,7 +16,7 @@ import { loadSettings, saveSettings, type GameSettings } from '../settings.ts';
 // state on the NEXT consumer read (MainGame.init reads loot override and
 // music volume; AskingState.fail re-reads sfx volume per call). There's
 // no music playing on the menu, so "live music volume change" isn't a
-// concern here — that's the mute button's job, inside MainGame.
+// concern here -- that's the mute button's job, inside MainGame.
 
 const TEXT_STYLE = {
     fontFamily: 'Architects Daughter',
@@ -43,7 +43,7 @@ const ADJ_BUTTON_SIZE = 40;
 const BACK_BUTTON_WIDTH = 180;
 const BACK_BUTTON_HEIGHT = 60;
 
-// Layout — column positions and row Y-coords.
+// Layout -- column positions and row Y-coords.
 const COL_LABEL = 400;
 const COL_VALUE = 720;
 const COL_MINUS = 820;
@@ -108,7 +108,7 @@ export class Settings extends Scene
         // DEV-only tuners. Vite dead-code-eliminates the whole block from
         // production bundles when import.meta.env.DEV is statically false.
         // When the override is null (never touched), display the current
-        // LEVELS default so the user sees the effective in-game value —
+        // LEVELS default so the user sees the effective in-game value --
         // first +/- click then engages the override.
         if (import.meta.env.DEV) {
             const levelDefault = LEVELS[CURRENT_LEVEL_INDEX];
@@ -135,7 +135,7 @@ export class Settings extends Scene
     }
 
     private addAdjustButton(centerX: number, centerY: number, label: string, onClick: () => void): void {
-        // Default center origin, positioned at the visual center — the
+        // Default center origin, positioned at the visual center -- the
         // repo-wide pattern for interactives. Phaser hit-tests the default
         // hit area through the origin correctly (probe-verified on 3.90;
         // the earlier setOrigin(0) + top-left workaround here was based on
