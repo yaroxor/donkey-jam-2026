@@ -183,3 +183,46 @@ export const LOOT_METER_STROKE_COLOR: number = 0x44323f; // matches HUD palette
 // offset within their hit area, so the misalignment only surfaced on
 // the Settings scene's 40x40 +/- buttons.
 export const MENU_CURSOR = 'url(assets/menuUI/cursor.png) 18 15, pointer';
+
+// ── MainGame scene layout ───────────────────────────────────────────────
+// Positional constants extracted from MainGame.create() / showAskingUI
+// (2026-06-13, once storm + stash claimed their screen space). Pure layout
+// — values are byte-identical to the former inline literals. Game-feel
+// scalars (HAND_SPEED, MUSIC_HALF_TACT_SECONDS) and single-use timings stay
+// inline at their call sites. Hand wrap/safe-zone thresholds already derive
+// from ARCADE_AREA_LAYOUT in hand-states.ts, so they aren't repeated here.
+
+// Characters + suspicion HUD. Skeleton (player) on the left, demon (victim)
+// on the right; SKEL_POS doubles as the player speech-bubble anchor.
+export const SKEL_POS: Pos = { x: 200, y: 400 };
+export const DEMON_POS: Pos = { x: 1100, y: 410 };
+export const SUS_METER_POS: Pos = { x: 1100, y: 50 };
+export const LOOK_OVER_POS: Pos = { x: 1100, y: 200 };
+export const LOOK_OVER_SCALE: number = 0.75;
+
+// Dialogue bubbles + answer-emoji layout (enemy bubble + question on the
+// right; the three answer emojis render in the player bubble on the left).
+export const BUBBLE_ENEMY_POS: Pos = { x: GAME_WIDTH - 200, y: 400 };
+export const QUESTION_IMAGE_POS: Pos = { x: GAME_WIDTH - 200, y: 430 };
+export const ANSWER_POSITIONS: Pos[] = [
+    { x: 150, y: 395 },
+    { x: 280, y: 380 },
+    { x: 220, y: 460 },
+];
+
+// Hand spawn — screen center, nudged down so it starts on the table rather
+// than inside the top wall.
+export const HAND_SPAWN: Pos = { x: SCREEN_CENTER.x, y: SCREEN_CENTER.y + 50 };
+
+// Walls + sword obstacle (arcade boundaries the hand stuns on). Rectangles
+// are center + size. The sword sprite is 60x161 native, rotated 90deg →
+// 161x60 in world.
+export const TOP_WALL: GameObjLayout = { x: SCREEN_CENTER.x, y: 1, width: 600, height: 100 };
+export const BOTTOM_WALL: GameObjLayout = { x: SCREEN_CENTER.x, y: GAME_HEIGHT - 120, width: 600, height: 100 };
+export const SWORD_BLOCK: GameObjLayout = { x: ARCADE_AREA_CENTER.x, y: 200, width: 161, height: 60 };
+
+// Timer card (behind the countdown text, over the bottom wall) + the
+// bottom-right control buttons.
+export const TIMER_CARD: GameObjLayout = { x: SCREEN_CENTER.x, y: 630, width: 220, height: 100 };
+export const PAUSE_BTN_POS: Pos = { x: GAME_WIDTH - 50, y: GAME_HEIGHT - 50 };
+export const MUTE_BTN_POS: Pos = { x: GAME_WIDTH - 130, y: GAME_HEIGHT - 50 };

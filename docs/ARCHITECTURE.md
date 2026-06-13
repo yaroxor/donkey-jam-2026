@@ -38,6 +38,8 @@ Second instance: `SUS_LEVELS` (landed 2026-06-12, music column first; the row sh
 
 Rule: tables are cheap; ad-hoc constants scattered across files are expensive. When in doubt, table.
 
+The same "name it in config, not inline" rule applies to **static scene layout**: the MainGame scene's character/HUD/bubble positions, wall geometry, hand spawn, timer card, and control-button positions live as named constants in `config.ts` (extracted 2026-06-13; the "MainGame scene layout" block). They were left inline through the jam and the early feature passes — deliberately, because features still claiming screen space (storm bubbles, stash) would have churned them — and consolidated once those landed. Two things stay inline by choice: game-feel scalars (`HAND_SPEED`, `MUSIC_HALF_TACT_SECONDS`) read better at their meaning, and single-use timings (idle 2s, cooldown 5s, answer-stagger, loot respawn) read better next to their call sites where naming wouldn't add clarity. Hand wrap/safe-zone thresholds already derive from `ARCADE_AREA_LAYOUT` in `hand-states.ts`.
+
 **Open questions for when `LEVELS` grows beyond one entry** (lifted from the retired dep scope map's cross-cutting questions, 2026-05-14):
 
 - **Inline TS module vs externalized data file?** Currently TS — gives type-checking and IDE support for the single entry. Externalizing to JSON (or similar) helps when level data wants to be data-not-code: level editor support, hot reload, non-coder contributors editing levels. Defer until multi-level work has stakeholders.

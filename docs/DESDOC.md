@@ -24,6 +24,31 @@
 
 ---
 
+## Alt eng descr
+
+The game: two interleaved loops. Skeleton Joe sweet-talks the demon victim through an emoji association Q&A; meanwhile his severed hand
+scuttles the table grabbing loot before a timer. Wrong/late answers raise a 4-stage suspicion meter; a full meter fires an alarm (the demon reacts);
+the hand can duck into stash holes. Win = collect the loot target before time's up. Lose = caught by the alarm's table-check, or timer expires
+short.
+
+## v1.0 code-side status
+
+Implemented and shipped (gate-green, 115 unit + 10 e2e tests):
+
+- Dialogue loop (idle→asking→cooldown FSM, emoji Q&A, layout-independent answer keys, suspicion meter)
+- Arcade loop (auto-moving hand FSM, steering, edge-wrap, loot spawn/collect with keep-outs, loot meter HUD)
+- Stun on wall crash (freeze + loot−1 + suspicion+1 + SFX + indicator + bounce)
+- Level timer + all three end conditions
+- Stash holes (нычка) — auto-hide that holds through the alarm check
+- Alarm reactions (both) — sus-4 rolls look-at-table (2s window, stash check, red drain bar + "hide!") or storm (3s bubble bury, no check); both
+  settle to baseline. Now 70/30 (you flipped it).
+- Sus-coupled 4-track music + settle cut, mute, settings (volume + DEV tuners)
+- All 8 scenes, pause menu, custom cursor
+- DEV tooling (keys 1–4: suspend questions/loot, hold look-over, force reaction) + on-screen readout
+- Forge CI gate as the single quality system
+
+---
+
 ## Art
 
 ### Рисунок
@@ -86,7 +111,7 @@ Goetia -- Lesser Key of Solomon -- Aleister Crowley
 
 ---
 
-**Открытые задачи**: см. [`TODOS.md`](./TODOS.md) — там и v1.0, и v2.0, и баги, и отложенные решения.
+**Открытые задачи**: см. [`TODOS.md`](./TODOS.md) -- там и v1.0, и v2.0, и баги, и отложенные решения.
 
 ---
 

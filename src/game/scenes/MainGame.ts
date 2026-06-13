@@ -1,8 +1,8 @@
 import { Scene } from 'phaser';
 
 import {
-    GAME_WIDTH, GAME_HEIGHT, SCREEN_CENTER,
-    ARCADE_AREA_CENTER, ARCADE_AREA_LAYOUT, LOOT_SIZE,
+    GAME_HEIGHT, SCREEN_CENTER,
+    ARCADE_AREA_LAYOUT, LOOT_SIZE,
     HAND_SPEED,
     STASH_TRIGGER_SIZE,
     SUS_LEVELS, SUS_BASELINE, MUSIC_HALF_TACT_SECONDS,
@@ -12,6 +12,10 @@ import {
     LOOT_METER_ANCHOR, LOOT_METER_CELL_WIDTH, LOOT_METER_CELL_HEIGHT,
     LOOT_METER_CELL_GAP, LOOT_METER_ROW_LENGTH, LOOT_METER_FILL_COLOR,
     LOOT_METER_EMPTY_COLOR, LOOT_METER_STROKE_COLOR,
+    SKEL_POS, DEMON_POS, SUS_METER_POS, LOOK_OVER_POS, LOOK_OVER_SCALE,
+    BUBBLE_ENEMY_POS, QUESTION_IMAGE_POS, ANSWER_POSITIONS,
+    HAND_SPAWN, TOP_WALL, BOTTOM_WALL, SWORD_BLOCK,
+    TIMER_CARD, PAUSE_BTN_POS, MUTE_BTN_POS,
     Pos,
 } from '../config.ts';
 import {
@@ -554,7 +558,7 @@ export class MainGame extends Scene
             this.bubbleEnemy.setAlpha(1);
         }))
         this.askingStagingTimers.push(this.time.delayedCall(300, () => {
-            const questionImage = this.add.image((GAME_WIDTH - 200), 430, question);
+            const questionImage = this.add.image(QUESTION_IMAGE_POS.x, QUESTION_IMAGE_POS.y, question);
             questionImage.setDepth(1);
             this.emojisImages.add(questionImage);
         }))
@@ -568,7 +572,7 @@ export class MainGame extends Scene
         const wrong1: string = wrongs[Math.floor(Math.random()*wrongs.length)];
         wrongs = wrongs.filter((emoji) => emoji !== wrong1);
         const wrong2: string = wrongs[Math.floor(Math.random()*wrongs.length)];
-        const answerPositions: Array<Pos> = [{x: 150, y: 395}, {x: 280, y: 380}, {x: 220, y: 460}];
+        const answerPositions: Array<Pos> = ANSWER_POSITIONS;
         const answers: Array<string> = [answer, wrong1, wrong2];
         shuffle(answers);
         const rightNumber: number = answers.indexOf(answer);
@@ -952,10 +956,10 @@ export class MainGame extends Scene
 
         // DIALOGUE
 
-        this.bubbleEnemy = this.add.image((GAME_WIDTH - 200), 400, 'bubble-demon');
+        this.bubbleEnemy = this.add.image(BUBBLE_ENEMY_POS.x, BUBBLE_ENEMY_POS.y, 'bubble-demon');
         this.bubbleEnemy.setAlpha(0);
         this.bubbleEnemy.setDepth(1);
-        this.bubblePlayer = this.add.image(200, 400, 'bubble-skel');
+        this.bubblePlayer = this.add.image(SKEL_POS.x, SKEL_POS.y, 'bubble-skel');
         this.bubblePlayer.setAlpha(0);
         this.bubblePlayer.setDepth(1);
 
@@ -974,27 +978,27 @@ export class MainGame extends Scene
         this.emojisImages = this.add.group();
 
         this.scales = [
-            this.add.image(1100, 50, 'scale1'),
-            this.add.image(1100, 50, 'scale2'),
-            this.add.image(1100, 50, 'scale3'),
-            this.add.image(1100, 50, 'scale4'),
+            this.add.image(SUS_METER_POS.x, SUS_METER_POS.y, 'scale1'),
+            this.add.image(SUS_METER_POS.x, SUS_METER_POS.y, 'scale2'),
+            this.add.image(SUS_METER_POS.x, SUS_METER_POS.y, 'scale3'),
+            this.add.image(SUS_METER_POS.x, SUS_METER_POS.y, 'scale4'),
         ];
         this.scales.slice(1).forEach(s => s.setAlpha(0));
         log.sus(`after creation SUS SCALE: ${this.currentSus}`)
 
         this.demons = [
-            this.add.image(1100, 410, 'demon1'),
-            this.add.image(1100, 410, 'demon2'),
-            this.add.image(1100, 410, 'demon3'),
-            this.add.image(1100, 410, 'demon4'),
+            this.add.image(DEMON_POS.x, DEMON_POS.y, 'demon1'),
+            this.add.image(DEMON_POS.x, DEMON_POS.y, 'demon2'),
+            this.add.image(DEMON_POS.x, DEMON_POS.y, 'demon3'),
+            this.add.image(DEMON_POS.x, DEMON_POS.y, 'demon4'),
         ];
         this.demons.slice(1).forEach(d => d.setAlpha(0));
 
         this.skels = [
-            this.add.image(200, 400, 'skel1'),
-            this.add.image(200, 400, 'skel2'),
-            this.add.image(200, 400, 'skel3'),
-            this.add.image(200, 400, 'skel4'),
+            this.add.image(SKEL_POS.x, SKEL_POS.y, 'skel1'),
+            this.add.image(SKEL_POS.x, SKEL_POS.y, 'skel2'),
+            this.add.image(SKEL_POS.x, SKEL_POS.y, 'skel3'),
+            this.add.image(SKEL_POS.x, SKEL_POS.y, 'skel4'),
         ];
         this.skels.slice(1).forEach(s => s.setAlpha(0));
 
@@ -1003,8 +1007,8 @@ export class MainGame extends Scene
         // positioned so the lean covers the arcade area's right half
         // without covering the suspicion meter (top-right HUD) — verified
         // by e2e screenshot. Depth above table/hand/loot, below HUD (2).
-        this.lookOverSprite = this.add.image(1100, 200, 'look-over')
-            .setScale(0.75)
+        this.lookOverSprite = this.add.image(LOOK_OVER_POS.x, LOOK_OVER_POS.y, 'look-over')
+            .setScale(LOOK_OVER_SCALE)
             .setDepth(2)
             .setVisible(false);
 
@@ -1012,19 +1016,18 @@ export class MainGame extends Scene
 
         const blocks = this.physics.add.group({ immovable: true });
 
-        jaggedHitboxUnderlay(this, SCREEN_CENTER.x, 1, 600, 100);
-        const block1 = this.add.rectangle(SCREEN_CENTER.x, 1, 600, 100, 0xff0000, 0);
+        jaggedHitboxUnderlay(this, TOP_WALL.x, TOP_WALL.y, TOP_WALL.width, TOP_WALL.height);
+        const block1 = this.add.rectangle(TOP_WALL.x, TOP_WALL.y, TOP_WALL.width, TOP_WALL.height, 0xff0000, 0);
         blocks.add(block1);
 
-        jaggedHitboxUnderlay(this, SCREEN_CENTER.x, GAME_HEIGHT - 120, 600, 100);
-        const block2 = this.add.rectangle(SCREEN_CENTER.x, (GAME_HEIGHT - 120), 600, 100, 0xff0000, 0);
+        jaggedHitboxUnderlay(this, BOTTOM_WALL.x, BOTTOM_WALL.y, BOTTOM_WALL.width, BOTTOM_WALL.height);
+        const block2 = this.add.rectangle(BOTTOM_WALL.x, BOTTOM_WALL.y, BOTTOM_WALL.width, BOTTOM_WALL.height, 0xff0000, 0);
         blocks.add(block2);
 
-        // sword sprite is 60x161, rotated 90deg → 161x60 in world
-        jaggedHitboxUnderlay(this, ARCADE_AREA_CENTER.x, 200, 161, 60);
-        const blockSword = this.physics.add.sprite(ARCADE_AREA_CENTER.x, 200, 'block8');
+        jaggedHitboxUnderlay(this, SWORD_BLOCK.x, SWORD_BLOCK.y, SWORD_BLOCK.width, SWORD_BLOCK.height);
+        const blockSword = this.physics.add.sprite(SWORD_BLOCK.x, SWORD_BLOCK.y, 'block8');
         blockSword.angle = 90;
-        blockSword.setSize(161, 60);
+        blockSword.setSize(SWORD_BLOCK.width, SWORD_BLOCK.height);
         blocks.add(blockSword);
 
         // STASH spots — cracked-hole tiles the hand auto-hides in (DESDOC
@@ -1040,7 +1043,7 @@ export class MainGame extends Scene
         });
 
         // 106x67
-        this.hand = this.physics.add.sprite(SCREEN_CENTER.x, SCREEN_CENTER.y + 50, 'hand');
+        this.hand = this.physics.add.sprite(HAND_SPAWN.x, HAND_SPAWN.y, 'hand');
         this.handVis = this.add.graphics();
 
         // The FSM is constructed in init() and first-stepped by update() on
@@ -1115,11 +1118,11 @@ export class MainGame extends Scene
         // Background card. Added BEFORE the text so display-list order puts
         // it behind without needing setDepth gymnastics. Sized to fit
         // through "5:00" (TIMER_MAX = 300s in settings) at 72px.
-        this.add.rectangle(SCREEN_CENTER.x, 630, 220, 100, 0x44323f)
+        this.add.rectangle(TIMER_CARD.x, TIMER_CARD.y, TIMER_CARD.width, TIMER_CARD.height, 0x44323f)
             .setOrigin(0.5)
             .setStrokeStyle(2, 0x000000);
         this.timerText = this.add.text(
-            SCREEN_CENTER.x, 630,
+            TIMER_CARD.x, TIMER_CARD.y,
             this.formatTime(this.levelTimerSeconds),
             {
                 fontFamily: 'Architects Daughter',
@@ -1138,7 +1141,7 @@ export class MainGame extends Scene
 
         // Pause button — bottom-right corner, well clear of the suspicion
         // meter (top-right) and the demon character.
-        const pauseBtn = this.add.image(GAME_WIDTH - 50, GAME_HEIGHT - 50, 'pause');
+        const pauseBtn = this.add.image(PAUSE_BTN_POS.x, PAUSE_BTN_POS.y, 'pause');
         pauseBtn.setDepth(2);
         pauseBtn.setInteractive();
         pauseBtn.on('pointerdown', () => this.pauseGame());
@@ -1147,11 +1150,12 @@ export class MainGame extends Scene
         // controls" corner. Text-emoji placeholder until art arrives; swap
         // for an Image with mute-on/mute-off textures when delivered.
         const muted = loadSettings().muted;
-        // Pause sprite is 59x57 centered at GAME_WIDTH - 50, so its left edge
-        // sits at ~1200. Mute emoji (~48px wide, center origin) at
-        // GAME_WIDTH - 130 puts its right edge at ~1174 — ~26px gap.
+        // Pause sprite is 59x57 centered at PAUSE_BTN_POS (GAME_WIDTH - 50),
+        // so its left edge sits at ~1200. Mute emoji (~48px wide, center
+        // origin) at MUTE_BTN_POS (GAME_WIDTH - 130) puts its right edge at
+        // ~1174 — ~26px gap.
         this.muteBtn = this.add.text(
-            GAME_WIDTH - 130, GAME_HEIGHT - 50,
+            MUTE_BTN_POS.x, MUTE_BTN_POS.y,
             muted ? '🔇' : '🔊',
             { fontFamily: 'Architects Daughter', fontSize: '48px', color: '#44323f' },
         ).setOrigin(0.5).setDepth(2);
