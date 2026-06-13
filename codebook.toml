@@ -30,7 +30,7 @@ words = [
   "esc", "preloader", "gameover", "lifecycle", "keycode", "keycodes",
   # project / gamedev jargon
   "gstack", "desdoc", "gamedev", "sfx", "skel", "skels", "sus", "hitbox",
-  "hitboxes", "playtest", "playtests", "playthrough", "respawn", "respawns",
+  "hitboxes", "playtest", "playtests", "playtesting", "playtester", "playthrough", "respawn", "respawns",
   "stash", "stashed", "unstashed", "stun", "permastun", "looped", "gameplay", "speedrun", "cooldown",
   "crossfade", "substate", "substates", "interactives", "hotspot", "keepout",
   "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
