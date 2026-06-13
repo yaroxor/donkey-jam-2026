@@ -22,9 +22,10 @@ export type DialogueArgs = [MainGame];
 // table + a red draining bar and "hide!" caption) fires on state entry; the
 // player has this long to get the hand into a stash before the check fires.
 // Tune in playtest — long enough that a competent player can reach a stash,
-// short enough to punish carelessness.
-// NOTE the tension with HIDDEN_DURATION_MS (1s, hand-states.ts): a hide
-// started in the first ~1s of the window pops back out BEFORE the check.
+// short enough to punish carelessness. A hide DURING this window holds (its
+// 1s auto-pop is suppressed, see HiddenState) so reaching the stash any time
+// before the check is enough; the window is pure travel time, not a
+// hide-at-exactly-the-right-moment puzzle.
 const LOOK_REACTION_WINDOW_MS = 2000;
 
 // JustDown fires once per physical press; isDown stays true every frame
@@ -147,6 +148,10 @@ export class LookAtTableState extends State<DialogueStateName, DialogueArgs> {
             }
             if (scene.handIsStashed()) {
                 scene.settleAlarm();
+                // The hand held in the stash through the whole window (its
+                // 1s auto-pop is suppressed during the reaction) — release
+                // it now so it resumes moving.
+                scene.releaseHiddenHand();
                 // Per the design: reactions end by transitioning to the
                 // next question, not to a breather.
                 this.stateMachine.transition('asking');

@@ -1113,12 +1113,23 @@ export class MainGame extends Scene
         this.music.setVolume(effectiveVolume(settings, 'music'));
     }
 
-    // "Is the hand safely stashed right now?" — the predicate the deferred
-    // alarm-reactions look-at-table check consumes (per the retired dep
-    // scope map). Named for intent so the future glance code doesn't read
-    // as FSM plumbing.
+    // "Is the hand safely stashed right now?" — the predicate the
+    // look-at-table check consumes. Named for intent so the glance code
+    // doesn't read as FSM plumbing.
     handIsStashed(): boolean {
         return this.handFSM.is('hidden');
+    }
+
+    // Pop the hand out of an alarm-hold hide. A hide during the look-at-
+    // table reaction suppresses its 1s auto-pop (HiddenState) so the hand
+    // stays stashed through the check; once the check passes,
+    // LookAtTableState calls this to resume normal movement. No-op if the
+    // hand isn't hidden (e.g. the player never reached a stash — that path
+    // is the caught/game-over branch, which never calls this).
+    releaseHiddenHand(): void {
+        if (this.handFSM.is('hidden')) {
+            this.handFSM.transition(this.lastDirection);
+        }
     }
 
     private pauseGame()

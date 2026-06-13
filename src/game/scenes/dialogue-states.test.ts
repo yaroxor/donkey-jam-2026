@@ -26,6 +26,7 @@ interface FakeDialogueScene extends FakeScene {
     showLookOver: ReturnType<typeof vi.fn>;
     hideLookOver: ReturnType<typeof vi.fn>;
     settleAlarm: ReturnType<typeof vi.fn>;
+    releaseHiddenHand: ReturnType<typeof vi.fn>;
     endLevel: ReturnType<typeof vi.fn>;
     handIsStashed: ReturnType<typeof vi.fn>;
 }
@@ -36,6 +37,7 @@ function makeFakeDialogueScene(overrides: Partial<FakeDialogueScene> = {}): Fake
         showLookOver: vi.fn(),
         hideLookOver: vi.fn(),
         settleAlarm: vi.fn(),
+        releaseHiddenHand: vi.fn(),
         endLevel: vi.fn(),
         handIsStashed: vi.fn().mockReturnValue(false),
         ...overrides,
@@ -173,6 +175,8 @@ describe('LookAtTableState check', () => {
         scene.time.timers[0].fire();
 
         expect(scene.settleAlarm).toHaveBeenCalledTimes(1);
+        // The held hand is released so it resumes moving.
+        expect(scene.releaseHiddenHand).toHaveBeenCalledTimes(1);
         expect(scene.endLevel).not.toHaveBeenCalled();
         expect(fsm.is('asking')).toBe(true);
         // Exit ran via the transition: warning visual cleaned up.
@@ -189,6 +193,7 @@ describe('LookAtTableState check', () => {
 
         expect(scene.endLevel).toHaveBeenCalledWith('GameOver');
         expect(scene.settleAlarm).not.toHaveBeenCalled();
+        expect(scene.releaseHiddenHand).not.toHaveBeenCalled();
         // No transition on the caught path — the scene pauses; the leaning
         // demon stays visible behind the GameOver overlay.
         expect(fsm.is('lookAtTable')).toBe(true);

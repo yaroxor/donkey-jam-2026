@@ -285,7 +285,7 @@ test('4 wrong answers fire the alarm; an unstashed hand is caught', async ({ pag
             && (scene.lookOverSprite?.visible ?? false);
     }, { timeout: 5_000 });
 
-    // The hand is roaming, not stashed → the check (1.5s later) catches
+    // The hand is roaming, not stashed → the check (2s later) catches
     // it and ends the run.
     await expect.poll(
         () => page.evaluate(() => (window as GameWindow).__game!.scene.isActive('GameOver')),
@@ -305,11 +305,13 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
         return scene.dialogueFSM?.is('lookAtTable') ?? false;
     }, { timeout: 5_000 });
 
-    // Hide near mid-window so the 1s hidden span straddles the check at
-    // the 2s window end (start ~1.45s → hidden ~1.45-2.45s, covers 2.0s).
-    // The hand FSM is nudged directly (steering-into-the-stash mechanics
-    // are covered by the stash scenario; this test owns the CHECK logic).
-    await page.waitForTimeout(1450);
+    // Hide EARLY (~0.5s into the 2s window). The hide's 1s auto-pop would
+    // fire at ~1.5s — before the 2.0s check — but the reaction suppresses
+    // it, so the hand holds in the stash through the check. (This is the
+    // exact fairness bug the hold fixes: pre-hold this hide popped out and
+    // got caught.) The hand FSM is nudged directly; steering-into-the-stash
+    // is covered by the stash scenario, this test owns the CHECK logic.
+    await page.waitForTimeout(500);
     await page.evaluate(() => {
         const scene = (window as GameWindow).__game!.scene.getScene('MainGame') as Phaser.Scene & {
             handFSM?: { transition: (name: string) => void };
@@ -333,17 +335,21 @@ test('alarm survived by hiding in the stash: sus settles to baseline', async ({ 
             currentSus?: number;
             music?: { isPlaying: (k: string) => boolean };
             lookOverSprite?: { visible: boolean };
+            handFSM?: { is: (name: string) => boolean };
         };
         return {
             sus: scene.currentSus,
             baselineMusic: scene.music?.isPlaying('music2') ?? false,
             lookVisible: scene.lookOverSprite?.visible,
+            handHidden: scene.handFSM?.is('hidden') ?? false,
             gameOver: (window as GameWindow).__game!.scene.isActive('GameOver'),
         };
     });
     expect(settled.sus).toBe(1);
     expect(settled.baselineMusic).toBe(true);
     expect(settled.lookVisible).toBe(false);
+    // The held hand was released on survive — back to moving, not stuck hidden.
+    expect(settled.handHidden).toBe(false);
     expect(settled.gameOver).toBe(false);
 });
 

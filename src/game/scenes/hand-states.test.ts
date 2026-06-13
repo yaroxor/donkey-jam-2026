@@ -57,6 +57,10 @@ interface FakeMainGame extends FakeScene {
     knockOutLootCell: ReturnType<typeof vi.fn>;
     showStunIndicator: ReturnType<typeof vi.fn>;
     redrawHandVis: ReturnType<typeof vi.fn>;
+    // Optional: HiddenState reads this to decide whether to hold through an
+    // active look-at-table reaction. Left undefined by default so the
+    // ordinary-hide tests pop normally (scene.dialogueFSM?.is(...) → falsy).
+    dialogueFSM?: { is: (name: string) => boolean };
 }
 
 function makeFakeMainGame(overrides: Partial<FakeMainGame> = {}): FakeMainGame {
@@ -559,6 +563,38 @@ describe('HiddenState — resume direction on timer fire', () => {
         const { fsm, timer } = setupHide('down');
         timer.fire();
         expect(fsm.is('down')).toBe(true);
+    });
+});
+
+describe('HiddenState — holds through an active look-at-table reaction', () => {
+    it('does NOT auto-pop when the timer fires while lookAtTable is active', () => {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame({
+            lastDirection: 'left',
+            dialogueFSM: { is: (n: string) => n === 'lookAtTable' },
+        });
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+        fsm.step();
+
+        scene.time.timers[0].fire();
+
+        // Still hidden — the reaction holds it; LookAtTableState releases it
+        // on a passed check (covered in dialogue-states.test.ts).
+        expect(fsm.is('hidden')).toBe(true);
+        expect(fsm.is('left')).toBe(false);
+    });
+
+    it('pops normally when the reaction is NOT active', () => {
+        const hidden = new HiddenState();
+        const scene = makeFakeMainGame({
+            lastDirection: 'left',
+            dialogueFSM: { is: () => false },
+        });
+        const fsm = makeFSM('hidden', { hidden }, asMainGame(scene));
+        fsm.step();
+
+        scene.time.timers[0].fire();
+        expect(fsm.is('left')).toBe(true);
     });
 });
 

@@ -163,6 +163,13 @@ const HIDDEN_DURATION_MS = 1000;
 // hand has fully LEFT it, so popping out inside the zone can't chain into
 // an immediate re-hide). Cost model per DESDOC: wasted level-timer time —
 // no loot decrement, no suspicion bump, deliberately unlike Stunned.
+//
+// Duration is conditional: 1s normally (an accidental step costs ~1s), but
+// while the look-at-table reaction ("hide!") is running the hide HOLDS —
+// the auto-pop is suppressed so a hand that reaches the stash stays hidden
+// through the demon's check instead of popping out early and getting
+// caught. LookAtTableState releases the hand (MainGame.releaseHiddenHand)
+// when its check passes.
 export class HiddenState extends State<HandStateName, HandArgs> {
     private timer?: Phaser.Time.TimerEvent;
 
@@ -175,6 +182,13 @@ export class HiddenState extends State<HandStateName, HandArgs> {
         scene.handVis.setVisible(false);
 
         this.timer = scene.time.delayedCall(HIDDEN_DURATION_MS, () => {
+            // Hold through an active look-at-table reaction: popping out
+            // mid-window would expose the hand before the check. Checked at
+            // fire time (not enter) so a hide started just before the alarm
+            // also holds. Released by LookAtTableState on a passed check.
+            if (scene.dialogueFSM?.is('lookAtTable')) {
+                return;
+            }
             this.stateMachine.transition(scene.lastDirection);
         });
     }
