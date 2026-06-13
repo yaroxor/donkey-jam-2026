@@ -33,7 +33,7 @@ words = [
   "hitboxes", "playtest", "playtests", "playtesting", "playtester", "playthrough", "respawn", "respawns",
   "stash", "stashed", "unstashed", "stun", "permastun", "looped", "gameplay", "speedrun", "cooldown",
   "crossfade", "substate", "substates", "interactives", "hotspot", "keepout",
-  "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
+  "desync", "desyncs", "desyncing", "distractor", "distractors", "jankiness", "liveness", "learnings", "featstun",
   "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra", "downscaled",
   "unclickable", "eyeballed", "callsite", "affordance", "keypress",
   # acronyms / key clusters
