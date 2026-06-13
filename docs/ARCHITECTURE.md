@@ -8,7 +8,7 @@ Each pattern below describes the rule, the reasoning, where it's expressed in co
 
 ## Scene topology: one scene per game mode
 
-Each top-level game mode is a Phaser Scene: `Boot`, `Preloader`, `MainMenu`, `MainGame`, `PauseScene`, `Settings`, `Win`, `GameOver`. Intra-mode subsystems do NOT get their own scenes — they live as FSMs inside the owning scene.
+Each top-level game mode is a Phaser Scene: `Boot`, `Preloader`, `MainMenu`, `MainGame`, `PauseScene`, `Settings`, `Win`, `GameOver`. Intra-mode subsystems do NOT get their own scenes -- they live as FSMs inside the owning scene.
 
 The canonical example is `MainGame`: dialogue and arcade are two distinct subsystems but share state (`currentSus`, the suspicion meter, dialogue bubbles that obscure the arcade zone, stash state gating dialogue events) and end conditions (game-over fires from either path). Splitting them across a `scene.launch` boundary would turn direct class-field reads into pub/sub ceremony while delivering only cosmetic isolation. Internal FSMs deliver the same cognitive isolation with direct state access.
 
@@ -20,9 +20,9 @@ Two patterns applied to different shapes of state.
 
 **Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/scenes/dialogue-states.ts` (Idle / Asking / Cooldown / LookAtTable / Storm states) and `src/game/scenes/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState / HiddenState).
 
-**Lookup table** when state is a static configuration mapping — no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(As built: `SUS_LEVELS` landed music-only (music-progression pass), and the alarm pass (look-at-table, 2026-06-12) bound the sprite stages through `MainGame.applySusStage(level)` plus `settleAlarm()` rather than one grand `setSusLevel(n)` — escalation and settle want different music transitions (tact-aligned switch vs. hard release cut), so a single setter was the wrong shape. The alarm trigger itself stays in `progressSus()` per the one-way-ratchet placement.)_
+**Lookup table** when state is a static configuration mapping -- no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(As built: `SUS_LEVELS` landed music-only (music-progression pass), and the alarm pass (look-at-table, 2026-06-12) bound the sprite stages through `MainGame.applySusStage(level)` plus `settleAlarm()` rather than one grand `setSusLevel(n)` -- escalation and settle want different music transitions (tact-aligned switch vs. hard release cut), so a single setter was the wrong shape. The alarm trigger itself stays in `progressSus()` per the one-way-ratchet placement.)_
 
-**Decision rule.** Ask: "does this state need to _do_ something on entry, on each step, on exit?" If yes → FSM. If it's just "while in this state, show this sprite / play this track" → table.
+**Decision rule.** Ask: "does this state need to _do_ something on entry, on each step, on exit?" If yes -> FSM. If it's just "while in this state, show this sprite / play this track" -> table.
 
 **Timing rule.** Introduce an FSM with the feature that needs it, not preemptively. Pair the refactor with the first feature that adds real new states. Converting plain enum-style code without new states is churn.
 
@@ -34,42 +34,42 @@ When a value will be tuned per-level, per-difficulty, per-something, surface it 
 
 Existing example: `LEVELS: LevelConfig[]` (currently one entry `{ id: 1, lootTarget: 5, timerSeconds: 60 }`) + `CURRENT_LEVEL_INDEX`. Originated in `dev-master-design-20260511-155307.md` (loot meter). Cheap substrate now (one entry); the spine that the level-timer pass hung `timerSeconds:` on, that multi-level work will hang more entries on, that per-level music tuning will hang `music:` on.
 
-Second instance: `SUS_LEVELS` (landed 2026-06-12, music column first; the row shape grows as bindings migrate — see "State modeling" above).
+Second instance: `SUS_LEVELS` (landed 2026-06-12, music column first; the row shape grows as bindings migrate -- see "State modeling" above).
 
 Rule: tables are cheap; ad-hoc constants scattered across files are expensive. When in doubt, table.
 
-The same "name it in config, not inline" rule applies to **static scene layout**: the MainGame scene's character/HUD/bubble positions, wall geometry, hand spawn, timer card, and control-button positions live as named constants in `config.ts` (extracted 2026-06-13; the "MainGame scene layout" block). They were left inline through the jam and the early feature passes — deliberately, because features still claiming screen space (storm bubbles, stash) would have churned them — and consolidated once those landed. Two things stay inline by choice: game-feel scalars (`HAND_SPEED`, `MUSIC_HALF_TACT_SECONDS`) read better at their meaning, and single-use timings (idle 2s, cooldown 5s, answer-stagger, loot respawn) read better next to their call sites where naming wouldn't add clarity. Hand wrap/safe-zone thresholds already derive from `ARCADE_AREA_LAYOUT` in `hand-states.ts`.
+The same "name it in config, not inline" rule applies to **static scene layout**: the MainGame scene's character/HUD/bubble positions, wall geometry, hand spawn, timer card, and control-button positions live as named constants in `config.ts` (extracted 2026-06-13; the "MainGame scene layout" block). They were left inline through the jam and the early feature passes -- deliberately, because features still claiming screen space (storm bubbles, stash) would have churned them -- and consolidated once those landed. Two things stay inline by choice: game-feel scalars (`HAND_SPEED`, `MUSIC_HALF_TACT_SECONDS`) read better at their meaning, and single-use timings (idle 2s, cooldown 5s, answer-stagger, loot respawn) read better next to their call sites where naming wouldn't add clarity. Hand wrap/safe-zone thresholds already derive from `ARCADE_AREA_LAYOUT` in `hand-states.ts`.
 
 **Open questions for when `LEVELS` grows beyond one entry** (lifted from the retired dep scope map's cross-cutting questions, 2026-05-14):
 
-- **Inline TS module vs externalized data file?** Currently TS — gives type-checking and IDE support for the single entry. Externalizing to JSON (or similar) helps when level data wants to be data-not-code: level editor support, hot reload, non-coder contributors editing levels. Defer until multi-level work has stakeholders.
+- **Inline TS module vs externalized data file?** Currently TS -- gives type-checking and IDE support for the single entry. Externalizing to JSON (or similar) helps when level data wants to be data-not-code: level editor support, hot reload, non-coder contributors editing levels. Defer until multi-level work has stakeholders.
 - **Flat array vs campaign structure?** Today the table is a flat `LevelConfig[]` indexed by `CURRENT_LEVEL_INDEX`. A campaign (level progression with gating, per-stage difficulty curves, narrative beats between heists) wants richer structure. Defer until v2.0 adventure map shapes the requirement.
-- **Anticipated columns as features land.** `lootTarget`, `timerSeconds`, and `stashSpots` (positions, not the anticipated bare count — placement matters for gameplay) are already in; speculative next ones: `difficultyMultiplier` / `timeBonus`. The substrate stays the same; only the row shape grows.
+- **Anticipated columns as features land.** `lootTarget`, `timerSeconds`, and `stashSpots` (positions, not the anticipated bare count -- placement matters for gameplay) are already in; speculative next ones: `difficultyMultiplier` / `timeBonus`. The substrate stays the same; only the row shape grows.
 
 ## Generic / project code split
 
-- `src/lib/` — Phaser-independent, project-neutral code. Currently `StateMachine.ts`, `utils.ts`.
-- `src/game/` — project-specific code. Scenes, FSM state classes, `MusicController`, `settings`, `debug`, `config`.
+- `src/lib/` -- Phaser-independent, project-neutral code. Currently `StateMachine.ts`, `utils.ts`.
+- `src/game/` -- project-specific code. Scenes, FSM state classes, `MusicController`, `settings`, `debug`, `config`.
 
 Established by commit `61ada2c` ("refactor: move generic code to src/lib/"). Rule: if a module could ship in a different project unchanged, `lib/`; otherwise `game/`.
 
 ## Persistence model
 
-Single namespaced localStorage key: `slick_hand_joe:settings` (JSON-encoded `GameSettings`). All persisted settings live in this one key — no schema fan-out.
+Single namespaced localStorage key: `slick_hand_joe:settings` (JSON-encoded `GameSettings`). All persisted settings live in this one key -- no schema fan-out.
 
-**Read-once-apply-immediately.** Each scene that needs settings calls `loadSettings()` at the moment it needs the value. No central cached load — localStorage reads are synchronous and cheap; the simplicity outweighs caching.
+**Read-once-apply-immediately.** Each scene that needs settings calls `loadSettings()` at the moment it needs the value. No central cached load -- localStorage reads are synchronous and cheap; the simplicity outweighs caching.
 
-**Defensive defaults.** `loadSettings()` spreads `DEFAULTS` over the parsed value, so old saves with missing fields still work after schema additions. `saveSettings` swallows quota / disabled-storage errors — the session works in-memory and the player just loses persistence on reload.
+**Defensive defaults.** `loadSettings()` spreads `DEFAULTS` over the parsed value, so old saves with missing fields still work after schema additions. `saveSettings` swallows quota / disabled-storage errors -- the session works in-memory and the player just loses persistence on reload.
 
 Owned in `src/game/settings.ts`. Original design: `dev-master-design-20260511-183443.md`.
 
 ## DEV-only UI gating
 
-Dev-stage controls (e.g., the in-game loot-target tuner) render conditionally on `import.meta.env.DEV`. Vite's static replacement of this flag means production builds (`bun run build` → `dist/`) dead-code-eliminate the dev paths entirely — no runtime check, no possibility of leakage, no dead UI shipped.
+Dev-stage controls (e.g., the in-game loot-target tuner) render conditionally on `import.meta.env.DEV`. Vite's static replacement of this flag means production builds (`bun run build` -> `dist/`) dead-code-eliminate the dev paths entirely -- no runtime check, no possibility of leakage, no dead UI shipped.
 
 Canonical example: the loot-tuner row in `src/game/scenes/Settings.ts:113`. Pattern is reusable for any future dev-stage instrument that wants to live next to user-facing UI without polluting the production bundle.
 
-Second instance: the **playtest toggles** in `MainGame` (added 2026-06-13). Keys `1`/`2`/`3` suspend the dialogue/question loop, suspend loot spawning, and hold the look-over reaction sprite on screen (the last freezes the level timer + suspends the first two so a reaction frame can be studied without the 2s window or the 60s clock). The key wiring, the on-screen readout, and the gating reads in `update()`/`spawnLoot()` are all behind `import.meta.env.DEV`, so production strips them entirely. Mechanism note: "suspend questions" pauses the dialogue FSM's advance timers (collected in `MainGame.dialogueTimers` by the dialogue states) rather than pausing the whole scene clock — that keeps the hand and physics live while the question loop freezes. Useful precedent for any future "freeze one subsystem" dev affordance.
+Second instance: the **playtest toggles** in `MainGame` (added 2026-06-13). Keys `1`/`2`/`3` suspend the dialogue/question loop, suspend loot spawning, and hold the look-over reaction sprite on screen (the last freezes the level timer + suspends the first two so a reaction frame can be studied without the 2s window or the 60s clock). The key wiring, the on-screen readout, and the gating reads in `update()`/`spawnLoot()` are all behind `import.meta.env.DEV`, so production strips them entirely. Mechanism note: "suspend questions" pauses the dialogue FSM's advance timers (collected in `MainGame.dialogueTimers` by the dialogue states) rather than pausing the whole scene clock -- that keeps the hand and physics live while the question loop freezes. Useful precedent for any future "freeze one subsystem" dev affordance.
 
 Original design: `dev-master-design-20260511-183443.md`.
 
@@ -85,11 +85,11 @@ See "Scene topology" above. Internal FSMs deliver the same cognitive isolation w
 
 ### Enabling `strictPropertyInitialization`
 
-~20 fields in `MainGame` need late init via Phaser's `init()` / `create()` lifecycle (scene plugins like `this.add` / `this.physics` aren't available at construction time). Flipping the flag would scatter `!:` markers across the class for negligible safety gain — the bug class it catches (declared-but-never-written field) is already prevented by `init()` / `create()` discipline, and the typo bugs we actually hit were caught by plain `strict: true`. Keep off.
+~20 fields in `MainGame` need late init via Phaser's `init()` / `create()` lifecycle (scene plugins like `this.add` / `this.physics` aren't available at construction time). Flipping the flag would scatter `!:` markers across the class for negligible safety gain -- the bug class it catches (declared-but-never-written field) is already prevented by `init()` / `create()` discipline, and the typo bugs we actually hit were caught by plain `strict: true`. Keep off.
 
 ### HP-on-collision instead of stun
 
-DESDOC.md line 72 originally pitched the obstacle-collision penalty as "стан / минус хп за врез" — stun OR HP-loss. We shipped stun (`dev-master-plan-stun-20260512-105430.md`); the HP variant came from a teammate. Parked in `TODOS.md` under deferred — revisit only if stun ends up feeling too forgiving or if we want a second failure axis alongside the timer and suspicion meter.
+DESDOC.md line 72 originally pitched the obstacle-collision penalty as "стан / минус хп за врез" -- stun OR HP-loss. We shipped stun (`dev-master-plan-stun-20260512-105430.md`); the HP variant came from a teammate. Parked in `TODOS.md` under deferred -- revisit only if stun ends up feeling too forgiving or if we want a second failure axis alongside the timer and suspicion meter.
 
 ### Standalone Hand FSM refactor
 

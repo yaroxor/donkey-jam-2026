@@ -5,7 +5,7 @@ Phaser 3 + TypeScript game about a skeleton thief and his sentient severed hand 
 [CONCEPT](./docs/DESDOC.md)
 
 Post-jam continuation of a project originally built for a 2026 game jam (repo name `donkey-jam-2026`).
-v1.0 features still in flight — open backlog lives in [`docs/TODOS.md`](./docs/TODOS.md).
+v1.0 features still in flight -- open backlog lives in [`docs/TODOS.md`](./docs/TODOS.md).
 
 ## Run it
 
@@ -27,5 +27,5 @@ Four contributors: one coder, one musician, one sprite artist, one idea-guy coll
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE).
+MIT -- see [`LICENSE`](./LICENSE).
 The license file's copyright holder reflects the upstream Phaser TS template the project was scaffolded from.

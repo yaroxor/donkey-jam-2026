@@ -35,16 +35,16 @@ short.
 
 Implemented and shipped (gate-green, 115 unit + 10 e2e tests):
 
-- Dialogue loop (idle→asking→cooldown FSM, emoji Q&A, layout-independent answer keys, suspicion meter)
+- Dialogue loop (idle->asking->cooldown FSM, emoji Q&A, layout-independent answer keys, suspicion meter)
 - Arcade loop (auto-moving hand FSM, steering, edge-wrap, loot spawn/collect with keep-outs, loot meter HUD)
-- Stun on wall crash (freeze + loot−1 + suspicion+1 + SFX + indicator + bounce)
+- Stun on wall crash (freeze + loot-1 + suspicion+1 + SFX + indicator + bounce)
 - Level timer + all three end conditions
-- Stash holes (нычка) — auto-hide that holds through the alarm check
-- Alarm reactions (both) — sus-4 rolls look-at-table (2s window, stash check, red drain bar + "hide!") or storm (3s bubble bury, no check); both
+- Stash holes (нычка) -- auto-hide that holds through the alarm check
+- Alarm reactions (both) -- sus-4 rolls look-at-table (2s window, stash check, red drain bar + "hide!") or storm (3s bubble bury, no check); both
   settle to baseline. Now 70/30 (you flipped it).
 - Sus-coupled 4-track music + settle cut, mute, settings (volume + DEV tuners)
 - All 8 scenes, pause menu, custom cursor
-- DEV tooling (keys 1–4: suspend questions/loot, hold look-over, force reaction) + on-screen readout
+- DEV tooling (keys 1-4: suspend questions/loot, hold look-over, force reaction) + on-screen readout
 - Forge CI gate as the single quality system
 
 ---
