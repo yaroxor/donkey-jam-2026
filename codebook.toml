@@ -52,10 +52,11 @@ words = [
   "yaroxor", "yaroxar", "efimgugnin", "heavygray", "nel", "goetia", "crowley",
   # keyboard layouts
   "dvorak", "colemak", "qwerty", "jcuken",
-  # Russian slang / words the ru dictionary lacks. Only forms that appear in
-  # gate-checked files (TODOS, ARCHITECTURE, code) belong here -- DESDOC-only
-  # slang (булетхел, сабвейсерв, лут) needs no entry, DESDOC is ignored.
-  # (палево graduated INTO code comments with the alarm pass.)
+  # Russian slang / transliterations / names the ru dictionary lacks. Once
+  # DESDOC's idea+fix lists moved into TODOS (gate-checked), their informal
+  # terms need entries here. Real typos get FIXED, not allow-listed
+  # (e.g. препядствия -> препятствия on the move).
   "нычка", "задоджить", "проебать", "хитбокс", "хитбоксов", "орк", "хп", "врез",
   "додж", "палево", "палева",
+  "булетхел", "сабвейсерв", "доп", "джо",
 ]

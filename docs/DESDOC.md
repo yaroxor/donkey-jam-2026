@@ -30,18 +30,13 @@
 
 Done: Начальное меню с кнопками, Эмоции скелета, Эмоции Демонюги, Анимация руки, Игровое поле, Пауза, Шкала награбленного, Предметы для кражи (лут), Препятствия, Диалоговые пузыри
 
-**Фиксы**:
-
-- Убрать клетки
-- Wrong-answer pool produces semantic duplicates — distractors sometimes look like they could plausibly answer the question, making it ambiguous. Constrain per-question wrong-answer pools or group items by category.
+**Фиксы**: перенесены в [`TODOS.md`](./TODOS.md).
 
 Goetia -- Lesser Key of Solomon -- Aleister Crowley
 
-#### _Опционально_:
+#### _Опционально_
 
-- [ ] Доп. уровни
-- [ ] Мини история про то, как Джо попал в Ад
-- [ ] Финал диалог с Сатаной
+Перенесено в [`TODOS.md`](./TODOS.md) (v2.0 backlog).
 
 #### Сцены
 
@@ -95,12 +90,4 @@ Goetia -- Lesser Key of Solomon -- Aleister Crowley
 
 ---
 
-**Идеи для новых уровней**:
-
-- масштаб становится меньше
-- падают новые препядствия (предупреждают тенью)
-- булетхел с соплями
-- порталы вместо оборота игрового поля
-  - сначала подобрать ключ от портала
-- сабвейсерв вместо змейки
-- иностранец
+**Идеи для новых уровней**: перенесены в [`TODOS.md`](./TODOS.md) (v2.0 backlog).

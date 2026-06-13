@@ -109,8 +109,8 @@ export const SUS_BASELINE = 1;
 // right). The DEV force-reaction toggle (key 4) overrides the roll.
 export type AlarmReaction = 'lookAtTable' | 'storm';
 export const ALARM_REACTION_WEIGHTS: Record<AlarmReaction, number> = {
-    lookAtTable: 0,
-    storm: 1,
+    lookAtTable: 0.7,
+    storm: 0.3,
 };
 
 // Weighted pick. `rand` is a 0..1 roll (injected so this stays pure and

@@ -19,11 +19,24 @@ Open work items for `donkey-jam-2026`. v1.0/v2.0 feature backlog, bugs, deferred
 - загрузить вопросами — **shipped 2026-06-13** (`StormState` in `dialogue-states.ts`). The sus-4 alarm now rolls one of two reactions (`ALARM_REACTION_WEIGHTS` + `rollAlarmReaction`): look-at-table or storm. Storm = question bubbles pile over the arcade for 3s (no check, no fail — lost time + blocked visibility; the hand keeps moving blind, a wall crash still stuns), then settles to baseline like look-at-table.
   - **Weights now at the design `{ lookAtTable: 0.70, storm: 0.30 }`** (`ALARM_REACTION_WEIGHTS`, set 2026-06-13 after the 100%-storm playtest). DEV key `4` cycles a forced reaction (roll / lookAtTable / storm) to test either regardless of the weights.
   - Bubbles are placeholder (`bubble-demon` sprite, 3x3 grid with jitter over the arcade); dedicated storm-bubble art swaps in at the same key (in flight from the artist).
-- Integrate hand movement animation. The artist's GIF was completed during the jam but never wired into the sprite. Replace the static `'hand'` image with proper Phaser animation frames.
+- Integrate hand movement animation. The artist's GIF was completed during the jam but never wired into the sprite. Replace the static `'hand'` image with proper Phaser animation frames. (Asset still missing from the repo — see Pending assets.)
+- **Wrong-answer pool — semantic duplicates** (moved from DESDOC Фиксы). Distractors sometimes plausibly answer the question, making it ambiguous. Constrain per-question wrong-answer pools or group items by category. Built in `MainGame.showAskingUI` (`emojis.filter(...)` picks the two wrongs).
+- **Убрать клетки** (moved from DESDOC Фиксы) — remove the visible grid/cell lines from the board (in `table.png` art, or a grid overlay if drawn in code — confirm source). Primarily an art fix.
 
 ## v2.0 backlog (from DESDOC)
 
 - adventure map
+- **Опционально (story / extra content, moved from DESDOC):**
+  - [ ] Доп. уровни
+  - [ ] Мини история про то, как Джо попал в Ад
+  - [ ] Финал диалог с Сатаной
+- **Идеи для новых уровней (moved from DESDOC)** — fodder for the adventure map:
+  - масштаб становится меньше
+  - падают новые препятствия (предупреждают тенью)
+  - булетхел с соплями
+  - порталы вместо оборота игрового поля (сначала подобрать ключ от портала)
+  - сабвейсерв вместо змейки
+  - иностранец
 
 ---
 
@@ -32,7 +45,7 @@ Open work items for `donkey-jam-2026`. v1.0/v2.0 feature backlog, bugs, deferred
 ### B1. Hitboxes need tightening
 
 **Where:** `src/game/scenes/MainGame.ts` — hand, blocks, sword block, loot.
-The current arcade-physics hitboxes are rectangular and don't match the irregular sprite shapes well. Concrete cases need investigation per-sprite (likely `setSize` + `setOffset` tuning, or switching to per-sprite polygon hitboxes if the rectangular approximation is hopeless). DESDOC's "Подложка хитбоксов" item covers the _visualization_ of hitboxes; this item is the underlying _correctness_.
+The current arcade-physics hitboxes are rectangular and don't match the irregular sprite shapes well. Concrete cases need investigation per-sprite (likely `setSize` + `setOffset` tuning, or switching to per-sprite polygon hitboxes if the rectangular approximation is hopeless). This is hitbox _correctness_; the hitbox _visualization_ (the jagged red danger-tape underlay) is already implemented.
 
 ### B2. Custom cursor too large for macOS
 
@@ -49,7 +62,32 @@ Not terribly critical — happens only when the player is hugging an obstacle ed
 
 ---
 
+## Pending assets
+
+Everything here runs on a committed placeholder today; the real asset swaps in at the same key with no code change (or the small change noted).
+
+**Art (visual artist):**
+
+- **Storm bubbles** — placeholder is the plain `bubble-demon` sprite tiled over the arcade; want dedicated question-storm bubble art.
+- **Look-over demon** — placeholder composite (`tools/art/compose_look_over.sh`: demon #4 tilted + the spring-eyes drop); want the real "leaning over the table" pose.
+- **Loot meter** — placeholder colored rectangles; want empty/filled cell art (the `LOOT_METER_*_COLOR` constants become unused then).
+- **Win screen** — placeholder "YOU WIN!" text (`Win.ts`); want win art.
+- **Mute button** — placeholder 🔊/🔇 emoji; want a menuUI icon.
+- **Cursor** (same as bug B2) — `cursor.png` is 110x110; macOS rejects cursors >32px, so we need a ≤32px version + a proportional hotspot retune in `MENU_CURSOR`.
+- **Hand movement animation** — the jam GIF, to wire as Phaser frames (replaces the static `hand.png`); never landed in the repo. (Also a v1.0 code task.)
+- **Убрать клетки** — remove the board grid cells. (Also in v1.0 backlog.)
+
+**Music (composer):**
+
+- **Tracks 3 & 4 (critical path)** — currently bass-boosted fakes of track 2 (`tools/sfx/boost_placeholders.sh`); want real escalation tracks. Hard constraint: **same BPM + tact structure as tracks 1 & 2** — `MusicController.smoothSwitch` carries the seek position across a 1.5s half-tact boundary, so mismatched tempo desyncs. Swap at Preloader keys `music3` / `music4`.
+- **Tracks 5 & 6 (optional, not wired)** — per-reaction tracks (storm / look-at-table), designed in the gstack doc but with no callsite yet. Only needed if we decide to score the reactions; today the alarm rides track 4 and hard-cuts to baseline on settle.
+- **~200ms crossfade on track switches** — see Deferred below.
+
+---
+
 ## Deferred (revisit later)
+
+- **~200ms music crossfade on sus-track switches.** Today the switcher hard-cuts between tracks at the half-tact beat boundary (track A stops, track B starts at the carried seek position). The music-progression design's overlay calls for overlapping them ~200ms instead — fade A down while fading B up — to hide timbre/dynamic seams between dissimilar real tracks. Deferred until real tracks 3/4 land: the current placeholders are the same song, so hard cuts are already seamless and a fade would be tuned against throwaway audio. ~10 lines in `MusicController.smoothSwitch` (a Phaser tween on `setVolume` within the existing `delayedCall` window); dial toward 0ms if it muddies. Source: `~/.gstack/projects/slick_hand_joe/dev-master-design-20260511-123429.md`.
 
 - **HP-on-collision alternative to stun.** Original DESDOC line was "стан / минус хп за врез" — pitched as either-or. We shipped stun; the HP variant (collision deducts from a hand health pool rather than freezing it) came from a teammate and might still be worth revisiting if stun ends up feeling too forgiving or if we want a second failure axis alongside the timer/suspicion meter. Not on any v1.0 path — park here in case the playtest signal calls for it.
 
