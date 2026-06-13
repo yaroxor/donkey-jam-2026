@@ -48,7 +48,6 @@ export class Preloader extends Scene
 
         this.load.image('pause', 'menuUI/pause.png');
         this.load.image('paused', 'paused.png');
-        this.load.image('cursor', 'menuUI/cursor.png');
 
         this.load.image('gameover', 'gameover.png');
 
