@@ -13,7 +13,7 @@
 
 import { State } from '../../lib/StateMachine.ts';
 import { loadSettings, effectiveVolume } from '../settings.ts';
-import type { MainGame } from './MainGame.ts';
+import type { MainGame } from '../scenes/MainGame.ts';
 
 export type DialogueStateName = 'idle' | 'asking' | 'cooldown' | 'lookAtTable' | 'storm';
 export type DialogueArgs = [MainGame];

@@ -18,7 +18,7 @@ Rule: inter-mode boundaries get scenes; intra-mode subsystems get FSMs.
 
 Two patterns applied to different shapes of state.
 
-**Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/scenes/dialogue-states.ts` (Idle / Asking / Cooldown / LookAtTable / Storm states) and `src/game/scenes/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState / HiddenState).
+**Osmose-style FSM** when a subsystem has time-bound semantics: `enter` / `execute` (per-step) / `exit` hooks, with timers, gated transitions, and per-state cleanup. Generic class at `src/lib/StateMachine.ts`. Concrete examples: `src/game/states/dialogue-states.ts` (Idle / Asking / Cooldown / LookAtTable / Storm states) and `src/game/states/hand-states.ts` (LeftState / RightState / UpState / DownState / StunnedState / HiddenState).
 
 **Lookup table** when state is a static configuration mapping -- no timer, no transitions, no per-step work. The "state" is a label that selects a row of correlated config (sprite alpha, music track, palette, etc.). The original decision: the alarm-reactions design's R1 reduction (`dev-master-design-20260509-083149.md`) pushed back on a proposed `SuspicionFSM` with five states (`Sus0..Sus3` + `FullSus`), arguing those weren't FSM states but configurations. The fix: a `SUS_LEVELS: SusLevelCfg[]` table + a `setSusLevel(n)` method. _(As built: `SUS_LEVELS` landed music-only (music-progression pass), and the alarm pass (look-at-table, 2026-06-12) bound the sprite stages through `MainGame.applySusStage(level)` plus `settleAlarm()` rather than one grand `setSusLevel(n)` -- escalation and settle want different music transitions (tact-aligned switch vs. hard release cut), so a single setter was the wrong shape. The alarm trigger itself stays in `progressSus()` per the one-way-ratchet placement.)_
 
@@ -49,9 +49,12 @@ The same "name it in config, not inline" rule applies to **static scene layout**
 ## Generic / project code split
 
 - `src/lib/` -- Phaser-independent, project-neutral code. Currently `StateMachine.ts`, `utils.ts`.
-- `src/game/` -- project-specific code. Scenes, FSM state classes, `MusicController`, `settings`, `debug`, `config`.
+- `src/game/` -- project-specific code, sub-split by kind:
+  - `src/game/scenes/` -- Phaser `Scene` subclasses ONLY, one per game mode (`Boot`, `Preloader`, `MainMenu`, `MainGame`, `PauseScene`, `Settings`, `Win`, `GameOver`).
+  - `src/game/states/` -- concrete FSM `State` subclasses for the intra-scene machines (`dialogue-states.ts`, `hand-states.ts`). These are not scenes; they were split out of `scenes/` 2026-06-13 so `scenes/` holds Scene subclasses only. The generic machine they build on lives in `src/lib/StateMachine.ts`; this is where its `State<>` subclasses live.
+  - `src/game/` (top level) -- cross-cutting modules: `MusicController`, `settings`, `debug`, `config`.
 
-Established by commit `61ada2c` ("refactor: move generic code to src/lib/"). Rule: if a module could ship in a different project unchanged, `lib/`; otherwise `game/`.
+Established by commit `61ada2c` ("refactor: move generic code to src/lib/"). Rule: if a module could ship in a different project unchanged, `lib/`; otherwise `game/` -- and within `game/`, a Phaser `Scene` goes in `scenes/`, an FSM `State` subclass goes in `states/`, everything else sits at the `game/` top level until a cohesive group earns its own folder (do not create single-file directories preemptively).
 
 ## Persistence model
 

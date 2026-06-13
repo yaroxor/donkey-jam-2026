@@ -25,7 +25,7 @@
 import { State } from '../../lib/StateMachine.ts';
 import { HAND_SPEED, HAND_LONG_DIM, HAND_SHORT_DIM, ARCADE_AREA_LAYOUT } from '../config.ts';
 import { loadSettings, effectiveVolume } from '../settings.ts';
-import type { MainGame } from './MainGame.ts';
+import type { MainGame } from '../scenes/MainGame.ts';
 
 export type HandStateName = 'left' | 'right' | 'up' | 'down' | 'stunned' | 'hidden';
 export type HandArgs = [MainGame];

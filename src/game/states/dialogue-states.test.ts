@@ -4,7 +4,7 @@ import {
     type DialogueStateName, type DialogueArgs,
 } from './dialogue-states.ts';
 import { StateMachine, type State } from '../../lib/StateMachine.ts';
-import type { MainGame } from './MainGame.ts';
+import type { MainGame } from '../scenes/MainGame.ts';
 import { makeFakeScene, type FakeScene } from '../../test/phaser-stubs.ts';
 
 // Regression contract for the dialogue FSM's timer-owning states.

@@ -21,7 +21,7 @@ import {
 import {
     LeftState, RightState, UpState, DownState, StunnedState, HiddenState,
     type HandStateName, type HandArgs,
-} from './hand-states.ts';
+} from '../states/hand-states.ts';
 import { StateMachine } from '../../lib/StateMachine.ts';
 import { MusicController } from '../MusicController.ts';
 import { loadSettings, saveSettings, effectiveVolume } from '../settings.ts';
@@ -30,7 +30,7 @@ import { shuffle } from '../../lib/utils.ts';
 import {
     IdleState, AskingState, CooldownState, LookAtTableState, StormState,
     type DialogueStateName, type DialogueArgs,
-} from './dialogue-states.ts';
+} from '../states/dialogue-states.ts';
 
 const letterKeyCodes: Record<string, number> = {
     'S': 83,

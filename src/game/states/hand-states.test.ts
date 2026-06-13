@@ -4,7 +4,7 @@ import {
     type HandStateName, type HandArgs,
 } from './hand-states.ts';
 import { StateMachine, type State } from '../../lib/StateMachine.ts';
-import type { MainGame } from './MainGame.ts';
+import type { MainGame } from '../scenes/MainGame.ts';
 import { makeFakeScene, type FakeScene, type FakeTimerEvent } from '../../test/phaser-stubs.ts';
 
 // Regression contract for the hand FSM extraction (stun mechanic + bounce

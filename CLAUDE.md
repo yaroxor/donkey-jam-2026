@@ -65,8 +65,8 @@ Loop: work -> `bunx prettier@3.8.3 --write "**/*.{md,yml,yaml}"` (the runner-pin
 - `src/game/scenes/PauseScene.ts` -- overlay pause
 - `src/game/scenes/Settings.ts` -- volume + dev loot tuner
 - `src/game/scenes/Win.ts` / `GameOver.ts` -- level-end screens
-- `src/game/scenes/dialogue-states.ts` -- FSM substates for dialogue (`IdleState`/`AskingState`/`CooldownState`) and the look-at-table alarm reaction (`LookAtTableState`)
-- `src/game/scenes/hand-states.ts` -- FSM substates for hand (`LeftState`/`RightState`/`UpState`/`DownState`/`StunnedState`)
+- `src/game/states/dialogue-states.ts` -- FSM substates for dialogue (`IdleState`/`AskingState`/`CooldownState`) and the look-at-table alarm reaction (`LookAtTableState`)
+- `src/game/states/hand-states.ts` -- FSM substates for hand (`LeftState`/`RightState`/`UpState`/`DownState`/`StunnedState`)
 - `src/lib/StateMachine.ts` -- generic `StateMachine<Names, Args>` + `State<Names, Args>`
 - `src/lib/utils.ts` -- generic helpers
 - `e2e/` -- Playwright integration tests

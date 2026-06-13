@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AskingState } from './dialogue-states.ts';
-import type { MainGame } from './MainGame.ts';
+import type { MainGame } from '../scenes/MainGame.ts';
 import { makeFakeScene, type FakeScene } from '../../test/phaser-stubs.ts';
 
 // Regression contract for the showAskingUI(onReady) refactor that shipped
