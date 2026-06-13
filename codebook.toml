@@ -35,7 +35,7 @@ words = [
   "crossfade", "substate", "substates", "interactives", "hotspot", "keepout",
   "desync", "desyncing", "jankiness", "liveness", "learnings", "featstun",
   "enrichments", "unmuted", "cheatsheet", "scaffolded", "intra", "downscaled",
-  "unclickable", "eyeballed", "callsite",
+  "unclickable", "eyeballed", "callsite", "affordance", "keypress",
   # acronyms / key clusters
   "aabb", "tbd", "oeu", "asd", "cdp", "heic", "raf", "ieee",
   # tokenizer artifacts: hex colors in prose ("0xaa44ff" -> "xaa"), hyphen
