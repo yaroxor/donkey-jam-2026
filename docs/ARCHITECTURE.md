@@ -67,6 +67,8 @@ Dev-stage controls (e.g., the in-game loot-target tuner) render conditionally on
 
 Canonical example: the loot-tuner row in `src/game/scenes/Settings.ts:113`. Pattern is reusable for any future dev-stage instrument that wants to live next to user-facing UI without polluting the production bundle.
 
+Second instance: the **playtest toggles** in `MainGame` (added 2026-06-13). Keys `1`/`2`/`3` suspend the dialogue/question loop, suspend loot spawning, and hold the look-over reaction sprite on screen (the last freezes the level timer + suspends the first two so a reaction frame can be studied without the 1.5s window or the 60s clock). The key wiring, the on-screen readout, and the gating reads in `update()`/`spawnLoot()` are all behind `import.meta.env.DEV`, so production strips them entirely. Mechanism note: "suspend questions" pauses the dialogue FSM's advance timers (collected in `MainGame.dialogueTimers` by the dialogue states) rather than pausing the whole scene clock — that keeps the hand and physics live while the question loop freezes. Useful precedent for any future "freeze one subsystem" dev affordance.
+
 Original design: `dev-master-design-20260511-183443.md`.
 
 ---

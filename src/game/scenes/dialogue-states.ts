@@ -39,6 +39,7 @@ export class IdleState extends State<DialogueStateName, DialogueArgs> {
         this.timer = scene.time.delayedCall(2000, () => {
             this.stateMachine.transition('asking');
         });
+        scene.dialogueTimers?.push(this.timer);  // DEV suspend-questions registry
     }
 
     // The alarm (progressSus via a wall stun) can yank the FSM out of this
@@ -61,6 +62,7 @@ export class AskingState extends State<DialogueStateName, DialogueArgs> {
         // window length.
         scene.showAskingUI(() => {
             this.timeoutTimer = scene.time.delayedCall(3000, () => this.fail(scene));
+            scene.dialogueTimers?.push(this.timeoutTimer);  // DEV suspend-questions registry
         });
     }
 
@@ -108,6 +110,7 @@ export class CooldownState extends State<DialogueStateName, DialogueArgs> {
         this.timer = scene.time.delayedCall(5000, () => {
             this.stateMachine.transition('asking');
         });
+        scene.dialogueTimers?.push(this.timer);  // DEV suspend-questions registry
     }
 
     // Same stale-timer hazard as IdleState: a stun-triggered alarm during

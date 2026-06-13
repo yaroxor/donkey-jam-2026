@@ -125,6 +125,11 @@ export class MainGame extends Scene
     // and uncancelled stage callbacks would paint dialogue UI into the
     // reaction state (the alarm design's R4 caveat, now reachable).
     askingStagingTimers: Phaser.Time.TimerEvent[];
+    // The dialogue FSM's advance timers (idle->ask, cooldown->ask, ask
+    // timeout->fail), collected so the DEV "suspend questions" toggle can
+    // pause/resume the whole dialogue loop without freezing the hand.
+    // Populated by the dialogue states; reset each level in init().
+    dialogueTimers: Phaser.Time.TimerEvent[];
 
     scales: Phaser.GameObjects.Image[];
     demons: Phaser.GameObjects.Image[];
@@ -151,6 +156,9 @@ export class MainGame extends Scene
     stashSpots: { zone: Phaser.GameObjects.Zone; armed: boolean }[];
 
     lootSprites: Array<string>;
+    // The live loot sprite (only ever 0 or 1 on the table). Tracked so the
+    // DEV "suspend loot" toggle can clear it from the table.
+    currentLoot?: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     lootAmount: number;
     collectedLootCount: number;
     lootMeterCells: Phaser.GameObjects.Rectangle[];
@@ -166,6 +174,19 @@ export class MainGame extends Scene
     levelTimer: Phaser.Time.TimerEvent;
     timerText: Phaser.GameObjects.Text;
     muteBtn: Phaser.GameObjects.Text;
+    // DEV-only playtest controls (wired only under import.meta.env.DEV, so
+    // Vite strips all of this from production). Three toggles: suspend the
+    // dialogue/question loop, suspend loot spawning, and hold the
+    // look-over reaction sprite on screen for layout inspection without
+    // the 1.5s reaction-window clock. See the dev block in create() and
+    // the devToggle* methods.
+    devSuspendDialogue: boolean;
+    devSuspendLoot: boolean;
+    devLookOverHeld: boolean;
+    devKeyQuestions?: Phaser.Input.Keyboard.Key;
+    devKeyLoot?: Phaser.Input.Keyboard.Key;
+    devKeyLookOver?: Phaser.Input.Keyboard.Key;
+    devReadout?: Phaser.GameObjects.Text;
     // True after endLevel() fires once. Guards update() so the same frame
     // can't keep mutating hand direction / scheduling loot respawns / re-
     // reading the cancelled timer after the level is logically over, and
@@ -256,16 +277,23 @@ export class MainGame extends Scene
     }
 
     private spawnLoot() {
+        // DEV: a respawn delayedCall scheduled before "suspend loot" was
+        // toggled on can still fire — drop it here so the table stays clear.
+        if (import.meta.env.DEV && this.devSuspendLoot) {
+            return;
+        }
         const lootPos: Pos = this.getLootRandomPos();
         log.loot(`SPAWNING loot at (${lootPos.x}, ${lootPos.y})`)
         const lootPic = this.lootSprites[Math.floor(Math.random()*4)];
         const loot = this.physics.add.sprite(lootPos.x, lootPos.y, lootPic);
+        this.currentLoot = loot;
         this.physics.add.collider(loot, this.hand, () => {
             // No pickup while hidden — the hand is "in the hole". If a hide
             // froze the hand with its body touching this loot, collect on
             // pop-out (bodies still overlap then) instead of invisibly.
             if (this.handFSM.is('hidden')) return;
             loot.destroy();
+            this.currentLoot = undefined;
             this.lootAmount -= 1;
             this.collectedLootCount += 1;
             if (this.hand.body.velocity.x !== 0) {
@@ -615,8 +643,74 @@ export class MainGame extends Scene
 
     hideLookOver(): void {
         this.lookOverSprite.setVisible(false);
-        // Demon stage sprite comes back via settleAlarm's applySusStage —
-        // the only survive path out of the reaction.
+        // Restore the demon stage sprite for the current sus. Redundant on
+        // the real survive path (settleAlarm already repainted) but it is
+        // what brings the demon back for the DEV look-over-hold toggle,
+        // which has no settle.
+        this.applySusStage(this.currentSus);
+    }
+
+    // ── DEV playtest toggles ────────────────────────────────────────────
+    // Wired only under import.meta.env.DEV (create()); these methods are
+    // dead code in production builds.
+
+    // Suspend / resume the dialogue (question) loop: pause every dialogue
+    // advance timer (idle/cooldown/ask-timeout + the asking-staging
+    // reveal) and gate step() in update(). The hand and loot keep running.
+    private devToggleDialogue(): void {
+        this.devSuspendDialogue = !this.devSuspendDialogue;
+        const paused = this.devSuspendDialogue;
+        for (const t of this.dialogueTimers) t.paused = paused;
+        for (const t of this.askingStagingTimers ?? []) t.paused = paused;
+        log.dialogue(`DEV questions ${paused ? 'SUSPENDED' : 'resumed'}`);
+        this.devRefreshReadout();
+    }
+
+    // Suspend / resume loot: on suspend, clear the live piece and close the
+    // respawn gate (update() + spawnLoot both check the flag); on resume,
+    // reopen the gate so update() respawns next frame.
+    private devToggleLoot(): void {
+        this.devSuspendLoot = !this.devSuspendLoot;
+        if (this.devSuspendLoot) {
+            this.currentLoot?.destroy();
+            this.currentLoot = undefined;
+        } else {
+            this.lootAmount = 0; // reopen the respawn gate
+        }
+        log.loot(`DEV loot ${this.devSuspendLoot ? 'SUSPENDED' : 'resumed'}`);
+        this.devRefreshReadout();
+    }
+
+    // Hold / release the look-over reaction sprite for static layout study.
+    // Holding it suspends questions + loot, freezes the level timer (so the
+    // 60s clock can't fire GameOver mid-inspection), and clears the
+    // dialogue UI so the frame is quiet; releasing reverses all four. The
+    // hand stays drivable (physics isn't on the timer clock) for layering
+    // checks.
+    private devToggleLookOver(): void {
+        this.devLookOverHeld = !this.devLookOverHeld;
+        if (this.devLookOverHeld) {
+            if (!this.devSuspendDialogue) this.devToggleDialogue();
+            if (!this.devSuspendLoot) this.devToggleLoot();
+            this.levelTimer.paused = true;
+            this.hideAskingUI();
+            this.showLookOver();
+        } else {
+            this.hideLookOver();
+            this.levelTimer.paused = false;
+            if (this.devSuspendDialogue) this.devToggleDialogue();
+            if (this.devSuspendLoot) this.devToggleLoot();
+        }
+        log.dialogue(`DEV look-over ${this.devLookOverHeld ? 'HELD' : 'released'}`);
+        this.devRefreshReadout();
+    }
+
+    private devRefreshReadout(): void {
+        this.devReadout?.setText(
+            `DEV  [1] questions ${this.devSuspendDialogue ? 'SUSPENDED' : 'live'}   ` +
+            `[2] loot ${this.devSuspendLoot ? 'SUSPENDED' : 'live'}   ` +
+            `[3] look-over ${this.devLookOverHeld ? 'HELD' : 'off'}`,
+        );
     }
 
     // Post-alarm settle: the WHOLE sus-coupled bundle drops together to
@@ -656,6 +750,11 @@ export class MainGame extends Scene
 
         this.lootAmount = 0;
         this.collectedLootCount = 0;
+
+        this.dialogueTimers = [];
+        this.devSuspendDialogue = false;
+        this.devSuspendLoot = false;
+        this.devLookOverHeld = false;
 
         // Compute effective loot target for this level. The dev-only override
         // (loot tuner row in Settings) is double-gated: must be a DEV build
@@ -933,6 +1032,26 @@ export class MainGame extends Scene
         // state so order within create() doesn't matter, but doing it last
         // matches the "settings are the final word" mental model.
         this.music.setVolume(effectiveVolume(loadSettings(), 'music'));
+
+        // DEV playtest controls. Vite statically drops this whole block from
+        // production builds, so the toggle keys + readout exist only in
+        // `bun run dev`. Keys 1/2/3 toggle question-suspend, loot-suspend,
+        // and look-over-hold (the last is the layout-inspection macro). The
+        // readout (bottom-left) shows live toggle state since in-game timings
+        // are too fast to eyeball.
+        if (import.meta.env.DEV && this.input.keyboard) {
+            const kb = this.input.keyboard;
+            this.devKeyQuestions = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+            this.devKeyLoot = kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+            this.devKeyLookOver = kb.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+            this.devReadout = this.add.text(10, GAME_HEIGHT - 30, '', {
+                fontFamily: 'monospace',
+                fontSize: '16px',
+                color: '#00ff66',
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            }).setDepth(100);
+            this.devRefreshReadout();
+        }
     }
 
     private toggleMute(): void {
@@ -1007,7 +1126,19 @@ export class MainGame extends Scene
             return;
         }
 
-        this.dialogueFSM.step();
+        // DEV playtest toggles (stripped from production by the env gate).
+        if (import.meta.env.DEV) {
+            if (this.devKeyQuestions && Phaser.Input.Keyboard.JustDown(this.devKeyQuestions)) this.devToggleDialogue();
+            if (this.devKeyLoot && Phaser.Input.Keyboard.JustDown(this.devKeyLoot)) this.devToggleLoot();
+            if (this.devKeyLookOver && Phaser.Input.Keyboard.JustDown(this.devKeyLookOver)) this.devToggleLookOver();
+        }
+
+        // DEV "suspend questions" freezes the dialogue loop (its advance
+        // timers are paused in devToggleDialogue; gating step() here also
+        // stops AskingState's keypress poll). The hand FSM keeps running.
+        if (!(import.meta.env.DEV && this.devSuspendDialogue)) {
+            this.dialogueFSM.step();
+        }
         // Purely defensive re-check: since the alarm pass, no synchronous
         // path inside dialogueFSM.step() reaches endLevel anymore (sus 4
         // fires the alarm; the look check's endLevel runs from the clock
@@ -1033,8 +1164,8 @@ export class MainGame extends Scene
         // (rather than flicking to "0:59" at elapsed=0.001s).
         this.timerText.setText(this.formatTime(this.levelTimer.getRemainingSeconds()));
 
-        // Create LOOT
-        if (this.lootAmount === 0) {
+        // Create LOOT (DEV "suspend loot" closes the respawn gate).
+        if (!(import.meta.env.DEV && this.devSuspendLoot) && this.lootAmount === 0) {
             log.loot(`we DONT HAVE any loot in UPDATE`)
             this.lootAmount += 1;
             this.time.delayedCall(1000, () => {
